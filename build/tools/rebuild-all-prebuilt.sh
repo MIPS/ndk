@@ -254,6 +254,9 @@ if [ "$MINGW" != "yes" ] ; then
     fi
 fi
 
+build_toolchain mips-4.3.3
+build_gdbserver mips-4.3.3
+
 if [ "$OPTION_TRY_X86" = "yes" ] ; then
     build_toolchain x86-4.2.1
     build_gdbserver x86-4.2.1

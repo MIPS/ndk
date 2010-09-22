@@ -101,6 +101,9 @@ case "$ABI" in
 arm*)
     ARCH=arm
     ;;
+mips*)
+    ARCH=mips
+    ;;
 *)
     ARCH=$ABI
     ;;

@@ -582,6 +582,11 @@ parse_toolchain_name ()
         # Stick to 6.6 for now. 7.1.x doesn't seem to work right now.
         #GDB_VERSION=7.1.x
         ;;
+    mips-*)
+        ARCH="mips"
+        ABI_INSTALL_NAME="mips"
+        ABI_TOOLCHAIN_PREFIX="mips-linux-gnu"
+        ;;
     x86-*)
         ARCH="x86"
         ABI_INSTALL_NAME="x86"
@@ -606,6 +611,10 @@ parse_toolchain_name ()
     arm-*)
         GDBSERVER_HOST=arm-eabi-linux
         GDBSERVER_CFLAGS="-fno-short-enums"
+        ;;
+    mips-*)
+        GDBSERVER_HOST=mips-linux-gnu
+        GDBSERVER_CFLAGS=
         ;;
     x86-*)
         GDBSERVER_HOST=i686-android-linux-gnu
