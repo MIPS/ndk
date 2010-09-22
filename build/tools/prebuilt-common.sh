@@ -381,6 +381,12 @@ parse_toolchain_name ()
         ABI_TOOLCHAIN_PREFIX="arm-eabi"
         ABI_CONFIGURE_HOST="arm-eabi-linux"
         ;;
+    mips-*)
+        ARCH="mips"
+        ABI_INSTALL_NAME="mips"
+        ABI_TOOLCHAIN_PREFIX="mips-linux-gnu"
+        ABI_CONFIGURE_HOST="mips-linux-gnu"
+        ;;
     x86-*)
         ARCH="x86"
         ABI_INSTALL_NAME="x86"
