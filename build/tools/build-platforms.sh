@@ -93,7 +93,7 @@ test_reverse_path foo/bar/zoo/ ../../..
 SRCDIR="../development/ndk"
 DSTDIR="$ANDROID_NDK_ROOT"
 
-ABIS="arm"
+ABIS="arm mips"
 PLATFORMS=`extract_platforms_from "$SRCDIR"`
 
 OPTION_HELP=no
