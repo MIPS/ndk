@@ -328,6 +328,7 @@ $(foreach tc,$(NDK_ALL_TOOLCHAINS),\
 # the official NDK release packages still place them under the old
 # location for now, so deal with this here
 #
+$(info determinig NDK_PLATFORMS_ROOT)  
 NDK_PLATFORMS_ROOT := $(strip $(NDK_PLATFORMS_ROOT))
 ifndef NDK_PLATFORMS_ROOT
     NDK_PLATFORMS_ROOT := $(strip $(wildcard $(NDK_ROOT)/platforms))
@@ -353,6 +354,7 @@ else
         $(call __ndk_error,Aborting)
     endif
 endif
+$(info NDK_PLATFORMS_ROOT=$(NDK_PLATFORMS_ROOT))  
 
 NDK_ALL_PLATFORMS := $(strip $(notdir $(wildcard $(NDK_PLATFORMS_ROOT)/android-*)))
 $(call ndk_log,Found supported platforms: $(NDK_ALL_PLATFORMS))

@@ -22,6 +22,7 @@ $(call ndk_log,Building application '$(NDK_APP_NAME)' for ABI '$(TARGET_ARCH_ABI
 TARGET_ARCH_for_armeabi     := arm
 TARGET_ARCH_for_armeabi-v7a := arm
 TARGET_ARCH_for_x86         := x86
+TARGET_ARCH_for_mips        := mips
 
 TARGET_ARCH := $(TARGET_ARCH_for_$(TARGET_ARCH_ABI))
 

@@ -594,7 +594,7 @@ parse_toolchain_name ()
         PLATFORM=android-5
         ;;
     * )
-        echo "Invalid toolchain specified. Expected (arm-eabi-*|x86-*)"
+        echo "Invalid toolchain specified. Expected (arm-eabi-*|mips-*|x86-*)"
         echo ""
         print_help
         exit 1
