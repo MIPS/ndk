@@ -20,6 +20,7 @@
 # Detect the NDK installation path by processing this Makefile's location.
 # This assumes we are located under $NDK_ROOT/build/core/main.mk
 #
+$(info NDK_ROOT=$(NDK_ROOT))
 NDK_ROOT := $(dir $(lastword $(MAKEFILE_LIST)))
 NDK_ROOT := $(strip $(NDK_ROOT:%build/core/=%))
 NDK_ROOT := $(NDK_ROOT:%/=%)
@@ -35,8 +36,9 @@ ifneq ($(words $(NDK_ROOT)),1)
     $(info Android NDK: Please re-install to a different location to fix the issue !)
     $(error Aborting.)
 endif
-
+$(info NDK_ROOT=$(NDK_ROOT))
 include $(NDK_ROOT)/build/core/init.mk
+$(info Finished include of init.mk)
 
 # ====================================================================
 #
@@ -49,6 +51,7 @@ include $(NDK_ROOT)/build/core/init.mk
 #
 # ====================================================================
 
+$(info calling find-project-dir-inner) 
 find-project-dir = $(strip $(call find-project-dir-inner,$1,$2))
 
 find-project-dir-inner = \
@@ -71,6 +74,7 @@ find-project-dir-inner-2 = \
             $(call find-project-dir-inner-2)\
         )\
     )
+$(info NDK_PROJECT_PATH=$(NDK_PROJECT_PATH)) 
 
 NDK_PROJECT_PATH := $(strip $(NDK_PROJECT_PATH))
 ifndef NDK_PROJECT_PATH

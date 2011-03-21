@@ -27,7 +27,8 @@ make scripts."
 force_32bit_binaries
 
 # For now, this is the only toolchain that works reliably.
-TOOLCHAIN_NAME=arm-linux-androideabi-4.4.3
+
+XXX TOOLCHAIN_NAME=arm-linux-androideabi-4.4.3
 register_var_option "--toolchain=<name>" TOOLCHAIN_NAME "Specify toolchain name"
 
 NDK_DIR=`dirname $0`
@@ -80,9 +81,12 @@ case "$TOOLCHAIN_NAME" in
     x86-*)
         ARCH=x86
         ;;
+    mips-*)
+        ARCH=mips
+        ;;
     *)
         echo "Unsupported toolchain name: $TOOLCHAIN_NAME"
-        echo "Name must start with arm- or x86- !"
+        echo "Name must start with arm-, mips- or x86- !"
         exit 1
         ;;
 esac
