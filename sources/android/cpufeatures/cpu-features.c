@@ -358,6 +358,10 @@ android_cpuInit(void)
 #ifdef __i386__
     g_cpuFamily = ANDROID_CPU_FAMILY_X86;
 #endif
+
+#ifdef _MIPS_ARCH
+    g_cpuFamily = ANDROID_CPU_FAMILY_MIPS;
+#endif /* _MIPS_ARCH */
 }
 
 
