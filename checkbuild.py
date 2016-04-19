@@ -22,15 +22,20 @@ build goals, and invokes the build scripts.
 from __future__ import print_function
 
 import argparse
+import atexit
 import collections
 import inspect
+import multiprocessing
 import os
 import shutil
+import signal
 import site
 import subprocess
 import sys
 import tempfile
 import textwrap
+import time
+import traceback
 
 import config
 
@@ -79,6 +84,11 @@ class ArgParser(argparse.ArgumentParser):
             '--arch',
             choices=('arm', 'arm64', 'mips', 'mips64', 'x86', 'x86_64'),
             help='Build for the given architecture. Build all by default.')
+        self.add_argument(
+            '-j', '--jobs', type=int,
+            help=('Number of parallel builds to run. Note that this will not '
+                  'affect the -j used for make; this just parallelizes '
+                  'checkbuild.py. Defaults to the number of CPUs available.'))
 
         package_group = self.add_mutually_exclusive_group()
         package_group.add_argument(
@@ -598,7 +608,31 @@ def build_libcxxabi(_out_dir, dist_dir, _args):
     build_support.make_package('libcxxabi', path, dist_dir)
 
 
+def launch_build(build_name, build_func, out_dir, dist_dir, args):
+    log_dir = os.path.join(dist_dir, 'logs')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
+    log_path = os.path.join(log_dir, build_name)
+    tee = subprocess.Popen(["tee", log_path], stdin=subprocess.PIPE)
+    try:
+        os.dup2(tee.stdin.fileno(), sys.stdout.fileno())
+        os.dup2(tee.stdin.fileno(), sys.stderr.fileno())
+
+        try:
+            build_func(out_dir, dist_dir, args)
+            return build_name, True, log_path
+        except Exception:  # pylint: disable=bare-except
+            traceback.print_exc()
+            return build_name, False, log_path
+    finally:
+        tee.terminate()
+        tee.wait()
+
+
 def main():
+    os.setpgrp()
+
     parser = ArgParser()
     args = parser.parse_args()
 
@@ -677,8 +711,36 @@ def main():
     ])
 
     print('Building modules: {}'.format(' '.join(modules)))
-    for module in modules:
-        module_builds[module](out_dir, dist_dir, args)
+    pool = multiprocessing.Pool(processes=args.jobs)
+
+    def kill_all_children():
+        pool.terminate()
+        pool.join()
+
+        # Subprocesses of the pool workers will not be killed by terminate.
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        os.kill(0, signal.SIGINT)
+
+    atexit.register(kill_all_children)
+    jobs = []
+    for name, build_func in module_builds.iteritems():
+        if name in modules:
+            jobs.append(pool.apply_async(
+                launch_build, (name, build_func, out_dir, dist_dir, args)))
+
+    while len(jobs) > 0:
+        for i, job in enumerate(jobs):
+            if job.ready():
+                build_name, result, log_path = job.get()
+                if result:
+                    print('BUILD SUCCESSFUL: ' + build_name)
+                else:
+                    print('BUILD FAILED: ' + build_name)
+                    with open(log_path, 'r') as log_file:
+                        print(log_file.read())
+                    sys.exit(1)
+                del jobs[i]
+        time.sleep(1)
 
     if do_package:
         package_ndk(out_dir, dist_dir, args)
