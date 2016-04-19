@@ -631,7 +631,11 @@ def launch_build(build_name, build_func, out_dir, dist_dir, args):
 
 
 def main():
-    os.setpgrp()
+    # It seems the build servers run us in our own session, in which case we
+    # get EPERM from `setpgrp`. No need to call this in that case because we
+    # will already be the process group leader.
+    if os.getpid() != os.getsid(os.getpid()):
+        os.setpgrp()
 
     parser = ArgParser()
     args = parser.parse_args()
