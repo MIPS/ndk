@@ -82,15 +82,15 @@ Prerequisites
 * [AOSP NDK Repository](http://source.android.com/source/downloading.html)
     * Check out the branch `master-ndk`
 
-        ```bash
-        repo init -u https://android.googlesource.com/platform/manifest \
-            -b master-ndk
+      ```bash
+      repo init -u https://android.googlesource.com/platform/manifest \
+          -b master-ndk
 
-        # Googlers, use
-        repo init -u \
-            persistent-https://android.git.corp.google.com/platform/manifest \
-            -b master-ndk
-        ```
+      # Googlers, use
+      repo init -u \
+          persistent-https://android.git.corp.google.com/platform/manifest \
+          -b master-ndk
+      ```
 
 * Additional Linux Dependencies (available from apt):
     * bison
