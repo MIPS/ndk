@@ -271,11 +271,7 @@ build_gnustl_for_abi ()
         #LDFLAGS=$LDFLAGS" -lsupc++"
     fi
 
-    if [ "$ARCH" = "x86_64" -o "$ARCH" = "mips64" -o "$ARCH" = "mips" ] ; then
-        MULTILIB_FLAGS=
-    else
-        MULTILIB_FLAGS=--disable-multilib
-    fi
+    MULTILIB_FLAGS=--disable-multilib
 
     INCLUDE_VERSION=`cat $GNUSTL_SRCDIR/../gcc/BASE-VER`
     PROJECT="gnustl_$LIBTYPE gcc-$GCC_VERSION $ABI $THUMB"
@@ -341,26 +337,9 @@ copy_gnustl_libs ()
 
     # Copy the ABI-specific headers
     copy_directory "$SDIR/include/c++/$INCLUDE_VERSION/$PREFIX/bits" "$DDIR/libs/$ABI/include/bits"
-    case "$ARCH" in
-        x86_64)
-            copy_directory "$SDIR/include/c++/$INCLUDE_VERSION/$PREFIX/32/bits" "$DDIR/libs/$ABI/include/32/bits"
-            copy_directory "$SDIR/include/c++/$INCLUDE_VERSION/$PREFIX/x32/bits" "$DDIR/libs/$ABI/include/x32/bits"
-            ;;
-        mips64)
-            copy_directory "$SDIR/include/c++/$INCLUDE_VERSION/$PREFIX/32/mips-r1/bits" "$DDIR/libs/$ABI/include/32/mips-r1/bits"
-            copy_directory "$SDIR/include/c++/$INCLUDE_VERSION/$PREFIX/32/mips-r2/bits" "$DDIR/libs/$ABI/include/32/mips-r2/bits"
-            copy_directory "$SDIR/include/c++/$INCLUDE_VERSION/$PREFIX/32/mips-r6/bits" "$DDIR/libs/$ABI/include/32/mips-r6/bits"
-            ;;
-        mips)
-            copy_directory "$SDIR/include/c++/$INCLUDE_VERSION/$PREFIX/mips-r2/bits" "$DDIR/libs/$ABI/include/mips-r2/bits"
-            copy_directory "$SDIR/include/c++/$INCLUDE_VERSION/$PREFIX/mips-r6/bits" "$DDIR/libs/$ABI/include/mips-r6/bits"
-            ;;
-    esac
 
     LDIR=lib
-    if [ "$ABI" = "mips32r6" ]; then
-        LDIR=libr6
-    elif [ "$ARCH" != "${ARCH%%64*}" ]; then
+    if [ "$ARCH" != "${ARCH%%64*}" ]; then
         #Can't call $(get_default_libdir_for_arch $ARCH) which contain hack for arm64
         LDIR=lib64
     fi
@@ -368,38 +347,9 @@ copy_gnustl_libs ()
     # Copy the ABI-specific libraries
     # Note: the shared library name is libgnustl_shared.so due our custom toolchain patch
     copy_file_list "$SDIR/$LDIR" "$DDIR/libs/$ABI" libsupc++.a libgnustl_shared.so
+
     # Note: we need to rename libgnustl_shared.a to libgnustl_static.a
     cp "$SDIR/$LDIR/libgnustl_shared.a" "$DDIR/libs/$ABI/libgnustl_static.a"
-    case "$ARCH" in
-       # for multilib we copy full set. Keep native libs in $ABI dir for compatibility.
-       # TODO: remove it in $ABI top directory
-        x86_64)
-            copy_file_list "$SDIR/lib" "$DDIR/libs/$ABI/lib" libsupc++.a libgnustl_shared.so
-            copy_file_list "$SDIR/lib64" "$DDIR/libs/$ABI/lib64" libsupc++.a libgnustl_shared.so
-            copy_file_list "$SDIR/libx32" "$DDIR/libs/$ABI/libx32" libsupc++.a libgnustl_shared.so
-            cp "$SDIR/lib/libgnustl_shared.a" "$DDIR/libs/$ABI/lib/libgnustl_static.a"
-            cp "$SDIR/lib64/libgnustl_shared.a" "$DDIR/libs/$ABI/lib64/libgnustl_static.a"
-            cp "$SDIR/libx32/libgnustl_shared.a" "$DDIR/libs/$ABI/libx32/libgnustl_static.a"
-            ;;
-        mips64)
-            copy_file_list "$SDIR/lib" "$DDIR/libs/$ABI/lib" libsupc++.a libgnustl_shared.so
-            copy_file_list "$SDIR/libr2" "$DDIR/libs/$ABI/libr2" libsupc++.a libgnustl_shared.so
-            copy_file_list "$SDIR/libr6" "$DDIR/libs/$ABI/libr6" libsupc++.a libgnustl_shared.so
-            copy_file_list "$SDIR/lib64" "$DDIR/libs/$ABI/lib64" libsupc++.a libgnustl_shared.so
-            cp "$SDIR/lib/libgnustl_shared.a" "$DDIR/libs/$ABI/lib/libgnustl_static.a"
-            cp "$SDIR/libr2/libgnustl_shared.a" "$DDIR/libs/$ABI/libr2/libgnustl_static.a"
-            cp "$SDIR/libr6/libgnustl_shared.a" "$DDIR/libs/$ABI/libr6/libgnustl_static.a"
-            cp "$SDIR/lib64/libgnustl_shared.a" "$DDIR/libs/$ABI/lib64/libgnustl_static.a"
-            ;;
-        mips)
-            copy_file_list "$SDIR/lib" "$DDIR/libs/$ABI/lib" libsupc++.a libgnustl_shared.so
-            copy_file_list "$SDIR/libr2" "$DDIR/libs/$ABI/libr2" libsupc++.a libgnustl_shared.so
-            copy_file_list "$SDIR/libr6" "$DDIR/libs/$ABI/libr6" libsupc++.a libgnustl_shared.so
-            cp "$SDIR/lib/libgnustl_shared.a" "$DDIR/libs/$ABI/lib/libgnustl_static.a"
-            cp "$SDIR/libr2/libgnustl_shared.a" "$DDIR/libs/$ABI/libr2/libgnustl_static.a"
-            cp "$SDIR/libr6/libgnustl_shared.a" "$DDIR/libs/$ABI/libr6/libgnustl_static.a"
-            ;;
-    esac
 
     if [ -d "$SDIR/thumb" ] ; then
         copy_file_list "$SDIR/thumb/$LDIR" "$DDIR/libs/$ABI/thumb" libsupc++.a libgnustl_shared.so
