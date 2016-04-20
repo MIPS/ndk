@@ -608,11 +608,7 @@ def build_libcxxabi(_out_dir, dist_dir, _args):
     build_support.make_package('libcxxabi', path, dist_dir)
 
 
-def launch_build(build_name, build_func, out_dir, dist_dir, args):
-    log_dir = os.path.join(dist_dir, 'logs')
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-
+def launch_build(build_name, build_func, out_dir, dist_dir, args, log_dir):
     log_path = os.path.join(log_dir, build_name)
     tee = subprocess.Popen(["tee", log_path], stdin=subprocess.PIPE)
     try:
@@ -725,12 +721,17 @@ def main():
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         os.kill(0, signal.SIGINT)
 
+    log_dir = os.path.join(dist_dir, 'logs')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
     atexit.register(kill_all_children)
     jobs = []
     for name, build_func in module_builds.iteritems():
         if name in modules:
             jobs.append(pool.apply_async(
-                launch_build, (name, build_func, out_dir, dist_dir, args)))
+                launch_build,
+                (name, build_func, out_dir, dist_dir, args, log_dir)))
 
     while len(jobs) > 0:
         for i, job in enumerate(jobs):
