@@ -103,8 +103,8 @@ Prerequisites
     * python-lxml (used for Vulkan validation layer generation)
 * Mac OS X also requires Xcode.
 
-Host/Target prebuilts
----------------------
+Building the NDK
+----------------
 
 ### For Linux or Darwin:
 
