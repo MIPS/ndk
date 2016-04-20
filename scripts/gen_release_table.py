@@ -94,7 +94,7 @@ def main():
     print('    <th>SHA1 Checksum</th>')
     print('  </tr>')
     for host, package, size, sha in artifacts:
-        url_base = 'http://dl.google.com/android/repository/'
+        url_base = 'https://dl.google.com/android/repository/'
         package_url = url_base + package
         link = '<a href="{}">{}</a>'.format(package_url, package)
 
