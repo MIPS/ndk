@@ -24,6 +24,7 @@ from __future__ import print_function
 import argparse
 import atexit
 import collections
+import datetime
 import inspect
 import multiprocessing
 import os
@@ -35,6 +36,7 @@ import sys
 import tempfile
 import textwrap
 import time
+import timeit
 import traceback
 
 import config
@@ -626,7 +628,33 @@ def launch_build(build_name, build_func, out_dir, dist_dir, args, log_dir):
         tee.wait()
 
 
+class Timer(object):
+    def __init__(self):
+        self.start_time = None
+        self.end_time = None
+        self.duration = None
+
+    def start(self):
+        self.start_time = timeit.default_timer()
+
+    def finish(self):
+        self.end_time = timeit.default_timer()
+
+        # Not interested in partial seconds at this scale.
+        seconds = int(self.end_time - self.start_time)
+        self.duration = datetime.timedelta(seconds=seconds)
+
+    def __enter__(self):
+        self.start()
+
+    def __exit__(self, _exc_type, _exc_value, _traceback):
+        self.finish()
+
+
 def main():
+    total_timer = Timer()
+    total_timer.start()
+
     # It seems the build servers run us in our own session, in which case we
     # get EPERM from `setpgrp`. No need to call this in that case because we
     # will already be the process group leader.
@@ -713,6 +741,10 @@ def main():
     print('Building modules: {}'.format(' '.join(modules)))
     pool = multiprocessing.Pool(processes=args.jobs)
 
+    log_dir = os.path.join(dist_dir, 'logs')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
     def kill_all_children():
         pool.terminate()
         pool.join()
@@ -721,38 +753,52 @@ def main():
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         os.kill(0, signal.SIGINT)
 
-    log_dir = os.path.join(dist_dir, 'logs')
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-
     atexit.register(kill_all_children)
-    jobs = []
-    for name, build_func in module_builds.iteritems():
-        if name in modules:
-            jobs.append(pool.apply_async(
-                launch_build,
-                (name, build_func, out_dir, dist_dir, args, log_dir)))
 
-    while len(jobs) > 0:
-        for i, job in enumerate(jobs):
-            if job.ready():
-                build_name, result, log_path = job.get()
-                if result:
-                    print('BUILD SUCCESSFUL: ' + build_name)
-                else:
-                    print('BUILD FAILED: ' + build_name)
-                    with open(log_path, 'r') as log_file:
-                        print(log_file.read())
-                    sys.exit(1)
-                del jobs[i]
-        time.sleep(1)
+    build_timer = Timer()
+    with build_timer:
+        jobs = []
+        for name, build_func in module_builds.iteritems():
+            if name in modules:
+                jobs.append(pool.apply_async(
+                    launch_build,
+                    (name, build_func, out_dir, dist_dir, args, log_dir)))
 
-    if do_package:
-        package_ndk(out_dir, dist_dir, args)
+        while len(jobs) > 0:
+            for i, job in enumerate(jobs):
+                if job.ready():
+                    build_name, result, log_path = job.get()
+                    if result:
+                        print('BUILD SUCCESSFUL: ' + build_name)
+                    else:
+                        print('BUILD FAILED: ' + build_name)
+                        with open(log_path, 'r') as log_file:
+                            print(log_file.read())
+                        sys.exit(1)
+                    del jobs[i]
+            time.sleep(1)
 
-    if args.test:
-        result = test_ndk(out_dir, args)
-        sys.exit(0 if result else 1)
+    package_timer = Timer()
+    with package_timer:
+        if do_package:
+            package_ndk(out_dir, dist_dir, args)
+
+    good = True
+    test_timer = Timer()
+    with test_timer:
+        if args.test:
+            good = test_ndk(out_dir, args)
+            print()  # Blank line between test results and timing data.
+
+    total_timer.finish()
+
+    print('Finished {}'.format('successfully' if good else 'unsuccessfully'))
+    print('Build: {}'.format(build_timer.duration))
+    print('Packaging: {}'.format(package_timer.duration))
+    print('Testing: {}'.format(test_timer.duration))
+    print('Total: {}'.format(total_timer.duration))
+
+    sys.exit(not good)
 
 
 if __name__ == '__main__':
