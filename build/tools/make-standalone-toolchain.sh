@@ -530,47 +530,19 @@ copy_stl_libs_for_abi () {
 
     case $ABI in
         armeabi)
-            copy_stl_libs armeabi          "bits"                "bits"
-            copy_stl_libs armeabi          "thumb/bits"          "bits"       "/thumb"
+            copy_stl_libs armeabi "bits" "bits"
+            copy_stl_libs armeabi "thumb/bits" "bits" "/thumb"
             ;;
         armeabi-v7a)
-            copy_stl_libs armeabi-v7a      "armv7-a/bits"        "bits"       "armv7-a"
-            copy_stl_libs armeabi-v7a      "armv7-a/thumb/bits"  "bits"       "armv7-a/thumb"
+            copy_stl_libs armeabi-v7a "armv7-a/bits" "bits" "armv7-a"
+            copy_stl_libs armeabi-v7a "armv7-a/thumb/bits" "bits" "armv7-a/thumb"
             ;;
         armeabi-v7a-hard)
-            copy_stl_libs armeabi-v7a-hard ""                    ""           "armv7-a/hard"       "."
-            copy_stl_libs armeabi-v7a-hard ""                    ""           "armv7-a/thumb/hard" "thumb"
-            ;;
-        x86_64)
-            if [ "$STL" = "gnustl" ]; then
-                copy_stl_libs x86_64       "32/bits"             "32/bits"    ""                   "lib"
-                copy_stl_libs x86_64       "bits"                "bits"       "../lib64"           "lib64"
-                copy_stl_libs x86_64       "x32/bits"            "x32/bits"   "../libx32"          "libx32"
-            else
-                copy_stl_libs x86_64       ""                    ""           "../lib64"           "."
-            fi
-            ;;
-        mips64)
-            if [ "$STL" = "gnustl" ]; then
-                copy_stl_libs mips64       "32/mips-r1/bits"     "32/mips-r1/bits"  ""             "lib"
-                copy_stl_libs mips64       "32/mips-r2/bits"     "32/mips-r2/bits"  "../libr2"     "libr2"
-                copy_stl_libs mips64       "32/mips-r6/bits"     "32/mips-r6/bits"  "../libr6"     "libr6"
-                copy_stl_libs mips64       "bits"                "bits"             "../lib64"     "lib64"
-            else
-                copy_stl_libs mips64       ""                    ""                 "../lib64"     "."
-            fi
-            ;;
-        mips|mips32r6)
-            if [ "$STL" = "gnustl" ]; then
-                copy_stl_libs mips         "bits"                "bits"             "../lib"       "lib"
-                copy_stl_libs mips         "mips-r2/bits"        "mips-r2/bits"     "../libr2"     "libr2"
-                copy_stl_libs mips         "mips-r6/bits"        "mips-r6/bits"     "../libr6"     "libr6"
-            else
-                copy_stl_libs mips         "bits"                "bits"
-            fi
+            copy_stl_libs armeabi-v7a-hard "" "" "armv7-a/hard"       "."
+            copy_stl_libs armeabi-v7a-hard "" "" "armv7-a/thumb/hard" "thumb"
             ;;
         *)
-            copy_stl_libs "$ABI"           "bits"                "bits"
+            copy_stl_libs "$ABI" "bits" "bits"
             ;;
     esac
 }
