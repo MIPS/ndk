@@ -18,6 +18,7 @@
 from __future__ import print_function
 
 import argparse
+import distutils.spawn  # For find_executable.
 import ntpath
 import os
 import shutil
@@ -29,10 +30,10 @@ import tempfile
 import zipfile
 
 site.addsitedir(os.path.join(os.path.dirname(__file__), '../..'))
-import config  # pylint: disable=import-error
+import config  # noqa pylint: disable=import-error
 
 site.addsitedir(os.path.join(os.path.dirname(__file__), '../lib'))
-import build_support  # pylint: disable=import-error
+import build_support  # noqa pylint: disable=import-error
 
 
 THIS_DIR = os.path.dirname(__file__)
@@ -254,7 +255,10 @@ def make_package(build_number, package_dir, packages, host, out_dir, temp_dir):
     extract_dir = os.path.join(temp_dir, release_name)
     if os.path.exists(extract_dir):
         shutil.rmtree(extract_dir)
-    extract_all(package_dir, packages, extract_dir)
+
+    extract_timer = build_support.Timer()
+    with extract_timer:
+        extract_all(package_dir, packages, extract_dir)
     make_shortcuts(extract_dir, host)
     make_source_properties(extract_dir, build_number)
     copy_changelog(extract_dir)
@@ -265,15 +269,27 @@ def make_package(build_number, package_dir, packages, host, out_dir, temp_dir):
     print('Packaging ' + package_name)
     files = os.path.relpath(extract_dir, temp_dir)
 
-    if host.startswith('windows'):
-        _make_zip_package(package_path, temp_dir, files)
-    else:
-        _make_tar_package(package_path, temp_dir, files)
+    package_timer = build_support.Timer()
+    with package_timer:
+        if host.startswith('windows'):
+            _make_zip_package(package_path, temp_dir, files)
+        else:
+            _make_tar_package(package_path, temp_dir, files)
+
+    print('Extracting took {}'.format(extract_timer.duration))
+    print('Packaging took {}'.format(package_timer.duration))
 
 
 def _make_tar_package(package_path, base_dir, files):
-    subprocess.check_call(
-        ['tar', 'cjf', package_path + '.tar.bz2', '-C', base_dir, files])
+    has_pbzip2 = distutils.spawn.find_executable('pbzip2') is not None
+    if has_pbzip2:
+        compress_arg = '--use-compress-prog=pbzip2'
+    else:
+        compress_arg = '-j'
+
+    cmd = ['tar', compress_arg, '-cf',
+           package_path + '.tar.bz2', '-C', base_dir, files]
+    subprocess.check_call(cmd)
 
 
 def _make_zip_package(package_path, base_dir, files):
