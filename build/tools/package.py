@@ -18,6 +18,7 @@
 from __future__ import print_function
 
 import argparse
+import distutils.spawn  # For find_executable.
 import ntpath
 import os
 import shutil
@@ -29,10 +30,10 @@ import tempfile
 import zipfile
 
 site.addsitedir(os.path.join(os.path.dirname(__file__), '../..'))
-import config  # pylint: disable=import-error
+import config  # noqa pylint: disable=import-error
 
 site.addsitedir(os.path.join(os.path.dirname(__file__), '../lib'))
-import build_support  # pylint: disable=import-error
+import build_support  # noqa pylint: disable=import-error
 
 
 THIS_DIR = os.path.dirname(__file__)
@@ -280,8 +281,15 @@ def make_package(build_number, package_dir, packages, host, out_dir, temp_dir):
 
 
 def _make_tar_package(package_path, base_dir, files):
-    subprocess.check_call(
-        ['tar', 'cjf', package_path + '.tar.bz2', '-C', base_dir, files])
+    has_pbzip2 = distutils.spawn.find_executable('pbzip2') is not None
+    if has_pbzip2:
+        compress_arg = '--use-compress-prog=pbzip2'
+    else:
+        compress_arg = '-j'
+
+    cmd = ['tar', compress_arg, '-cf',
+           package_path + '.tar.bz2', '-C', base_dir, files]
+    subprocess.check_call(cmd)
 
 
 def _make_zip_package(package_path, base_dir, files):
