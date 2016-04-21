@@ -254,7 +254,10 @@ def make_package(build_number, package_dir, packages, host, out_dir, temp_dir):
     extract_dir = os.path.join(temp_dir, release_name)
     if os.path.exists(extract_dir):
         shutil.rmtree(extract_dir)
-    extract_all(package_dir, packages, extract_dir)
+
+    extract_timer = build_support.Timer()
+    with extract_timer:
+        extract_all(package_dir, packages, extract_dir)
     make_shortcuts(extract_dir, host)
     make_source_properties(extract_dir, build_number)
     copy_changelog(extract_dir)
@@ -265,10 +268,15 @@ def make_package(build_number, package_dir, packages, host, out_dir, temp_dir):
     print('Packaging ' + package_name)
     files = os.path.relpath(extract_dir, temp_dir)
 
-    if host.startswith('windows'):
-        _make_zip_package(package_path, temp_dir, files)
-    else:
-        _make_tar_package(package_path, temp_dir, files)
+    package_timer = build_support.Timer()
+    with package_timer:
+        if host.startswith('windows'):
+            _make_zip_package(package_path, temp_dir, files)
+        else:
+            _make_tar_package(package_path, temp_dir, files)
+
+    print('Extracting took {}'.format(extract_timer.duration))
+    print('Packaging took {}'.format(package_timer.duration))
 
 
 def _make_tar_package(package_path, base_dir, files):

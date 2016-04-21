@@ -24,7 +24,6 @@ from __future__ import print_function
 import argparse
 import atexit
 import collections
-import datetime
 import inspect
 import multiprocessing
 import os
@@ -36,7 +35,6 @@ import sys
 import tempfile
 import textwrap
 import time
-import timeit
 import traceback
 
 import config
@@ -628,31 +626,8 @@ def launch_build(build_name, build_func, out_dir, dist_dir, args, log_dir):
         tee.wait()
 
 
-class Timer(object):
-    def __init__(self):
-        self.start_time = None
-        self.end_time = None
-        self.duration = None
-
-    def start(self):
-        self.start_time = timeit.default_timer()
-
-    def finish(self):
-        self.end_time = timeit.default_timer()
-
-        # Not interested in partial seconds at this scale.
-        seconds = int(self.end_time - self.start_time)
-        self.duration = datetime.timedelta(seconds=seconds)
-
-    def __enter__(self):
-        self.start()
-
-    def __exit__(self, _exc_type, _exc_value, _traceback):
-        self.finish()
-
-
 def main():
-    total_timer = Timer()
+    total_timer = build_support.Timer()
     total_timer.start()
 
     # It seems the build servers run us in our own session, in which case we
@@ -755,7 +730,7 @@ def main():
 
     atexit.register(kill_all_children)
 
-    build_timer = Timer()
+    build_timer = build_support.Timer()
     with build_timer:
         jobs = []
         for name, build_func in module_builds.iteritems():
@@ -778,13 +753,13 @@ def main():
                     del jobs[i]
             time.sleep(1)
 
-    package_timer = Timer()
+    package_timer = build_support.Timer()
     with package_timer:
         if do_package:
             package_ndk(out_dir, dist_dir, args)
 
     good = True
-    test_timer = Timer()
+    test_timer = build_support.Timer()
     with test_timer:
         if args.test:
             good = test_ndk(out_dir, args)
