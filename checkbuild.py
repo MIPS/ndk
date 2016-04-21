@@ -41,13 +41,13 @@ import config
 
 site.addsitedir(os.path.join(os.path.dirname(__file__), 'build/lib'))
 
-import build_support  # pylint: disable=import-error
+import build_support  # noqa pylint: disable=import-error
 
 # Importing tests.runners requires that adb can be imported.
 site.addsitedir(build_support.android_path('development/python-packages'))
 
-import tests.runners
-import tests.printers
+import tests.runners  # noqa
+import tests.printers  # noqa
 
 
 ALL_MODULES = {
