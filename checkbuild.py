@@ -714,6 +714,7 @@ def main():
     ])
 
     print('Building modules: {}'.format(' '.join(modules)))
+    print('Machine has {} CPUs'.format(multiprocessing.cpu_count()))
     pool = multiprocessing.Pool(processes=args.jobs)
 
     log_dir = os.path.join(dist_dir, 'logs')
