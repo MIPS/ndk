@@ -19,6 +19,7 @@
 Cleans old build artifacts, configures the required environment, determines
 build goals, and invokes the build scripts.
 """
+from __future__ import absolute_import
 from __future__ import print_function
 
 import argparse
@@ -38,16 +39,7 @@ import time
 import traceback
 
 import config
-
-site.addsitedir(os.path.join(os.path.dirname(__file__), 'build/lib'))
-
-import build_support  # noqa pylint: disable=import-error
-
-# Importing tests.runners requires that adb can be imported.
-site.addsitedir(build_support.android_path('development/python-packages'))
-
-import tests.runners  # noqa
-import tests.printers  # noqa
+import build.lib.build_support as build_support
 
 
 ALL_MODULES = {
@@ -176,6 +168,10 @@ def test_ndk(out_dir, args):
 
     use_color = sys.stdin.isatty() and os.name != 'nt'
     results = collections.OrderedDict()
+
+    site.addsitedir(os.path.join(test_dir, 'python-packages'))
+    import tests.runners
+    import tests.printers
 
     for abi in abis:
         test_out_dir = os.path.join(out_dir, 'test', abi)
