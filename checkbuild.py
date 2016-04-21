@@ -41,13 +41,13 @@ import config
 
 site.addsitedir(os.path.join(os.path.dirname(__file__), 'build/lib'))
 
-import build_support  # pylint: disable=import-error
+import build_support  # noqa pylint: disable=import-error
 
 # Importing tests.runners requires that adb can be imported.
 site.addsitedir(build_support.android_path('development/python-packages'))
 
-import tests.runners
-import tests.printers
+import tests.runners  # noqa
+import tests.printers  # noqa
 
 
 ALL_MODULES = {
@@ -627,6 +627,9 @@ def launch_build(build_name, build_func, out_dir, dist_dir, args, log_dir):
 
 
 def main():
+    total_timer = build_support.Timer()
+    total_timer.start()
+
     # It seems the build servers run us in our own session, in which case we
     # get EPERM from `setpgrp`. No need to call this in that case because we
     # will already be the process group leader.
@@ -711,7 +714,12 @@ def main():
     ])
 
     print('Building modules: {}'.format(' '.join(modules)))
+    print('Machine has {} CPUs'.format(multiprocessing.cpu_count()))
     pool = multiprocessing.Pool(processes=args.jobs)
+
+    log_dir = os.path.join(dist_dir, 'logs')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
 
     def kill_all_children():
         pool.terminate()
@@ -721,38 +729,52 @@ def main():
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         os.kill(0, signal.SIGINT)
 
-    log_dir = os.path.join(dist_dir, 'logs')
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-
     atexit.register(kill_all_children)
-    jobs = []
-    for name, build_func in module_builds.iteritems():
-        if name in modules:
-            jobs.append(pool.apply_async(
-                launch_build,
-                (name, build_func, out_dir, dist_dir, args, log_dir)))
 
-    while len(jobs) > 0:
-        for i, job in enumerate(jobs):
-            if job.ready():
-                build_name, result, log_path = job.get()
-                if result:
-                    print('BUILD SUCCESSFUL: ' + build_name)
-                else:
-                    print('BUILD FAILED: ' + build_name)
-                    with open(log_path, 'r') as log_file:
-                        print(log_file.read())
-                    sys.exit(1)
-                del jobs[i]
-        time.sleep(1)
+    build_timer = build_support.Timer()
+    with build_timer:
+        jobs = []
+        for name, build_func in module_builds.iteritems():
+            if name in modules:
+                jobs.append(pool.apply_async(
+                    launch_build,
+                    (name, build_func, out_dir, dist_dir, args, log_dir)))
 
-    if do_package:
-        package_ndk(out_dir, dist_dir, args)
+        while len(jobs) > 0:
+            for i, job in enumerate(jobs):
+                if job.ready():
+                    build_name, result, log_path = job.get()
+                    if result:
+                        print('BUILD SUCCESSFUL: ' + build_name)
+                    else:
+                        print('BUILD FAILED: ' + build_name)
+                        with open(log_path, 'r') as log_file:
+                            print(log_file.read())
+                        sys.exit(1)
+                    del jobs[i]
+            time.sleep(1)
 
-    if args.test:
-        result = test_ndk(out_dir, args)
-        sys.exit(0 if result else 1)
+    package_timer = build_support.Timer()
+    with package_timer:
+        if do_package:
+            package_ndk(out_dir, dist_dir, args)
+
+    good = True
+    test_timer = build_support.Timer()
+    with test_timer:
+        if args.test:
+            good = test_ndk(out_dir, args)
+            print()  # Blank line between test results and timing data.
+
+    total_timer.finish()
+
+    print('Finished {}'.format('successfully' if good else 'unsuccessfully'))
+    print('Build: {}'.format(build_timer.duration))
+    print('Packaging: {}'.format(package_timer.duration))
+    print('Testing: {}'.format(test_timer.duration))
+    print('Total: {}'.format(total_timer.duration))
+
+    sys.exit(not good)
 
 
 if __name__ == '__main__':

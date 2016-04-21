@@ -725,7 +725,7 @@ pack_archive ()
     mkdir -p `dirname $ARCHIVE`
 
     TARFLAGS="--exclude='*.py[cod]' --exclude='*.swp' --exclude=.git --exclude=.gitignore -cf"
-    ZIPFLAGS="-x *.git* -x *.pyc -x *.pyo -9qr"
+    ZIPFLAGS="-x *.git* -x *.pyc -x *.pyo -0qr"
     # Ensure symlinks are stored as is in zip files. for toolchains
     # this can save up to 7 MB in the size of the final archive
     #ZIPFLAGS="$ZIPFLAGS --symlinks"
