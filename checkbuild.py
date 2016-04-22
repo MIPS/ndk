@@ -609,7 +609,7 @@ def build_libcxxabi(_out_dir, dist_dir, _args):
 
 
 def launch_build(build_name, build_func, out_dir, dist_dir, args, log_dir):
-    log_path = os.path.join(log_dir, build_name)
+    log_path = os.path.join(log_dir, build_name) + '.log'
     tee = subprocess.Popen(["tee", log_path], stdin=subprocess.PIPE)
     try:
         os.dup2(tee.stdin.fileno(), sys.stdout.fileno())
