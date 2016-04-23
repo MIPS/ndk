@@ -69,6 +69,61 @@ In the case of a local build, the path to the built NDK will be
 By default, test logs will be placed in $PWD/test-logs. This can be controlled
 with the `--log-dir` flag.
 
+### Broken and Unsupported Tests
+
+To mark tests as currently broken or as unsupported for a given configuration,
+add a `test_config.py` to the test's root directory (in the same directory as
+`jni/`).
+
+Unsupported tests will not be built or run.
+
+Broken tests will be built and run, and the result of the test will be inverted.
+A test that fails will become an "EXPECTED FAILURE" and not be counted as a
+failure, whereas a passing test will become an "UNEXPECTED SUCCESS" and count as
+a failure.
+
+By default, `run-all.py` will hide expected failures from the output since the
+user is most likely only interested in seeing what effect their change had. To
+see the list of expected failures, pass `--show-all`.
+
+Here's an example `test_config.py` that marks this test as broken on arm64 and
+unsupported before Lollipop:
+
+```python
+def match_broken(abi, platform, device_platform, toolchain, subtest=None):
+    if abi == 'arm64-v8a':
+        return abi, 'https://github.com/android-ndk/ndk/issues/foo'
+    return None, None
+
+def match_unsupported(abi, platform, device_platform, toolchain, subtest=None):
+    if device_platform < 21:
+        return device_platform
+    return None
+```
+
+`match_broken` returns a tuple of `(broken_configuration, bug_url)` if the given
+configuration is known to be broken, else `(None, None)`.
+
+`match_unsupported` returns `broken_configuration` if the given configuration is
+unsupported, else `None`.
+
+The configuration is specified by the following arguments:
+
+* `abi`: The ABI being built for.
+* `platform`: The platform version being *built* for. Not necessarily the
+  platform version that the test will be run on. Can be `None`, in which case
+  the default API level for that ABI should be considered.
+* `device_platform`: The platform version of the device the test will be run on.
+  Note that this parameter is ommitted for build tests. In a `--skip-run`
+  configuration, this is set to the minimum supported API level for the given
+  API (9 for LP32, 21 for LP64).
+* `toolchain`: The toolchain being used. `'clang'` if we're using clang (the
+  default), or `'4.9'` if we're using GCC.
+* `subtest`: This is `None` for build tests and for the build step of device
+  tests, but will be set to the name of the executable for the run step of
+  device tests. If the test builds fine but fails at runtime, you must gate your
+  check with this.
+
 ### Testing libc++: [ndk-test.sh]
 
 The libc++ tests are not currently integrated into the main NDK tests. To run
