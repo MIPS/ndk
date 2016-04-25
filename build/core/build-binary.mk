@@ -51,6 +51,11 @@ endif
 # when we detect this case.
 libs_in_ldflags := $(filter -l% %.so %.a,$(LOCAL_LDLIBS) $(LOCAL_LDFLAGS))
 
+# Since the above will glob anything ending in .so or .a, we need to filter out
+# any cases of -Wl,--exclude-libs since we use that to hide symbols in STLs.
+libs_in_ldflags := \
+    $(filter-out -Wl$(comma)--exclude-libs$(comma)%,$(libs_in_ldflags))
+
 # Remove the system libraries we know about from the warning, it's ok
 # (and actually expected) to link them with -l<name>.
 system_libs := \
