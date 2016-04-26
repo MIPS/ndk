@@ -232,7 +232,7 @@ elseif(ANDROID_ABI STREQUAL x86_64)
 elseif(ANDROID_ABI STREQUAL mips)
 	set(ANDROID_SYSROOT_ABI mips)
 	set(CMAKE_SYSTEM_PROCESSOR mips)
-	set(ANDROID_TOOLCHAIN_NAME mipsel-linux-android)
+	set(ANDROID_TOOLCHAIN_NAME mips64el-linux-android)
 	set(ANDROID_TOOLCHAIN_ROOT ${ANDROID_TOOLCHAIN_NAME})
 	set(ANDROID_LLVM_TRIPLE mipsel-none-linux-android)
 elseif(ANDROID_ABI STREQUAL mips64)
@@ -385,14 +385,14 @@ if(ANDROID_ABI STREQUAL armeabi-v7a)
 	list(APPEND ANDROID_LINKER_FLAGS
 		-Wl,--fix-cortex-a8)
 endif()
+if(ANDROID_ABI STREQUAL mips)
+	list(APPEND ANDROID_COMPILER_FLAGS
+		-mips32)
+endif()
 if(ANDROID_ABI MATCHES "^armeabi" AND ANDROID_TOOLCHAIN STREQUAL clang)
 	# Disable integrated-as for better compatibility.
 	list(APPEND ANDROID_COMPILER_FLAGS
 		-fno-integrated-as)
-endif()
-if(ANDROID_ABI STREQUAL mips AND ANDROID_TOOLCHAIN STREQUAL clang)
-	list(APPEND ANDROID_COMPILER_FLAGS
-		-mips32)
 endif()
 
 # STL specific flags.
