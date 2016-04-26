@@ -394,6 +394,11 @@ if(ANDROID_ABI MATCHES "^armeabi" AND ANDROID_TOOLCHAIN STREQUAL clang)
 	list(APPEND ANDROID_COMPILER_FLAGS
 		-fno-integrated-as)
 endif()
+if(ANDROID_ABI STREQUAL mips AND ANDROID_TOOLCHAIN STREQUAL clang)
+	# Help clang use mips64el multilib GCC
+	list(APPEND ANDROID_LINKER_FLAGS
+		"\"-L${ANDROID_TOOLCHAIN_ROOT}/lib/gcc/${ANDROID_TOOLCHAIN_NAME}/4.9.x/32/mips-r1\"")
+endif()
 
 # STL specific flags.
 if(ANDROID_STL STREQUAL system)

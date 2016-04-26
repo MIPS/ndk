@@ -226,6 +226,9 @@ def make_clang_scripts(install_dir, target_arch, triple, windows):
     elif arch == 'mips64el' and target_arch == 'mips':
         arch = 'mipsel'
         extra_flags = ' -mips32'  # Target mips32 on mips64el compiler
+        # Help clang use mips64el multilib GCC
+        mips_gcc_libpath = 'lib/gcc/mips64el-linux-android/4.9.x/32/mips-r1/'
+        extra_flags += ' -L`dirname $0`/../' + mips_gcc_libpath
 
     target = '-'.join([arch, 'none', os_name, env])
     flags = '-target {}{} --sysroot `dirname $0`/../sysroot'.format(target, extra_flags)

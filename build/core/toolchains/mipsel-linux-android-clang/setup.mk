@@ -59,8 +59,10 @@ TARGET_CFLAGS := \
 # Always enable debug info. We strip binaries when needed.
 TARGET_CFLAGS += -g
 
+# Hardcode GCC lib path to help clang use mips64el multilib GCC
 TARGET_LDFLAGS += \
     -gcc-toolchain $(call host-path,$(TOOLCHAIN_ROOT)) \
+    -L$(call host-path,$(TOOLCHAIN_ROOT))/lib/gcc/mips64el-linux-android/4.9.x/32/mips-r1 \
     -target $(LLVM_TRIPLE) \
     -no-canonical-prefixes \
 
