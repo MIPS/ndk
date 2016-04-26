@@ -35,6 +35,12 @@ TARGET_CFLAGS := \
 TARGET_CFLAGS += -g
 
 TARGET_LDFLAGS := -no-canonical-prefixes
+ifeq ($(TARGET_ARCH_ABI),mips32r6)
+    TARGET_CFLAGS += -mips32r6
+    TARGET_LDFLAGS += -mips32r6
+    TARGET_LIBDIR := libr6
+    TARGET_LDFLAGS += -B$(call host-path,$(SYSROOT_LINK)/usr/$(TARGET_LIBDIR))
+endif
 
 TARGET_mips_release_CFLAGS := \
     -O2 \

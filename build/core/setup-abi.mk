@@ -35,7 +35,7 @@ $(foreach _plat,3 4 5 8,\
 endif
 
 # For 64-bit ABIs: the minimal platform level is android-21
-ifneq ($(filter $(NDK_KNOWN_DEVICE_ABI64S),$(TARGET_ARCH_ABI)),)
+ifneq ($(filter $(NDK_KNOWN_ABI64S),$(TARGET_ARCH_ABI)),)
 $(foreach _plat,3 4 5 8 9 10 11 12 13 14 15 16 17 18 19 20,\
     $(eval TARGET_PLATFORM := $$(subst android-$(_plat),android-21,$$(TARGET_PLATFORM)))\
 )
@@ -67,7 +67,7 @@ endif
 ifeq ($(TARGET_ARCH_ABI),armeabi)
   RS_TRIPLE := arm-none-linux-gnueabi
 endif
-ifeq ($(TARGET_ARCH_ABI),mips)
+ifneq ($(filter mips mips32r6, $(TARGET_ARCH_ABI)),)
   RS_TRIPLE := mipsel-unknown-linux
 endif
 ifeq ($(TARGET_ARCH_ABI),x86)

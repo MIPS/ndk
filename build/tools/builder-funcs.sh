@@ -609,6 +609,11 @@ builder_begin_android ()
             builder_cflags "$SCRATCH_FLAGS"
             builder_cxxflags "$SCRATCH_FLAGS"
             builder_ldflags "$SCRATCH_FLAGS"
+            if [ "$ABI" = "mips32r6" ]; then
+              # Help clang use mipsel multilib GCC
+              SCRATCH_FLAGS="-L${GCC_TOOLCHAIN}/lib/gcc/mipsel-linux-android/4.9.x/mips-r6 -B${GCC_TOOLCHAIN}/mipsel-linux-android/bin"
+              builder_ldflags "$SCRATCH_FLAGS"
+            fi
         fi
     fi
 
@@ -641,6 +646,12 @@ builder_begin_android ()
             builder_cflags "$SCRATCH_FLAGS"
             builder_cxxflags "$SCRATCH_FLAGS"
             builder_ldflags "-march=armv7-a -Wl,--fix-cortex-a8"
+            ;;
+        mips32r6)
+            SCRATCH_FLAGS="-mips32r6 -L${GCC_TOOLCHAIN}/lib/gcc/mipsel-linux-android/4.9.x/mips-r6 -B${GCC_TOOLCHAIN}/mipsel-linux-android/bin -B$LDIR"
+            builder_cflags "$SCRATCH_FLAGS"
+            builder_cxxflags "$SCRATCH_FLAGS"
+            builder_ldflags "$SCRATCH_FLAGS"
             ;;
     esac
 }

@@ -392,6 +392,7 @@ else
     fi
     dump "Auto-config: --sysroot=$SYSROOT"
     COMMON_FLAGS=$COMMON_FLAGS" --sysroot=$SYSROOT"
+    COMMON_FLAGS=$COMMON_FLAGS" -B$SYSROOT/usr/$TARGET_LIBDIR"
 fi
 
 if [ -z "$CXXFLAGS" ]; then

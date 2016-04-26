@@ -64,13 +64,14 @@ ALL_ABIS = (
     'armeabi-v7a',
     'arm64-v8a',
     'mips',
+    'mips32r6',
     'mips64',
     'x86',
     'x86_64',
 )
 
 
-LP32_ABIS = ('armeabi', 'armeabi-v7a', 'mips', 'x86')
+LP32_ABIS = ('armeabi', 'armeabi-v7a', 'mips', 'mips32r6', 'x86')
 LP64_ABIS = ('arm64-v8a', 'mips64', 'x86_64')
 
 
@@ -120,7 +121,7 @@ def arch_to_abis(arch):
     return {
         'arm': ['armeabi', 'armeabi-v7a'],
         'arm64': ['arm64-v8a'],
-        'mips': ['mips'],
+        'mips': ['mips', 'mips32r6'],
         'mips64': ['mips64'],
         'x86': ['x86'],
         'x86_64': ['x86_64'],
@@ -133,6 +134,7 @@ def abi_to_arch(arch):
         'armeabi-v7a': 'arm',
         'arm64-v8a': 'arm64',
         'mips': 'mips',
+        'mips32r6': 'mips',
         'mips64': 'mips64',
         'x86': 'x86',
         'x86_64': 'x86_64',

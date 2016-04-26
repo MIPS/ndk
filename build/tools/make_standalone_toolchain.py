@@ -73,7 +73,7 @@ def get_abis(arch):
     return {
         'arm': ['armeabi', 'armeabi-v7a'],
         'arm64': ['arm64-v8a'],
-        'mips': ['mips'],
+        'mips': ['mips', 'mips32r6'],
         'mips64': ['mips64'],
         'x86': ['x86'],
         'x86_64': ['x86_64'],
@@ -180,7 +180,7 @@ def copy_directory_contents(src, dst):
                 shutil.copy2(src_file, dst_dir)
 
 
-def make_clang_scripts(install_dir, triple, windows):
+def make_clang_scripts(install_dir, target_arch, triple, windows):
     """Creates Clang wrapper scripts.
 
     The Clang in standalone toolchains historically was designed to be used as
@@ -211,6 +211,11 @@ def make_clang_scripts(install_dir, triple, windows):
     arch, os_name, env = triple.split('-')
     if arch == 'arm':
         arch = 'armv7a'  # Target armv7, not armv5.
+    elif target_arch == 'mips32r6':
+        extra_flags = ' -mips32r6'
+        # Help clang use mipsel multilib GCC
+        mips_gcc_libpath = 'lib/gcc/mipsel-linux-android/4.9.x/mips-r6/'
+        extra_flags += ' -L`dirname $0`/../' + mips_gcc_libpath
 
     target = '-'.join([arch, 'none', os_name, env])
     flags = '-target {} --sysroot `dirname $0`/../sysroot'.format(target)
@@ -301,6 +306,8 @@ def copy_gnustl_abi_headers(src_dir, dst_dir, gcc_ver, triple, abi,
         bits_dst_dir = os.path.join('thumb', bits_dst_dir)
     if abi == 'armeabi-v7a':
         bits_dst_dir = os.path.join('armv7-a', bits_dst_dir)
+    if abi == 'mips32r6':
+        bits_dst_dir = os.path.join('mips32r6', bits_dst_dir)
     abi_dst_dir = os.path.join(
         dst_dir, 'include/c++', gcc_ver, triple, bits_dst_dir)
 
@@ -318,6 +325,8 @@ def get_dest_libdir(dst_dir, triple, abi):
     if abi in ('mips64', 'x86_64'):
         # ARM64 isn't a real multilib target, so it's just installed to lib.
         libdir_name = 'lib64'
+    if abi.startswith('mips32r6'):
+        libdir_name = 'libr6'
     dst_libdir = os.path.join(dst_dir, triple, libdir_name)
     if abi.startswith('armeabi-v7a'):
         dst_libdir = os.path.join(dst_libdir, 'armv7-a')
@@ -363,7 +372,7 @@ def create_toolchain(install_path, arch, gcc_path, clang_path, sysroot_path,
     copy_directory_contents(gcc_path, install_path)
     copy_directory_contents(clang_path, install_path)
     triple = get_triple(arch)
-    make_clang_scripts(install_path, triple, host_tag.startswith('windows'))
+    make_clang_scripts(install_path, arch, triple, host_tag.startswith('windows'))
     shutil.copytree(sysroot_path, os.path.join(install_path, 'sysroot'))
 
     prebuilt_path = os.path.join(NDK_DIR, 'prebuilt', host_tag)

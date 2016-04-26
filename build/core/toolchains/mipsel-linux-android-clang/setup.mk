@@ -70,6 +70,16 @@ ifeq ($(TARGET_ARCH_ABI),mips)
     TARGET_CFLAGS += -mips32
     TARGET_LDFLAGS += -mips32
 endif
+ifeq ($(TARGET_ARCH_ABI),mips32r6)
+    TARGET_CFLAGS += -mips32r6 -B${TOOLCHAIN_ROOT}/mipsel-linux-android/bin
+    TARGET_LDFLAGS += -mips32r6
+    TARGET_LDFLAGS += -L$(call host-path,$(TOOLCHAIN_ROOT))/lib/gcc/mipsel-linux-android/4.9.x/mips-r6
+    TARGET_LDFLAGS += -B$(call host-path,$(TOOLCHAIN_ROOT))/mipsel-linux-android/bin
+    TARGET_LDFLAGS += -L$(call host-path,$(TOOLCHAIN_ROOT))/mipsel-linux-android/libr6
+    TARGET_LIBDIR := libr6
+    TARGET_LDFLAGS += -L$(call host-path,$(SYSROOT_LINK)/usr/$(TARGET_LIBDIR))
+    TARGET_LDFLAGS += -B$(call host-path,$(SYSROOT_LINK)/usr/$(TARGET_LIBDIR))
+endif
 
 TARGET_mips_release_CFLAGS := \
     -O2 \

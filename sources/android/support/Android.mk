@@ -2,7 +2,7 @@ LOCAL_PATH := $(call my-dir)
 
 android_support_c_includes := $(LOCAL_PATH)/include
 
-ifneq ($(filter $(NDK_KNOWN_DEVICE_ABI64S),$(TARGET_ARCH_ABI)),)
+ifneq ($(filter $(NDK_KNOWN_ABI64S),$(TARGET_ARCH_ABI)),)
 # 64-bit ABIs
 android_support_sources := \
     src/musl-locale/catclose.c \

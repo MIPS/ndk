@@ -89,7 +89,7 @@ $(PRIVATE_CXX) \
     -Wl,--gc-sections \
     -Wl,-z,nocopyreloc \
     --sysroot=$(call host-path,$(PRIVATE_SYSROOT_LINK)) \
-    -Wl,-rpath-link=$(call host-path,$(PRIVATE_SYSROOT_LINK)/usr/lib) \
+    -Wl,-rpath-link=$(call host-path,$(PRIVATE_SYSROOT_LINK)/usr/$(TARGET_LIBDIR)) \
     -Wl,-rpath-link=$(call host-path,$(TARGET_OUT)) \
     $(PRIVATE_LINKER_OBJECTS_AND_LIBRARIES) \
     $(PRIVATE_LDFLAGS) \
@@ -147,6 +147,7 @@ TARGET_ASMFLAGS =
 
 TARGET_LD       = $(TOOLCHAIN_PREFIX)ld
 TARGET_LDFLAGS :=
+TARGET_LIBDIR  := lib
 
 # Use *-gcc-ar instead of *-ar for better LTO support, except for
 # gcc4.6 which doesn't have gcc-ar
