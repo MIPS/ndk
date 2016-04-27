@@ -498,8 +498,14 @@ copy_stl_libs () {
             cp -p "$GNUSTL_LIBS/$ABI_SRC_DIR/libgnustl_static.a" "$ABI_STL/lib/$DEST_DIR/libstdc++.a"
             ;;
         libcxx|libc++)
-            copy_file_list "$LIBCXX_LIBS/$ABI_SRC_DIR" "$ABI_STL/lib/$DEST_DIR" "libc++_shared.so"
-            cp -p "$LIBCXX_LIBS/$ABI_SRC_DIR/libc++_static.a" "$ABI_STL/lib/$DEST_DIR/libstdc++.a"
+            # We have only thumb libc++ libs for ARM, and they're installed in
+            # the non-arm directory.
+            if [[ "$ARCH" != "arm" || "$DEST_DIR" != *"thumb"* ]]; then
+                copy_file_list "$LIBCXX_LIBS/$ABI_SRC_DIR" \
+                    "$ABI_STL/lib/$DEST_DIR" "libc++_shared.so"
+                cp -p "$LIBCXX_LIBS/$ABI_SRC_DIR/libc++_static.a" \
+                    "$ABI_STL/lib/$DEST_DIR/libstdc++.a"
+            fi
             ;;
         stlport)
             copy_file_list "$STLPORT_LIBS/$ABI_SRC_DIR" "$ABI_STL/lib/$DEST_DIR" "libstlport_shared.so"
