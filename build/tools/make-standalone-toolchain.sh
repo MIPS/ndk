@@ -456,16 +456,8 @@ copy_stl_common_headers () {
         libcxx|libc++)
             copy_directory "$LIBCXX_DIR/libcxx/include" "$ABI_STL_INCLUDE"
             copy_directory "$SUPPORT_DIR/include" "$ABI_STL_INCLUDE"
-            if [ "$LIBCXX_SUPPORT_LIB" = "gabi++" ]; then
-                copy_directory "$STLPORT_DIR/../gabi++/include" "$ABI_STL_INCLUDE/../../gabi++/include"
-                copy_abi_headers gabi++ cxxabi.h unwind.h unwind-arm.h unwind-itanium.h gabixx_config.h
-            elif [ "$LIBCXX_SUPPORT_LIB" = "libc++abi" ]; then
-                copy_directory "$LIBCXX_DIR/../llvm-libc++abi/libcxxabi/include" "$ABI_STL_INCLUDE/../../llvm-libc++abi/include"
-                copy_abi_headers llvm-libc++abi cxxabi.h __cxxabi_config.h libunwind.h unwind.h
-            else
-                dump "ERROR: Unknown libc++ support lib: $LIBCXX_SUPPORT_LIB"
-                exit 1
-            fi
+            copy_directory "$LIBCXX_DIR/../llvm-libc++abi/libcxxabi/include" "$ABI_STL_INCLUDE/../../llvm-libc++abi/include"
+            copy_abi_headers llvm-libc++abi cxxabi.h __cxxabi_config.h libunwind.h unwind.h
             ;;
         stlport)
             copy_directory "$STLPORT_DIR/stlport" "$ABI_STL_INCLUDE"
@@ -506,8 +498,14 @@ copy_stl_libs () {
             cp -p "$GNUSTL_LIBS/$ABI_SRC_DIR/libgnustl_static.a" "$ABI_STL/lib/$DEST_DIR/libstdc++.a"
             ;;
         libcxx|libc++)
-            copy_file_list "$LIBCXX_LIBS/$ABI_SRC_DIR" "$ABI_STL/lib/$DEST_DIR" "libc++_shared.so"
-            cp -p "$LIBCXX_LIBS/$ABI_SRC_DIR/libc++_static.a" "$ABI_STL/lib/$DEST_DIR/libstdc++.a"
+            # We have only thumb libc++ libs for ARM, and they're installed in
+            # the non-arm directory.
+            if [[ "$ARCH" != "arm" || "$DEST_DIR" != *"thumb"* ]]; then
+                copy_file_list "$LIBCXX_LIBS/$ABI_SRC_DIR" \
+                    "$ABI_STL/lib/$DEST_DIR" "libc++_shared.so"
+                cp -p "$LIBCXX_LIBS/$ABI_SRC_DIR/libc++_static.a" \
+                    "$ABI_STL/lib/$DEST_DIR/libstdc++.a"
+            fi
             ;;
         stlport)
             copy_file_list "$STLPORT_LIBS/$ABI_SRC_DIR" "$ABI_STL/lib/$DEST_DIR" "libstlport_shared.so"

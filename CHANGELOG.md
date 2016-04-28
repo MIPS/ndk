@@ -15,6 +15,10 @@ NDK
  * Default compiler flags have been pruned:
    https://github.com/android-ndk/ndk/issues/27.
      * Full changes here: https://android-review.googlesource.com/#/c/207721/5.
+ * Added a Python implementation of standalone toolchains:
+   `build/tools/make_standalone_toolchain.py`.
+     * Windows users: you no longer need Cygwin to use this feature.
+     * We'll be removing the bash flavor in r13, so test the new one now.
  * `-fno-limit-debug-info` has been enabled by default for Clang debug builds.
    This should improve debugability with LLDB.
  * `--build-id` is now enabled by default.
