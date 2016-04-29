@@ -258,20 +258,16 @@ if [ ! -f "$ARM_READELF" ]; then
     exit 1
 fi
 
-ARMv7_ABIS="armeabi-v7a armeabi-v7a-hard"
-for ABI in $ARMv7_ABIS; do
-
-    STLPORT_LIBS=$NDK/sources/cxx-stl/stlport/libs/$ABI
-    check_armv7_elf_binary $STLPORT_LIBS/libstlport_shared.so
-    check_armv7_elf_binary $STLPORT_LIBS/libstlport_static.a
+STLPORT_LIBS=$NDK/sources/cxx-stl/stlport/libs/armeabi-v7a
+check_armv7_elf_binary $STLPORT_LIBS/libstlport_shared.so
+check_armv7_elf_binary $STLPORT_LIBS/libstlport_static.a
 
 
-    for VERSION in $DEFAULT_GCC_VERSION_LIST; do
-        GNUSTL_LIBS=$NDK/sources/cxx-stl/gnu-libstdc++/4.9/libs/$ABI
-        check_armv7_elf_binary $GNUSTL_LIBS/libsupc++.a
-        check_armv7_elf_binary $GNUSTL_LIBS/libgnustl_shared.so
-        check_armv7_elf_binary $GNUSTL_LIBS/libgnustl_static.a
-    done
+for VERSION in $DEFAULT_GCC_VERSION_LIST; do
+    GNUSTL_LIBS=$NDK/sources/cxx-stl/gnu-libstdc++/4.9/libs/armeabi-v7a
+    check_armv7_elf_binary $GNUSTL_LIBS/libsupc++.a
+    check_armv7_elf_binary $GNUSTL_LIBS/libgnustl_shared.so
+    check_armv7_elf_binary $GNUSTL_LIBS/libgnustl_static.a
 done
 
 echo "Done!"

@@ -56,7 +56,7 @@ def expand_packages(package, host, arches):
     ['platforms']
 
     >>> expand_packages('libc++-{abi}', 'linux', ['arm'])
-    ['libc++-armeabi', 'libc++-armeabi-v7a', 'libc++-armeabi-v7a-hard']
+    ['libc++-armeabi', 'libc++-armeabi-v7a']
 
     >>> expand_packages('binutils/{triple}', 'linux', ['arm', 'x86_64'])
     ['binutils/arm-linux-androideabi', 'binutils/x86_64-linux-android']

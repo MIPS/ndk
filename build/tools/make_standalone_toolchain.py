@@ -66,7 +66,7 @@ def get_triple(arch):
 
 def get_abis(arch):
     return {
-        'arm': ['armeabi', 'armeabi-v7a', 'armeabi-v7a-hard'],
+        'arm': ['armeabi', 'armeabi-v7a'],
         'arm64': ['arm64-v8a'],
         'mips': ['mips'],
         'mips64': ['mips64'],
@@ -255,10 +255,6 @@ def make_clang_scripts(install_dir, triple, windows):
 
 
 def copy_stl_abi_headers(src_dir, dst_dir, gcc_ver, triple, abi, thumb=False):
-    if abi == 'armeabi-v7a-hard':
-        # No special headers.
-        return
-
     abi_src_dir = os.path.join(
         src_dir, 'libs', abi, 'include/bits')
 
@@ -288,8 +284,6 @@ def get_dest_libdir(dst_dir, triple, abi, thumb=False):
         dst_libdir = os.path.join(dst_libdir, 'armv7-a')
     if thumb:
         dst_libdir = os.path.join(dst_libdir, 'thumb')
-    if abi == 'armeabi-v7a-hard':
-        dst_libdir = os.path.join(dst_libdir, 'hard')
     return dst_libdir
 
 

@@ -80,9 +80,6 @@ def main(args):
 
         # Make sure we don't pick up a cached copy.
         'LIBCXX_FORCE_REBUILD=true',
-
-        # Put armeabi-v7a-hard in its own directory.
-        '_NDK_TESTING_ALL_=yes',
     ]
     print('Building libc++ for ABIs: {}'.format(', '.join(abis)))
     subprocess.check_call(build_cmd)
