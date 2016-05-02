@@ -264,7 +264,10 @@ def make_package(build_number, package_dir, packages, host, out_dir, temp_dir):
     copy_changelog(extract_dir)
 
     host_tag = build_support.host_to_tag(host)
-    package_name = '{}-{}'.format(release_name, host_tag)
+    # The release tooling really wants us to only name packages with the build
+    # number. The release tooling will rename the package as appropriate.
+    # `build_number` will be 0 for local builds. Rename as -dev.
+    package_name = 'android-ndk-{}-{}'.format(build_number or 'dev', host_tag)
     package_path = os.path.join(out_dir, package_name)
     print('Packaging ' + package_name)
     files = os.path.relpath(extract_dir, temp_dir)
