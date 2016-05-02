@@ -47,8 +47,6 @@ def get_device_abis(device):
         if abi_prop in properties:
             abis.update(properties[abi_prop].split(','))
 
-    if 'armeabi-v7a' in abis:
-        abis.add('armeabi-v7a-hard')
     return sorted(list(abis))
 
 
@@ -158,13 +156,6 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
         suites = ('awk', 'build', 'device')
 
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-
-    # Defining _NDK_TESTING_ALL_=yes to put armeabi-v7a-hard in its own
-    # libs/armeabi-v7a-hard directory and tested separately from armeabi-v7a.
-    # Some tests are now compiled with both APP_ABI=armeabi-v7a and
-    # APP_ABI=armeabi-v7a-hard. Without _NDK_TESTING_ALL_=yes, tests may fail
-    # to install due to race condition on the same libs/armeabi-v7a
-    os.environ['_NDK_TESTING_ALL_'] = 'all'
 
     os.environ['NDK'] = ndk_path
 

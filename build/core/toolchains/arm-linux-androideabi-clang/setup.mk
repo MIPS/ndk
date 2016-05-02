@@ -62,7 +62,7 @@ TARGET_LDFLAGS += \
     -gcc-toolchain $(call host-path,$(TOOLCHAIN_ROOT)) \
     -no-canonical-prefixes
 
-ifneq ($(filter %armeabi-v7a,$(TARGET_ARCH_ABI)),)
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
     LLVM_TRIPLE := armv7-none-linux-androideabi
 
     TARGET_CFLAGS += -target $(LLVM_TRIPLE) \
@@ -74,23 +74,7 @@ ifneq ($(filter %armeabi-v7a,$(TARGET_ARCH_ABI)),)
                       -Wl,--fix-cortex-a8
 
     GCCLIB_SUBDIR := armv7-a
-else
-ifneq ($(filter %armeabi-v7a-hard,$(TARGET_ARCH_ABI)),)
-    LLVM_TRIPLE := armv7-none-linux-androideabi
-
-    TARGET_CFLAGS += -target $(LLVM_TRIPLE) \
-                     -march=armv7-a \
-                     -mfpu=vfpv3-d16 \
-                     -mhard-float \
-                     -D_NDK_MATH_NO_SOFTFP=1
-
-    TARGET_LDFLAGS += -target $(LLVM_TRIPLE) \
-                      -Wl,--fix-cortex-a8 \
-                      -Wl,--no-warn-mismatch \
-                      -lm_hard
-
-    GCCLIB_SUBDIR := armv7-a
-else
+else ifeq ($(TARGET_ARCH_ABI),armeabi)
     LLVM_TRIPLE := armv5te-none-linux-androideabi
 
     TARGET_CFLAGS += -target $(LLVM_TRIPLE) \
@@ -101,7 +85,8 @@ else
     TARGET_LDFLAGS += -target $(LLVM_TRIPLE)
 
     GCCLIB_SUBDIR :=
-endif
+else
+    $(call __ndk_error,Unsupported ABI: $(TARGET_ARCH_ABI))
 endif
 
 GCCLIB_ROOT := $(call get-gcclibs-path,$(NDK_ROOT),$(TOOLCHAIN_NAME))

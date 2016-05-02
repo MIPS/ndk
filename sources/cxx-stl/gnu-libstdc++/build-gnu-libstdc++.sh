@@ -236,15 +236,9 @@ build_gnustl_for_abi ()
     export LDFLAGS="$EXTRA_LDFLAGS -lc"
 
     case $ABI in
-        armeabi-v7a|armeabi-v7a-hard)
-            CXXFLAGS=$CXXFLAGS" -march=armv7-a -mfpu=vfpv3-d16"
+        armeabi-v7a)
+            CXXFLAGS=$CXXFLAGS" -march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp"
             LDFLAGS=$LDFLAGS" -Wl,--fix-cortex-a8"
-            if [ "$ABI" != "armeabi-v7a-hard" ]; then
-                CXXFLAGS=$CXXFLAGS" -mfloat-abi=softfp"
-            else
-                CXXFLAGS=$CXXFLAGS" -mhard-float -D_NDK_MATH_NO_SOFTFP=1"
-                LDFLAGS=$LDFLAGS" -Wl,--no-warn-mismatch -lm_hard"
-            fi
             ;;
         arm64-v8a)
             CFLAGS="$CFLAGS -mfix-cortex-a53-835769"
@@ -252,7 +246,7 @@ build_gnustl_for_abi ()
             ;;
     esac
 
-    if [ "$ABI" = "armeabi" -o "$ABI" = "armeabi-v7a" -o "$ABI" = "armeabi-v7a-hard" ]; then
+    if [ "$ABI" = "armeabi" -o "$ABI" = "armeabi-v7a" ]; then
         CFLAGS=$CFLAGS" -minline-thumb1-jumptable"
         CXXFLAGS=$CXXFLAGS" -minline-thumb1-jumptable"
     fi
