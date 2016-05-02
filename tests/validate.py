@@ -49,18 +49,15 @@ class DeviceFleet(object):
             10: {
                 'armeabi': None,
                 'armeabi-v7a': None,
-                'armeabi-v7a-hard': None,
             },
             16: {
                 'armeabi': None,
                 'armeabi-v7a': None,
-                'armeabi-v7a-hard': None,
                 'x86': None,
             },
             23: {
                 'armeabi': None,
                 'armeabi-v7a': None,
-                'armeabi-v7a-hard': None,
                 'arm64-v8a': None,
                 'x86': None,
                 'x86_64': None,
@@ -119,8 +116,6 @@ def get_device_abis(properties):
         if abi_prop in properties:
             abis.update(properties[abi_prop].split(','))
 
-    if 'armeabi-v7a' in abis:
-        abis.add('armeabi-v7a-hard')
     return sorted(list(abis))
 
 
@@ -139,8 +134,7 @@ def find_devices():
     We get a list of devices by scanning the output of `adb devices`. We want
     to run the tests for the cross product of the following configurations:
 
-    ABIs: {armeabi, armeabi-v7a, armeabi-v7a-hard, arm64-v8a, mips, mips64,
-           x86, x86_64}
+    ABIs: {armeabi, armeabi-v7a, arm64-v8a, mips, mips64, x86, x86_64}
     Platform versions: {android-10, android-16, android-21}
     Toolchains: {clang, gcc}
 

@@ -129,7 +129,7 @@ case $ABI in
 esac
 
 case $ABI in
-    armeabi|armeabi-v7a|armeabi-v7a-hard)
+    armeabi|armeabi-v7a)
         macro_check __arm__ 1              "ARM CPU architecture"
 	macro_check_undef __LP64__         "LP64 data model"
         macro_check __ARM_EABI__ 1         "ARM EABI runtime"
@@ -158,11 +158,6 @@ case $ABI in
                 # values are passsed in core registers between function calls,
                 # which is mandated by the armeabi-v7a definition.
                 #
-                macro_check_undef __SOFTFP__      "ARM soft-floating point"
-                ;;
-            armeabi-v7a-hard)
-                macro_check __ARM_ARCH_7A__ 1     "ARMv7-A instructions (for armeabi-v7a)"
-                macro_check __ARM_PCS_VFP__ 1     "ARM hard-floating point"
                 macro_check_undef __SOFTFP__      "ARM soft-floating point"
                 ;;
         esac
