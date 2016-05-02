@@ -16,7 +16,7 @@ LATEST_API_LEVEL=$(echo $API_LEVELS | awk '{ print $NF }')
 FIRST_API64_LEVEL=21
 
 # Default ABIs for the target prebuilt binaries.
-PREBUILT_ABIS="armeabi armeabi-v7a x86 mips armeabi-v7a-hard arm64-v8a x86_64 mips64"
+PREBUILT_ABIS="armeabi armeabi-v7a x86 mips arm64-v8a x86_64 mips64"
 
 # Location of the STLport sources, relative to the NDK root directory
 STLPORT_SUBDIR=sources/cxx-stl/stlport
@@ -164,7 +164,7 @@ get_default_abis_for_arch ()
     local RET
     case $1 in
         arm)
-            RET="armeabi armeabi-v7a armeabi-v7a-hard"
+            RET="armeabi armeabi-v7a"
             ;;
         arm64)
             RET="arm64-v8a"

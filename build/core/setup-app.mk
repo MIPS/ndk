@@ -111,6 +111,10 @@ else
     # check the target ABIs for this application
     _bad_abis = $(strip $(filter-out $(NDK_ALL_ABIS),$(NDK_APP_ABI)))
     ifneq ($(_bad_abis),)
+        ifneq ($(filter $(_bad_abis),armeabi-v7a-hard),)
+            $(call __ndk_info,armeabi-v7a-hard is no longer supported. Use armeabi-v7a.)
+            $(call __ndk_info,See https://android.googlesource.com/platform/ndk/+/master/docs/HardFloatAbi.md)
+        endif
         $(call __ndk_info,NDK Application '$(_app)' targets unknown ABI(s): $(_bad_abis))
         $(call __ndk_info,Please fix the APP_ABI definition in $(NDK_APP_APPLICATION_MK))
         $(call __ndk_error,Aborting)

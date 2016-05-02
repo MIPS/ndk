@@ -62,7 +62,6 @@ ALL_ARCHITECTURES = (
 ALL_ABIS = (
     'armeabi',
     'armeabi-v7a',
-    'armeabi-v7a-hard',
     'arm64-v8a',
     'mips',
     'mips64',
@@ -108,7 +107,7 @@ def toolchain_to_arch(toolchain):
 
 def arch_to_abis(arch):
     return {
-        'arm': ['armeabi', 'armeabi-v7a', 'armeabi-v7a-hard'],
+        'arm': ['armeabi', 'armeabi-v7a'],
         'arm64': ['arm64-v8a'],
         'mips': ['mips'],
         'mips64': ['mips64'],
@@ -121,7 +120,6 @@ def abi_to_arch(arch):
     return {
         'armeabi': 'arm',
         'armeabi-v7a': 'arm',
-        'armeabi-v7a-hard': 'arm',
         'arm64-v8a': 'arm64',
         'mips': 'mips',
         'mips64': 'mips64',

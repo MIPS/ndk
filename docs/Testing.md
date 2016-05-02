@@ -188,17 +188,14 @@ The current configuration we use to test NDK releases is as written in
     10: {
         'armeabi': None,
         'armeabi-v7a': None,
-        'armeabi-v7a-hard': None,
     },
     16: {
         'armeabi': None,
         'armeabi-v7a': None,
-        'armeabi-v7a-hard': None,
     },
     23: {
         'armeabi': None,
         'armeabi-v7a': None,
-        'armeabi-v7a-hard': None,
         'arm64-v8a': None,
         'x86': None,
         'x86_64': None,

@@ -7,6 +7,8 @@ Report issues to [GitHub].
 
 NDK
 ---
+ * Removed support for the armeabi-v7a-hard ABI. See the explanation in the
+   [documentation](docs/HardFloatAbi.md).
  * Removed all sysroots for pre-GB platform levels. We dropped support for them
    in r11, but neglected to actually remove them.
  * Exception handling when using `c++_shared` on ARM32 now mostly works (see

@@ -536,10 +536,6 @@ copy_stl_libs_for_abi () {
             copy_stl_libs armeabi-v7a "armv7-a/bits" "bits" "armv7-a"
             copy_stl_libs armeabi-v7a "armv7-a/thumb/bits" "bits" "armv7-a/thumb"
             ;;
-        armeabi-v7a-hard)
-            copy_stl_libs armeabi-v7a-hard "" "" "armv7-a/hard"       "."
-            copy_stl_libs armeabi-v7a-hard "" "" "armv7-a/thumb/hard" "thumb"
-            ;;
         *)
             copy_stl_libs "$ABI" "bits" "bits"
             ;;
