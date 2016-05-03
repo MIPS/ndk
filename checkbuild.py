@@ -743,6 +743,10 @@ def main():
                     if result:
                         print('BUILD SUCCESSFUL: ' + build_name)
                     else:
+                        # Kill all the children so the error we print appears
+                        # last.
+                        kill_all_children()
+
                         print('BUILD FAILED: ' + build_name)
                         with open(log_path, 'r') as log_file:
                             print(log_file.read())
