@@ -492,8 +492,7 @@ build_stl_libs_for_abi ()
 {
     local ARCH BINPREFIX SYSROOT
     local ABI=$1
-    local THUMB="$5"
-    local BUILDDIR="$2"/$THUMB
+    local BUILDDIR="$2"
     local TYPE="$3"
     local DSTDIR="$4"
     local FLOAT_ABI=""
@@ -537,7 +536,7 @@ build_stl_libs_for_abi ()
             ;;
     esac
 
-    if [ -n "$THUMB" ]; then
+    if [ "$ABI" != "${ABI%%arm*}" -a "$ABI" = "${ABI%%64*}" ] ; then
         EXTRA_CFLAGS="$EXTRA_CFLAGS -mthumb"
         EXTRA_CXXFLAGS="$EXTRA_CXXFLAGS -mthumb"
     fi
@@ -550,7 +549,7 @@ build_stl_libs_for_abi ()
         EXTRA_CXXFLAGS="$EXTRA_CXXFLAGS $SHARED_CXXFLAGS"
     fi
 
-    DSTDIR=$DSTDIR/$CXX_STL_SUBDIR/libs/$ABI/$THUMB
+    DSTDIR=$DSTDIR/$CXX_STL_SUBDIR/libs/$ABI
     LIB_SUFFIX="$(get_lib_suffix_for_abi $ABI)"
 
     mkdir -p "$BUILDDIR"
@@ -635,11 +634,6 @@ build_stl_libs_for_abi ()
 for ABI in $ABIS; do
     build_stl_libs_for_abi $ABI "$BUILD_DIR/$ABI/static" "static" "$OUT_DIR"
     build_stl_libs_for_abi $ABI "$BUILD_DIR/$ABI/shared" "shared" "$OUT_DIR"
-    # build thumb version of libraries for 32-bit arm
-    if [ "$ABI" != "${ABI%%arm*}" -a "$ABI" = "${ABI%%64*}" ] ; then
-        build_stl_libs_for_abi $ABI "$BUILD_DIR/$ABI/static" "static" "$OUT_DIR" thumb
-        build_stl_libs_for_abi $ABI "$BUILD_DIR/$ABI/shared" "shared" "$OUT_DIR" thumb
-    fi
 done
 
 if [ -n "$PACKAGE_DIR" ] ; then
