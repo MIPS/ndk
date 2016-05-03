@@ -749,7 +749,18 @@ def main():
 
                         print('BUILD FAILED: ' + build_name)
                         with open(log_path, 'r') as log_file:
-                            print(log_file.read())
+                            contents = log_file.read()
+                            print(contents)
+
+                            # The build server has a build_error.log file that
+                            # is supposed to be the short log of the failure
+                            # that stopped the build. Append our failing log to
+                            # that.
+                            build_error_log = os.path.join(
+                                dist_dir, 'logs/build_error.log')
+                            with open(build_error_log, 'a') as error_log:
+                                error_log.write('\n')
+                                error_log.write(contents)
                         sys.exit(1)
                     del jobs[i]
             time.sleep(1)
