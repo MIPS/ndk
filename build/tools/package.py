@@ -82,7 +82,6 @@ def expand_packages(package, host, arches):
 
 def get_all_packages(host, arches):
     packages = [
-        ('build', 'build'),
         ('cpufeatures', 'sources/android/cpufeatures'),
         ('gabixx', 'sources/cxx-stl/gabi++'),
         ('gcc-{arch}-{host}', 'toolchains/{toolchain}-4.9/prebuilt/{host}'),
@@ -96,6 +95,7 @@ def get_all_packages(host, arches):
         ('libcxxabi', 'sources/cxx-stl/llvm-libc++abi'),
         ('llvm-{host}', 'toolchains/llvm/prebuilt/{host}'),
         ('native_app_glue', 'sources/android/native_app_glue'),
+        ('ndk-build', 'build'),
         ('ndk_helper', 'sources/android/ndk_helper'),
         ('python-packages', 'python-packages'),
         ('shaderc', 'sources/third_party/shaderc'),
