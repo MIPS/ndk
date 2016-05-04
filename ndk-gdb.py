@@ -334,10 +334,11 @@ def fetch_abi(args):
     if len(set(new_abi_props).intersection(device_props.keys())) == 0:
         abi_props = old_abi_props
 
-    device_abis = [device_props[key].split(",") for key in abi_props]
+    device_abis = []
+    for key in abi_props:
+        if key in device_props:
+            device_abis.extend(device_props[key].split(","))
 
-    # Flatten the list.
-    device_abis = reduce(operator.add, device_abis)
     device_abis_msg = "Device ABIs: {}".format(", ".join(device_abis))
     log(device_abis_msg)
 
