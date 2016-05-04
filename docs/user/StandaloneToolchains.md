@@ -44,76 +44,18 @@ support; available native APIs vary by Android API level.
 
 Native APIs for the respective [Android API levels] reside under
 `$NDK/platforms/`; each API-level directory, in turn, contains subdirectories
-for the various CPUs and architectures. The following example shows how to
-define a sysroot> for a build targeting Android 5.0 (API level 21), for ARM
-architecture:
-
-```
-SYSROOT=$NDK/platforms/android-21/arch-arm
-```
+for the various CPUs and architectures.
 
 For more detail about the Android API levels and the respective native APIs they
 support, see [Native APIs](stable_apis.html).
 
 [Android API levels]: https://developer.android.com/guide/topics/manifest/uses-sdk-element.html
 
-Invoking the Compiler
----------------------
-
-There are two ways to invoke the compiler. One method is simple, and leaves most
-of the lifting to the build system. The other is more advanced, but provides
-more flexibility.
-
-### Simple method
-
-The simplest way to build is by invoking the appropriate compiler directly from
-the command line, using the `--sysroot` option to indicate the location of the
-system files for the platform you're targeting. For example:
-
-```bash
-export CC="$NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/ \
-    linux-x86/bin/arm-linux-androideabi-gcc-4.8 --sysroot=$SYSROOT"
-$CC -o foo.o -c foo.c
-```
-
-While this method is simple, it lacks in flexibility: It does not allow you to
-use any C++ STL (STLport, libc++, or the GNU libstdc++) with it. It also does
-not support exceptions or RTTI.
-
-For Clang, you need to perform an additional two steps:
-
-1. Add the appropriate `-target` for the target architecture, as Table 2 shows.
-
-   | Architecture | Value                                    |
-   | ------------ | ---------------------------------------- |
-   | armeabi      | `-target armv5te-none-linux-androideabi` |
-   | armeabi-v7a  | `-target armv7-none-linux-androideabi`   |
-   | arm64-v8a    | `-target aarch64-none-linux-android`     |
-   | x86          | `-target i686-non-linux-android`         |
-   | x86\_64      | `-target x86_64-none-linux-android`      |
-   | mips         | `-target mipsel-none-linux-android`      |
-
-2. Add assembler and linker support by adding the `-gcc-toolchain` option, as in
-   the following example:
-
-       -gcc-toolchain $NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/linux-x86_64
-
-Ultimately, a command to compile using Clang might look like this:
-
-```bash
-export CC="$NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/ \
-    linux-x86/bin/arm-linux-androideabi-gcc-4.8 --sysroot=$SYSROOT \
-    -target armv7-none-linux-androideabi \
-    -gcc-toolchain $NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/linux-x86_64"
-$CC -o foo.o -c foo.c
-```
-
-### Advanced method
+Creating the Toolchain
+----------------------
 
 The NDK provides the `make-standalone-toolchain.sh` shell script to allow you to
-perform a customized toolchain installation from the command line. This approach
-affords you more flexibility than the procedure described in [Simple
-method](#simple-method).
+perform a customized toolchain installation from the command line.
 
 The script is located in the `$NDK/build/tools/` directory, where `$NDK` is the
 installation root for the NDK. An example of the use of this script appears
