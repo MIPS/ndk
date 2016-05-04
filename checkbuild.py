@@ -43,7 +43,6 @@ import build.lib.build_support as build_support
 
 
 ALL_MODULES = {
-    'build',
     'clang',
     'cpufeatures',
     'gabi++',
@@ -57,6 +56,7 @@ ALL_MODULES = {
     'libc++abi',
     'libshaderc',
     'native_app_glue',
+    'ndk-build',
     'ndk_helper',
     'platforms',
     'python-packages',
@@ -563,9 +563,9 @@ def build_vulkan(out_dir, dist_dir, args):
     print('Packaging Vulkan source finished')
 
 
-def build_build(_, dist_dir, __):
+def build_ndk_build(_, dist_dir, __):
     path = build_support.ndk_path('build')
-    build_support.make_package('build', path, dist_dir)
+    build_support.make_package('ndk-build', path, dist_dir)
 
 
 def build_python_packages(_, dist_dir, __):
@@ -642,10 +642,10 @@ def main():
 
     if args.host_only:
         modules = {
-            'build',
             'clang',
             'gcc',
             'host-tools',
+            'ndk-build',
             'python-packages',
             'shader_tools',
         }
@@ -686,7 +686,6 @@ def main():
     invoke_build('dev-cleanup.sh')
 
     module_builds = collections.OrderedDict([
-        ('build', build_build),
         ('clang', build_clang),
         ('cpufeatures', build_cpufeatures),
         ('gabi++', build_gabixx),
@@ -700,6 +699,7 @@ def main():
         ('libc++abi', build_libcxxabi),
         ('libshaderc', build_libshaderc),
         ('native_app_glue', build_native_app_glue),
+        ('ndk-build', build_ndk_build),
         ('ndk_helper', build_ndk_helper),
         ('platforms', build_platforms),
         ('python-packages', build_python_packages),
