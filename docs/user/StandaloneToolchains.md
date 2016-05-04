@@ -1,7 +1,7 @@
 Standalone Toolchains
 =====================
 
-You can use the toolchains provided with the Android NDK independently, or as
+You can use the toolchains provided with the Android NDK independently or as
 plug-ins with an existing IDE. This flexibility can be useful if you already
 have your own build system, and only need the ability to invoke the
 cross-compiler in order to add support to Android for it.
@@ -19,11 +19,11 @@ using a standalone toolchain, and instead stick to the NDK build system.
 Selecting Your Toolchain
 ------------------------
 
-Before anything else, you need to decide which processing architecture your
+Before anything else, you need to decide which processor architecture your
 standalone toolchain is going to target. Each architecture corresponds to a
 different toolchain name, as Table 1 shows.
 
-**Table 1.** `APP_ABI` settings for different instruction sets.
+**Table 1.** Toolchain names for different instruction sets.
 
 | Architecture | Toolchain name                         |
 | ------------ | -------------------------------------- |
@@ -37,8 +37,8 @@ different toolchain name, as Table 1 shows.
 Selecting Your Sysroot
 ----------------------
 
-The next thing you need to do is define your sysroot (A sysroot is a directory
-containing the system headers and libraries for your target). To define the
+The next thing you need to do is define your sysroot. A sysroot is a directory
+containing the system headers and libraries for your target. To define the
 sysroot, you must must know the Android API level you want to target for native
 support; available native APIs vary by Android API level.
 
@@ -63,7 +63,7 @@ below:
 
 ```bash
 $NDK/build/tools/make-standalone-toolchain.sh \
---arch=arm --platform=android-21 --install-dir=/tmp/my-android-toolchain
+    --arch=arm --platform=android-21 --install-dir=/tmp/my-android-toolchain
 ```
 
 This command creates a directory named `/tmp/my-android-toolchain/`, containing
@@ -71,22 +71,23 @@ a copy of the `android-21/arch-arm` sysroot, and of the toolchain binaries for a
 32-bit ARM architecture.
 
 Note that the toolchain binaries do not depend on or contain host-specific
-paths, in other words, you can install them in any location, or even move them
-if you need to.
+paths. In other words, you can install them in any location or even move them if
+you need to.
 
 By default, the build system uses the 32-bit, ARM-based GCC 4.8 toolchain. You
 can specify a different value, however, by specifying `--arch=<toolchain>` as an
-option.  Table 3 shows the values to use for other toolchains:
+option. Table 3 shows the values to use for other toolchains:
 
 **Table 3.** Toolchains and corresponding values, using `--arch`.
 
-| Toolchain                | Value           |
-| ------------------------ | --------------- |
-| mips64 compiler          | `--arch=mips64` |
-| mips GCC 4.8 compiler    | `--arch=mips`   |
-| x86 GCC 4.8 compiler     | `--arch=x86`    |
-| x86\_64 GCC 4.8 compiler | `--arch=x86_64` |
-| mips GCC 4.8 compiler    | `--arch=mips`   |
+| Toolchain | Value           |
+| --------- | --------------- |
+| arm       | `--arch=arm`    |
+| arm64     | `--arch=arm64`  |
+| mips      | `--arch=mips`   |
+| mips64    | `--arch=mips64` |
+| x86       | `--arch=x86`    |
+| x86\_64   | `--arch=x86_64` |
 
 Alternatively, you can use the `--toolchain=<toolchain>` option. Table 4 shows
 the values you can specify for `<toolchain>`:
@@ -205,14 +206,10 @@ export CC=arm-linux-androideabi-gcc   # or export CC=clang
 export CXX=arm-linux-androideabi-g++  # or export CXX=clang++
 ```
 
-Note that if you omit the `-install-dir` option, the
-`make-standalone-toolchain.sh` shell script creates a tarball in
-`tmp/ndk/<toolchain-name>.tar.bz2`. This tarball makes it easy to archive, as
-well as to redistribute the binaries.
-
-This standalone toolchain provides an additional benefit, as well, in that it
-contains a working copy of a C++ STL library, with working exceptions and RTTI
-support.
+Note that if you omit the `--install-dir` option, the
+`make-standalone-toolchain.sh` shell script creates a tarball at
+`/tmp/ndk/<toolchain-name>.tar.bz2`. This tarball makes it easy to archive or
+redistribute the binaries.
 
 For more options and details, use `--help`.
 
@@ -267,11 +264,11 @@ When building for ARM, Clang changes the target based on the presence of the
 
 You may also override with your own `-target` if you wish.
 
-The `-gcc-toolchain` option is unnecessary because, in a standalone package,
+The `-gcc-toolchain` option is unnecessary in a standalone toolchain because
 Clang locates `as` and `ld` in a predefined relative location.
 
-`clang` and `clang++` should be easy drop-in replacements for `gcc` and `g++` in
-a makefile. When in doubt, add the following options to verify that they are
+`clang` and `clang++` should be drop-in replacements for `gcc` and `g++` in a
+makefile. When in doubt, add the following options to verify that they are
 working properly:
 
 * `-v` to dump commands associated with compiler driver issues
@@ -282,31 +279,26 @@ working properly:
 For more information about Clang, see http://clang.llvm.org/, especially the GCC
 compatibility section.
 
-
 ABI Compatibility
 -----------------
 
-The machine code that the ARM toolchain generates should be compatible with the
-official Android `armeabi` [ABI](abis.html) by default.
+By default, an ARM Clang standalone toolchain will target the armeabi-v7a ABI.
+GCC will target armeabi. Either can be controlled by passing the appropriate
+`-march` flag, and Clang can also be controlled with `-target`.
 
-We recommend use of the `-mthumb` compiler flag to force the generation of
-16-bit Thumb-1 instructions (the default being 32-bit ARM instructions).
-
-If you want to target the armeabi-v7a ABI, you must set the following flags:
+To target armeabi-v7a with GCC, you must set the following flags:
 
 ```
 CFLAGS= -march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16
 ```
 
-The first flag enables Thumb-2 instructions. The second flag enables
+The first flag targets the armv7 architecture. The second flag enables
 hardware-FPU instructions while ensuring that the system passes floating-point
 parameters in core registers, which is critical for ABI compatibility.
 
-<p class="note">
-<strong>Note:</strong> In versions of the NDK prior to r9b, do not use these
-flags separately. You must set all or none of them. Otherwise, unpredictable
-behavior and crashes may result.
-</p>
+We recommend using the `-mthumb` compiler flag to force the generation of
+16-bit Thumb-2 instructions (Thumb-1 for armeabi). If omitted, the toolchain
+will emit 32-bit ARM instructions.
 
 To use NEON instructions, you must change the `-mfpu` compiler flag:
 
@@ -430,16 +422,16 @@ with the proper library:
   | --------- | ---------------------------------------- |
   | arm       | `$TOOLCHAIN/arm-linux-androideabi/lib/`  |
   | arm64     | `$TOOLCHAIN/aarch64-linux-android/lib/`  |
-  | x86       | `$TOOLCHAIN/i686-linux-android/lib/`     |
-  | x86\_64   | `$TOOLCHAIN/x86_64-linux-android/lib/`   |
   | mips      | `$TOOLCHAIN/mipsel-linux-android/lib/`   |
   | mips64    | `$TOOLCHAIN/mips64el-linux-android/lib/` |
+  | x86       | `$TOOLCHAIN/i686-linux-android/lib/`     |
+  | x86\_64   | `$TOOLCHAIN/x86_64-linux-android/lib/`   |
 
 <p class="note">
 <strong>Note:</strong> If your project contains multiple shared libraries or
 executables, you must link against a shared-library STL implementation.
-Otherwise, the build system does not define certain global uniquely, which can
-result in unpredictable runtime behavior.  This behavior may include crashes and
+Otherwise global state in these libraries will not be unique, which can result
+in unpredictable runtime behavior. This behavior may include crashes and
 failure to properly catch exceptions.
 </p>
 
