@@ -74,7 +74,7 @@ Note that the toolchain binaries do not depend on or contain host-specific
 paths. In other words, you can install them in any location or even move them if
 you need to.
 
-By default, the build system uses the 32-bit, ARM-based GCC 4.8 toolchain. You
+By default, the build system uses the 32-bit, ARM-based GCC 4.9 toolchain. You
 can specify a different value, however, by specifying `--arch=<toolchain>` as an
 option. Table 3 shows the values to use for other toolchains:
 
@@ -94,100 +94,19 @@ the values you can specify for `<toolchain>`:
 
 **Table 4.** Toolchains and corresponding values, using `--toolchain`.
 
-<table>
-  <tr>
-    <th scope="col">Toolchain</th>
-    <th scope="col">Value</th>
-  </tr>
+| Toolchain | Value                                    |
+| --------- | ---------------------------------------- |
+| arm       | `--toolchain=arm-linux-androideabi-4.9`  |
+| arm64     | `--toolchain=aarch64-linux-android-4.9`  |
+| mips      | `--toolchain=mipsel-linux-android-4.9`   |
+| mips64    | `--toolchain=mips64el-linux-android-4.9` |
+| x86       | `--toolchain=x86-4.9`                    |
+| x86\_64   | `--toolchain=x86_64-4.9`                 |
 
-  <tr>
-    <td>arm</td>
-    <td>
-       <li>--toolchain=arm-linux-androideabi-4.8</li>
-       <li>--toolchain=arm-linux-androideabi-4.9</li>
-       <li>--toolchain=arm-linux-android-clang3.5</li>
-       <li>--toolchain=arm-linux-android-clang3.6</li>
-    </td>
-  </tr>
-  <tr>
-    <td>x86</td>
-    <td>
-       <li>--toolchain=x86-linux-android-4.8</li>
-       <li>--toolchain=x86-linux-android-4.9</li>
-       <li>--toolchain=x86-linux-android-clang3.5</li>
-       <li>--toolchain=x86-linux-android-clang3.6</li>
-    </td>
-  </tr>
-  <tr>
-    <td>mips</td>
-    <td>
-       <li>--toolchain=mips-linux-android-4.8</li>
-       <li>--toolchain=mips-linux-android-4.9</li>
-       <li>--toolchain=mips-linux-android-clang3.5</li>
-       <li>--toolchain=mips-linux-android-clang3.6</li>
-    </td>
-  </tr>
+Clang can be used in one of two ways:
 
-  <tr>
-    <td>arm64</td>
-    <td>
-       <li>--toolchain=aarch64-linux-android-4.9</li>
-       <li>--toolchain=aarch64-linux-android-clang3.5</li>
-       <li>--toolchain=aarch64-linux-android-clang3.6</li>
-    </td>
-  </tr>
-  <tr>
-    <td>x86_64</td>
-    <td>
-       <li>--toolchain=x86_64-linux-android-4.9</li>
-       <li>--toolchain=x86_64-linux-android-clang3.5</li>
-       <li>--toolchain=x86_64-linux-android-clang3.6</li>
-    </td>
-  </tr>
-  <tr>
-    <td>mips64</td>
-    <td>
-       <li>--toolchain=mips64el-linux-android-4.9</li>
-       <li>--toolchain=mips64el-linux-android-clang3.5</li>
-       <li>--toolchain=mips64el-linux-android-clang3.6</li>
-    </td>
-  </tr>
-</table>
-
-<p class="note">
-<strong>Note:</strong> Table 4 is not an exhaustive list. Other combinations may
-also be valid, but are unverified.
-</p>
-
-You can also copy Clang/LLVM 3.6, using one of two methods: You can append
-`-clang3.6` to the `--toolchain` option, so that the `--toolchain` option looks
-like the following example:
-
-```bash
---toolchain=arm-linux-androideabi-clang3.6
-```
-
-You can also add `-llvm-version=3.6` as a separate option on the command line.
-
-<p class="note">
-<strong>Note:</strong> Instead of specifying a specific version, you can also use
-`<version>`, which defaults to the highest available version of Clang.
-</p>
-
-By default, the build system builds for a 32-bit host toolchain. You can specify
-a 64-bit host toolchain instead. Table 5 shows the value to use with `-system`
-for different platforms.
-
-**Table 5.** Host toolchains and corresponding values, using `-system`.
-
-| Host toolchain  | Value                     |
-| --------------- | ------------------------- |
-| 64-bit Linux    | `--system=linux-x86_64`   |
-| 64-bit Mac OS X | `--system=darwin-x86_64`  |
-| 64-bit Windows  | `--system=windows-x86_64` |
-
-For more information on specifying a 64- or 32-bit instruction host toolchain,
-see [64-bit and 32-bit Toolchains](ndk-build.html#6432).
+* Replace "-4.9" in the `--toolchain` argument with "-clang".
+* Include the argument `--use-llvm`
 
 You may specify `--stl=stlport` to copy `libstlport` instead of the default
 `libgnustl`. If you do so, and you wish to link against the shared library, you
@@ -196,7 +115,8 @@ use `-lgnustl_shared` for GNU `libstdc++`.
 
 Similarly, you can specify `--stl=libc++` to copy the LLVM libc++ headers and
 libraries.  To link against the shared library, you must explicitly use
-`-lc++_shared`.
+`-lc++_shared`. As mentioned in [C++ Library Support](cpp-support.html), you
+will often need to pass `-latomic` when linking against libc++.
 
 You can make these settings directly, as in the following example:
 
@@ -217,37 +137,20 @@ Working with Clang
 ------------------
 
 You can install Clang binaries in the standalone installation by using the
-`--llvm-version=<version>` option. `<version>` is a LLVM/Clang version number,
-such as `3.5` or `3.6`. For example:
+`--use-llvm` option.
 
 ```bash
-build/tools/make-standalone-toolchain.sh \
-    --install-dir=/tmp/mydir \
-    --toolchain=arm-linux-androideabi-4.8 \
-    --llvm-version=3.6
+build/tools/make-standalone-toolchain.sh --arch=x86 --use-llvm
 ```
 
 Note that Clang binaries are copied along with the GCC ones, because they rely
 on the same assembler, linker, headers, libraries, and C++ STL implementation.
 
 This operation also installs two scripts, named `clang` and `clang++`, under
-`<install-dir>/bin/@`. These scripts invoke the real `clang` binary with default
-target architecture flags. In other words, they should work without any
+`<install-dir>/bin`. These scripts invoke the real `clang` binary with the
+correct target architecture flags. In other words, they should work without any
 modification, and you should be able to use them in your own builds by just
 setting the `CC` and `CXX` environment variables to point to them.
-
-Invoking Clang
---------------
-
-In an ARM standalone installation built with `llvm-version=3.6`, invoking
-[Clang](http://clang.llvm.org) on a Unix system takes the form of a single line.
-For instance:
-
-```bash
-`dirname $0`/clang36 -target armv5te-none-linux-androideabi "$@"
-```
-
-`clang++` invokes `clang++31` in the same way.
 
 #### Clang targets with ARM
 
@@ -318,23 +221,9 @@ The first flag instructs the linker to pick `libgcc.a`, `libgcov.a`, and
 `crt*.o`, which are tailored for armv7-a. The 2nd flag is required as a
 workaround for a CPU bug in some Cortex-A8 implementations.
 
-Since NDK version r9b, all Android native APIs taking or returning double or
-float values have `attribute((pcs("aapcs")))` for ARM. This makes it possible to
-compile user code in `-mhard-float` (which implies `-mfloat-abi=hard`), and
-still link with the Android native APIs that comply with the softfp ABI. For
-more information on this, see the comments in
-`$NDK/tests/device/hard-float/jni/Android.mk`.
+You don't have to use any specific compiler flag when targeting the other ABIs.
 
-If you want to use NEON intrinsics on x86, the build system can translate them
-to the native x86 SSE intrinsics using a special C/C++ language header with the
-same name, `arm_neon.h`, as the standard ARM NEON intrinsics header.
-
-By default, the x86 ABI supports SIMD up to SSSE3, and the header covers ~93% of
-(1869 of 2009) NEON functions.
-
-You don't have to use any specific compiler flag when targeting the MIPS ABI.
-
-To learn more about ABI support, see [x86 Support](x86.html).
+To learn more about ABI support, see [ABIs](abis.html).
 
 Warnings and Limitations
 ------------------------
@@ -348,25 +237,6 @@ specifications like `cygdrive/c/foo/bar`, as opposed to `C:/foo/bar`.
 The NDK build system ensures that all paths passed to the compiler from Cygwin
 are automatically translated, and manages other complexities, as well. If you
 have a custom build system, you may need to resolve these complexities yourself.
-
-For information on contributing to support for Cygwin/MSys, visit the
-[android-ndk forum](https://groups.google.com/forum/#!forum/android-ndk).
-
-### `wchar_t` support
-
-The Android platform did not really support `wchar_t` until Android 2.3 (API
-level 9). This fact has several ramifications:
-
-* If you target platform Android 2.3 or higher, the size of `wchar_t` is 4
-  bytes, and most `wide-char` functions are available in the C library (with the
-  exception of multi-byte encoding/decoding functions and `wsprintf`/`wsscanf`).
-
-* If you target any lower API level, the size of `wchar_t` is 1 byte, and none
-  of the wide-char functions works.
-
-We recommend that you get rid of any dependencies on the `wchar_t` type, and
-switch to better representations. The support provided in Android is only there
-to help you migrate existing code.
 
 ### Exceptions, RTTI, and STL
 
