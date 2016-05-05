@@ -54,16 +54,21 @@ support, see [Native APIs](stable_apis.html).
 Creating the Toolchain
 ----------------------
 
-The NDK provides the `make-standalone-toolchain.sh` shell script to allow you to
+The NDK provides the `make_standalone_toolchain.py` script to allow you to
 perform a customized toolchain installation from the command line.
 
+This is a new tool that replaces the old `make-standalone-toolchain.sh`. It has
+been reimplented in Python so that Windows users will not need to install Cygwin
+or MSys to take advantage of this tool.
+
 The script is located in the `$NDK/build/tools/` directory, where `$NDK` is the
-installation root for the NDK. An example of the use of this script appears
-below:
+installation root for the NDK.
+
+An example of the use of this script appears below:
 
 ```bash
-$NDK/build/tools/make-standalone-toolchain.sh \
-    --arch=arm --platform=android-21 --install-dir=/tmp/my-android-toolchain
+$NDK/build/tools/make_standalone_toolchain.py \
+    --arch arm --api 21 --install-dir /tmp/my-android-toolchain
 ```
 
 This command creates a directory named `/tmp/my-android-toolchain/`, containing
@@ -74,39 +79,13 @@ Note that the toolchain binaries do not depend on or contain host-specific
 paths. In other words, you can install them in any location or even move them if
 you need to.
 
-By default, the build system uses the 32-bit, ARM-based GCC 4.9 toolchain. You
-can specify a different value, however, by specifying `--arch=<toolchain>` as an
-option. Table 3 shows the values to use for other toolchains:
+The `--arch` arugment is required, but the STL will default to gnustl and the
+API level will be set to the minimum supported level for the given architecture
+(currently 9 for 32-bit architectures and 21 for 64-bit architectures) if not
+explicitly stated.
 
-**Table 3.** Toolchains and corresponding values, using `--arch`.
-
-| Toolchain | Value           |
-| --------- | --------------- |
-| arm       | `--arch=arm`    |
-| arm64     | `--arch=arm64`  |
-| mips      | `--arch=mips`   |
-| mips64    | `--arch=mips64` |
-| x86       | `--arch=x86`    |
-| x86\_64   | `--arch=x86_64` |
-
-Alternatively, you can use the `--toolchain=<toolchain>` option. Table 4 shows
-the values you can specify for `<toolchain>`:
-
-**Table 4.** Toolchains and corresponding values, using `--toolchain`.
-
-| Toolchain | Value                                    |
-| --------- | ---------------------------------------- |
-| arm       | `--toolchain=arm-linux-androideabi-4.9`  |
-| arm64     | `--toolchain=aarch64-linux-android-4.9`  |
-| mips      | `--toolchain=mipsel-linux-android-4.9`   |
-| mips64    | `--toolchain=mips64el-linux-android-4.9` |
-| x86       | `--toolchain=x86-4.9`                    |
-| x86\_64   | `--toolchain=x86_64-4.9`                 |
-
-Clang can be used in one of two ways:
-
-* Replace "-4.9" in the `--toolchain` argument with "-clang".
-* Include the argument `--use-llvm`
+Unlike the old tool, Clang is always copied into the toolchain. Every standalone
+toolchain is useable for both Clang and GCC.
 
 You may specify `--stl=stlport` to copy `libstlport` instead of the default
 `libgnustl`. If you do so, and you wish to link against the shared library, you
@@ -126,22 +105,29 @@ export CC=arm-linux-androideabi-gcc   # or export CC=clang
 export CXX=arm-linux-androideabi-g++  # or export CXX=clang++
 ```
 
-Note that if you omit the `--install-dir` option, the
-`make-standalone-toolchain.sh` shell script creates a tarball at
-`/tmp/ndk/<toolchain-name>.tar.bz2`. This tarball makes it easy to archive or
-redistribute the binaries.
+Note that if you omit the `--install-dir` option, the tool creates a tarball in
+the current directory named `$TOOLCHAIN_NAME.tar.bz2`. The tarball can be placed
+in a different directory by using `--package-dir`.
 
 For more options and details, use `--help`.
+
+### The old tool
+
+The old shell script version of the tool is still available as
+`build/tools/make-standalone-toolchain.sh`. Some of the arguments have different
+names, and some defaults have changed. See `--help` for details on using the old
+tool. To make a toolchain that includes Clang, `--use-llvm` must be passed.
+
+Note that this is not usable on Windows without Cygwin or MSys.
+
+The shell script version of the tool will remain for NDK r12, but will be
+removed in r13.
 
 Working with Clang
 ------------------
 
-You can install Clang binaries in the standalone installation by using the
-`--use-llvm` option.
-
-```bash
-build/tools/make-standalone-toolchain.sh --arch=x86 --use-llvm
-```
+Clang binaries are automatically included in standalone toolchains created with
+the new tool.
 
 Note that Clang binaries are copied along with the GCC ones, because they rely
 on the same assembler, linker, headers, libraries, and C++ STL implementation.
@@ -157,7 +143,7 @@ setting the `CC` and `CXX` environment variables to point to them.
 When building for ARM, Clang changes the target based on the presence of the
 `-march=armv7-a` and/or `-mthumb` options:
 
-**Table 5.** Specifiable `-march` values and their resulting targets.
+**Table 2.** Specifiable `-march` values and their resulting targets.
 
 | `-march` value                      | Resulting target                 |
 | ----------------------------------- | -------------------------------- |
@@ -286,7 +272,7 @@ with the proper library:
   `libstlport_shared.so` to your device in order for your code to load properly.
   Table 6 shows where this file is for each toolchain:
 
-  **Table 6.** Specifiable `-march` values and their resulting targets.
+  **Table 3.** Specifiable `-march` values and their resulting targets.
 
   | Toolchain | Location                                 |
   | --------- | ---------------------------------------- |
