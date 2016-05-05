@@ -138,7 +138,7 @@ correct target architecture flags. In other words, they should work without any
 modification, and you should be able to use them in your own builds by just
 setting the `CC` and `CXX` environment variables to point to them.
 
-#### Clang targets with ARM
+### Clang targets with ARM
 
 When building for ARM, Clang changes the target based on the presence of the
 `-march=armv7-a` and/or `-mthumb` options:
