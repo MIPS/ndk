@@ -468,44 +468,27 @@ copy_stl_common_headers () {
 }
 
 # $1: Source ABI (e.g. 'armeabi')
-# #2  Optional destination path of additional header to copy (eg. include/bits), default to empty
-# $3: Optional source path of additional additional header to copy, default to empty
-# $4: Optional destination directory, default to empty (e.g. "", "thumb", "armv7-a/thumb")
-# $5: Optional source directory, default to empty (e.g. "", "thumb", "armv7-a/thumb")
+# $2: Optional destination directory, default to empty (e.g. "", "thumb", "armv7-a/thumb")
 copy_stl_libs () {
     local ABI=$1
-    local HEADER_DST=$2
-    local HEADER_SRC=$3
-    local DEST_DIR=$4
-    local SRC_DIR=$5
+    local DEST_DIR=$2
     local ABI_SRC_DIR=$ABI
 
-    if [ -n "$SRC_DIR" ]; then
-        ABI_SRC_DIR=$ABI/$SRC_DIR
-    else
-        if [ "$DEST_DIR" != "${DEST_DIR%%/*}" ] ; then
-            ABI_SRC_DIR=$ABI/`basename $DEST_DIR`
-        fi
+    if [ "$DEST_DIR" != "${DEST_DIR%%/*}" ] ; then
+        ABI_SRC_DIR=$ABI/`basename $DEST_DIR`
     fi
 
     case $STL in
         gnustl)
-            if [ "$HEADER_SRC" != "" ]; then
-                copy_directory "$GNUSTL_LIBS/$ABI/include/$HEADER_SRC" "$ABI_STL_INCLUDE_TARGET/$HEADER_DST"
-            fi
             copy_file_list "$GNUSTL_LIBS/$ABI_SRC_DIR" "$ABI_STL/lib/$DEST_DIR" "libgnustl_shared.so"
             copy_file_list "$GNUSTL_LIBS/$ABI_SRC_DIR" "$ABI_STL/lib/$DEST_DIR" "libsupc++.a"
             cp -p "$GNUSTL_LIBS/$ABI_SRC_DIR/libgnustl_static.a" "$ABI_STL/lib/$DEST_DIR/libstdc++.a"
             ;;
         libcxx|libc++)
-            # We have only thumb libc++ libs for ARM, and they're installed in
-            # the non-arm directory.
-            if [[ "$ARCH" != "arm" || "$DEST_DIR" != *"thumb"* ]]; then
-                copy_file_list "$LIBCXX_LIBS/$ABI_SRC_DIR" \
-                    "$ABI_STL/lib/$DEST_DIR" "libc++_shared.so"
-                cp -p "$LIBCXX_LIBS/$ABI_SRC_DIR/libc++_static.a" \
-                    "$ABI_STL/lib/$DEST_DIR/libstdc++.a"
-            fi
+            copy_file_list "$LIBCXX_LIBS/$ABI_SRC_DIR" \
+                "$ABI_STL/lib/$DEST_DIR" "libc++_shared.so"
+            cp -p "$LIBCXX_LIBS/$ABI_SRC_DIR/libc++_static.a" \
+                "$ABI_STL/lib/$DEST_DIR/libstdc++.a"
             ;;
         stlport)
             copy_file_list "$STLPORT_LIBS/$ABI_SRC_DIR" "$ABI_STL/lib/$DEST_DIR" "libstlport_shared.so"
@@ -527,19 +510,32 @@ copy_stl_libs_for_abi () {
         exit 1
     fi
 
-    case $ABI in
-        armeabi)
-            copy_stl_libs armeabi "bits" "bits"
-            copy_stl_libs armeabi "thumb/bits" "bits" "/thumb"
-            ;;
-        armeabi-v7a)
-            copy_stl_libs armeabi-v7a "armv7-a/bits" "bits" "armv7-a"
-            copy_stl_libs armeabi-v7a "armv7-a/thumb/bits" "bits" "armv7-a/thumb"
-            ;;
-        *)
-            copy_stl_libs "$ABI" "bits" "bits"
-            ;;
-    esac
+    if [ "$STL" == "gnustl" ]; then
+        case $ABI in
+            armeabi)
+                copy_directory "$GNUSTL_LIBS/$ABI/include/bits" \
+                    "$ABI_STL_INCLUDE_TARGET/bits"
+                copy_directory "$GNUSTL_LIBS/$ABI/include/bits" \
+                    "$ABI_STL_INCLUDE_TARGET/thumb/bits"
+                ;;
+            armeabi-v7a)
+                copy_directory "$GNUSTL_LIBS/$ABI/include/bits" \
+                    "$ABI_STL_INCLUDE_TARGET/armv7-a/bits"
+                copy_directory "$GNUSTL_LIBS/$ABI/include/bits" \
+                    "$ABI_STL_INCLUDE_TARGET/armv7-a/thumb/bits"
+                ;;
+            *)
+                copy_directory "$GNUSTL_LIBS/$ABI/include/bits" \
+                    "$ABI_STL_INCLUDE_TARGET/bits"
+                ;;
+        esac
+    fi
+
+    if [ "$ABI" == "armeabi-v7a" ]; then
+        copy_stl_libs armeabi-v7a "armv7-a"
+    else
+        copy_stl_libs "$ABI"
+    fi
 }
 
 mkdir -p "$ABI_STL_INCLUDE_TARGET"
