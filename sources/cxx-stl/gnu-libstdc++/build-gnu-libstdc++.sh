@@ -129,16 +129,15 @@ build_gnustl_for_abi ()
     local BUILDDIR="$2"
     local LIBTYPE="$3"
     local GCC_VERSION="$4"
-    local THUMB="$5"
-    local DSTDIR=$NDK_DIR/$GNUSTL_SUBDIR/libs/$ABI/$THUMB
+    local DSTDIR=$NDK_DIR/$GNUSTL_SUBDIR/libs/$ABI
     local PREBUILT_NDK=$ANDROID_BUILD_TOP/prebuilts/ndk/current
     local SRC OBJ OBJECTS CFLAGS CXXFLAGS CPPFLAGS
 
     prepare_target_build $ABI $PLATFORM $NDK_DIR
     fail_panic "Could not setup target build."
 
-    INSTALLDIR=$BUILDDIR/install-$ABI-$GCC_VERSION/$THUMB
-    BUILDDIR=$BUILDDIR/$LIBTYPE-${ABI}${THUMB}-$GCC_VERSION
+    INSTALLDIR=$BUILDDIR/install-$ABI-$GCC_VERSION
+    BUILDDIR=$BUILDDIR/$LIBTYPE-${ABI}j$GCC_VERSION
 
     mkdir -p $DSTDIR
 
@@ -177,7 +176,9 @@ build_gnustl_for_abi ()
 
     EXTRA_CFLAGS="-ffunction-sections -fdata-sections"
     EXTRA_LDFLAGS=
-    if [ -n "$THUMB" ] ; then
+
+    # arm32 libs are built as thumb.
+    if [ "$ABI" != "${ABI%%arm*}" -a "$ABI" = "${ABI%%64*}" ] ; then
         EXTRA_CFLAGS="$EXTRA_CFLAGS -mthumb"
         EXTRA_LDFLAGS="$EXTRA_LDFLAGS -mthumb"
     fi
@@ -268,7 +269,7 @@ build_gnustl_for_abi ()
     MULTILIB_FLAGS=--disable-multilib
 
     INCLUDE_VERSION=`cat $GNUSTL_SRCDIR/../gcc/BASE-VER`
-    PROJECT="gnustl_$LIBTYPE gcc-$GCC_VERSION $ABI $THUMB"
+    PROJECT="gnustl_$LIBTYPE gcc-$GCC_VERSION $ABI"
     echo "$PROJECT: configuring"
     mkdir -p $BUILDDIR && rm -rf $BUILDDIR/* &&
     cd $BUILDDIR &&
@@ -294,7 +295,7 @@ build_gnustl_for_abi ()
 
     echo "$PROJECT: installing"
     run make install
-    fail_panic "Could not create $ABI $THUMB prebuilts for GNU libsupc++/libstdc++"
+    fail_panic "Could not create $ABI prebuilts for GNU libsupc++/libstdc++"
 }
 
 
@@ -363,11 +364,7 @@ for ABI in $ABIS; do
 
         build_gnustl_for_abi $ABI "$BUILD_DIR" static $VERSION
         build_gnustl_for_abi $ABI "$BUILD_DIR" shared $VERSION
-        # build thumb version of libraries for 32-bit arm
-        if [ "$ABI" != "${ABI%%arm*}" -a "$ABI" = "${ABI%%64*}" ] ; then
-            build_gnustl_for_abi $ABI "$BUILD_DIR" static $VERSION thumb
-            build_gnustl_for_abi $ABI "$BUILD_DIR" shared $VERSION thumb
-        fi
+
         copy_gnustl_libs $ABI "$BUILD_DIR" $VERSION
     done
 done
@@ -406,10 +403,6 @@ if [ -n "$PACKAGE_DIR" ] ; then
             esac
             for LIB in include/bits $MULTILIB libsupc++.a libgnustl_static.a libgnustl_shared.so; do
                 FILES="$FILES $GNUSTL_DIR/libs/$ABI/$LIB"
-                THUMB_FILE="$GNUSTL_DIR/libs/$ABI/thumb/$LIB"
-                if [ -f "$NDK_DIR/sources/cxx-stl/$THUMB_FILE" ]; then
-                    FILES="$FILES $THUMB_FILE"
-                fi
             done
         done
 
