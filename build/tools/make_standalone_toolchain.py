@@ -258,8 +258,8 @@ def copy_stl_abi_headers(src_dir, dst_dir, gcc_ver, triple, abi, thumb=False):
     abi_src_dir = os.path.join(
         src_dir, 'libs', abi, 'include/bits')
 
-    # Most architectures simply install to bits. The arm32 flavors are finicky,
-    # and we need bits/, thumb/bits, armv7-a/bits, and armv7-a/thumb/bits.
+    # Most ABIs simply install to bits, but armeabi-v7a needs to be
+    # installed to armv7-a/bits.
     bits_dst_dir = 'bits'
     if thumb:
         bits_dst_dir = os.path.join('thumb', bits_dst_dir)
@@ -271,28 +271,22 @@ def copy_stl_abi_headers(src_dir, dst_dir, gcc_ver, triple, abi, thumb=False):
     shutil.copytree(abi_src_dir, abi_dst_dir)
 
 
-def get_src_libdir(src_dir, abi, thumb=False):
-    src_libdir = os.path.join(src_dir, 'libs', abi)
-    if thumb:
-        src_libdir = os.path.join(src_libdir, 'thumb')
-    return src_libdir
+def get_src_libdir(src_dir, abi):
+    return os.path.join(src_dir, 'libs', abi)
 
 
-def get_dest_libdir(dst_dir, triple, abi, thumb=False):
+def get_dest_libdir(dst_dir, triple, abi):
     dst_libdir = os.path.join(dst_dir, triple, 'lib')
     if abi.startswith('armeabi-v7a'):
         dst_libdir = os.path.join(dst_libdir, 'armv7-a')
-    if thumb:
-        dst_libdir = os.path.join(dst_libdir, 'thumb')
     return dst_libdir
 
 
-def copy_gnustl_libs(src_dir, dst_dir, triple, abi, thumb=False):
-    src_libdir = get_src_libdir(src_dir, abi, thumb)
-    dst_libdir = get_dest_libdir(dst_dir, triple, abi, thumb)
+def copy_gnustl_libs(src_dir, dst_dir, triple, abi):
+    src_libdir = get_src_libdir(src_dir, abi)
+    dst_libdir = get_dest_libdir(dst_dir, triple, abi)
 
-    logger().debug('Copying %s libs to %s', abi + ' thumb' if thumb else abi,
-                   dst_libdir)
+    logger().debug('Copying %s libs to %s', abi, dst_libdir)
 
     if not os.path.exists(dst_libdir):
         os.makedirs(dst_libdir)
@@ -307,9 +301,9 @@ def copy_gnustl_libs(src_dir, dst_dir, triple, abi, thumb=False):
                  os.path.join(dst_libdir, 'libstdc++.a'))
 
 
-def copy_stlport_libs(src_dir, dst_dir, triple, abi, thumb=False):
-    src_libdir = get_src_libdir(src_dir, abi, thumb)
-    dst_libdir = get_dest_libdir(dst_dir, triple, abi, thumb)
+def copy_stlport_libs(src_dir, dst_dir, triple, abi):
+    src_libdir = get_src_libdir(src_dir, abi)
+    dst_libdir = get_dest_libdir(dst_dir, triple, abi)
 
     if not os.path.exists(dst_libdir):
         os.makedirs(dst_libdir)
@@ -346,10 +340,8 @@ def create_toolchain(install_path, arch, gcc_path, clang_path, sysroot_path,
                                  abi)
             copy_gnustl_libs(gnustl_dir, install_path, triple, abi)
             if arch == 'arm':
-                copy_stl_abi_headers(gnustl_dir, install_path,
-                                     gcc_ver, triple, abi, thumb=True)
-                copy_gnustl_libs(gnustl_dir, install_path,
-                                 triple, abi, thumb=True)
+                copy_stl_abi_headers(gnustl_dir, install_path, gcc_ver, triple,
+                                     abi, thumb=True)
     elif stl == 'libc++':
         libcxx_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/llvm-libc++')
         libcxxabi_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/llvm-libc++abi')
@@ -410,8 +402,7 @@ def create_toolchain(install_path, arch, gcc_path, clang_path, sysroot_path,
         for abi in get_abis(arch):
             copy_stlport_libs(stlport_dir, install_path, triple, abi)
             if arch == 'arm':
-                copy_stlport_libs(stlport_dir, install_path, triple, abi,
-                                  thumb=True)
+                copy_stlport_libs(stlport_dir, install_path, triple, abi)
     else:
         raise ValueError(stl)
 
