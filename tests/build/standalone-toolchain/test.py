@@ -24,22 +24,18 @@ site.addsitedir(os.path.join(os.environ['NDK'], 'build/lib'))
 import build_support  # pylint: disable=import-error
 
 
-def make_standalone_toolchain(arch, platform, toolchain, install_dir):
+def make_standalone_toolchain(arch, platform, install_dir):
     ndk_dir = os.environ['NDK']
     make_standalone_toolchain_path = os.path.join(
-        ndk_dir, 'build/tools/make-standalone-toolchain.sh')
+        ndk_dir, 'build/tools/make_standalone_toolchain.py')
 
-    cmd = [make_standalone_toolchain_path, '--install-dir=' + install_dir]
+    cmd = [make_standalone_toolchain_path, '--force',
+           '--install-dir=' + install_dir]
 
     if arch is not None:
         cmd.append('--arch=' + arch)
     if platform is not None:
-        cmd.append('--platform=' + platform)
-
-    if toolchain is not None:
-        toolchain_triple = build_support.arch_to_toolchain(arch)
-        name = '{}-{}'.format(toolchain_triple, toolchain)
-        cmd.append('--toolchain=' + name)
+        cmd.append('--api=' + platform)
 
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT)
@@ -75,8 +71,7 @@ def run_test(abi=None, platform=None, toolchain=None,
 
     install_dir = tempfile.mkdtemp()
     try:
-        success, out = make_standalone_toolchain(arch, platform, toolchain,
-                                                 install_dir)
+        success, out = make_standalone_toolchain(arch, platform, install_dir)
         if not success:
             return success, out
         return test_standalone_toolchain(arch, toolchain, install_dir)
