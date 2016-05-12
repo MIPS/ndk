@@ -26,6 +26,7 @@ import logging
 import platform
 import os
 import shutil
+import stat
 import sys
 import tempfile
 import textwrap
@@ -189,7 +190,8 @@ def make_clang_scripts(install_dir, triple, windows):
     target = '-'.join([arch, 'none', os_name, env])
     flags = '-target {} --sysroot `dirname $0`/../sysroot'.format(target)
 
-    with open(os.path.join(install_dir, 'bin/clang'), 'w') as clang:
+    clang_path = os.path.join(install_dir, 'bin/clang')
+    with open(clang_path, 'w') as clang:
         clang.write(textwrap.dedent("""\
             #!/bin/bash
             if [ "$1" != "-cc1" ]; then
@@ -200,7 +202,11 @@ def make_clang_scripts(install_dir, triple, windows):
             fi
         """.format(version=version_number, flags=flags)))
 
-    with open(os.path.join(install_dir, 'bin/clang++'), 'w') as clangpp:
+    mode = os.stat(clang_path).st_mode
+    os.chmod(clang_path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+    clangpp_path = os.path.join(install_dir, 'bin/clang++')
+    with open(clangpp_path, 'w') as clangpp:
         clangpp.write(textwrap.dedent("""\
             #!/bin/bash
             if [ "$1" != "-cc1" ]; then
@@ -210,6 +216,9 @@ def make_clang_scripts(install_dir, triple, windows):
                 `dirname $0`/clang{version}++ "$@"
             fi
         """.format(version=version_number, flags=flags)))
+
+    mode = os.stat(clangpp_path).st_mode
+    os.chmod(clangpp_path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
     shutil.copy2(os.path.join(install_dir, 'bin/clang'),
                  os.path.join(install_dir, 'bin', triple + '-clang'))
