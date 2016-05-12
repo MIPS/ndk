@@ -16,6 +16,9 @@
 
 # Create a standalone toolchain package for Android.
 
+echo WARNING: make-standalone-toolchain.sh will be removed in r13. Please try \
+     make_standalone_toolchain.py now to make sure it works for your needs.
+
 . `dirname $0`/prebuilt-common.sh
 
 PROGRAM_PARAMETERS=""
