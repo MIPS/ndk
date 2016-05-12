@@ -30,7 +30,7 @@ def make_standalone_toolchain(arch, platform, install_dir):
         ndk_dir, 'build/tools/make_standalone_toolchain.py')
 
     cmd = [make_standalone_toolchain_path, '--force',
-           '--install-dir=' + install_dir]
+           '--install-dir=' + install_dir, '--stl=libc++']
 
     if arch is not None:
         cmd.append('--arch=' + arch)
@@ -57,8 +57,9 @@ def test_standalone_toolchain(arch, toolchain, install_dir):
 
     compiler = os.path.join(install_dir, 'bin', compiler_name)
     test_source = 'foo.cpp'
-    proc = subprocess.Popen([compiler, '-shared', test_source],
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    cmd = [compiler, '-shared', test_source, '-Wl,--no-undefined']
+    proc = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     out, _ = proc.communicate()
     return proc.returncode == 0, out
 
