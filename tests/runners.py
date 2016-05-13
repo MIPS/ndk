@@ -15,6 +15,7 @@
 #
 from __future__ import print_function
 
+import logging
 import os
 import subprocess
 import sys
@@ -165,6 +166,7 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
     if build_api_level is not None:
         ndk_build_flags.append('APP_PLATFORM={}'.format(build_api_level))
     if verbose_ndk_build:
+        logging.basicConfig(level=logging.INFO)
         ndk_build_flags.append('V=1')
 
     # Do this early so we find any device issues now rather than after we've
