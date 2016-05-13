@@ -111,18 +111,6 @@ in a different directory by using `--package-dir`.
 
 For more options and details, use `--help`.
 
-### The old tool
-
-The old shell script version of the tool is still available as
-`build/tools/make-standalone-toolchain.sh`. Some of the arguments have different
-names, and some defaults have changed. See `--help` for details on using the old
-tool. To make a toolchain that includes Clang, `--use-llvm` must be passed.
-
-Note that this is not usable on Windows without Cygwin or MSys.
-
-The shell script version of the tool will remain for NDK r12, but will be
-removed in r13.
-
 Working with Clang
 ------------------
 

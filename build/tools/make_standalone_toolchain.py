@@ -26,6 +26,7 @@ import logging
 import platform
 import os
 import shutil
+import stat
 import sys
 import tempfile
 import textwrap
@@ -189,7 +190,8 @@ def make_clang_scripts(install_dir, triple, windows):
     target = '-'.join([arch, 'none', os_name, env])
     flags = '-target {} --sysroot `dirname $0`/../sysroot'.format(target)
 
-    with open(os.path.join(install_dir, 'bin/clang'), 'w') as clang:
+    clang_path = os.path.join(install_dir, 'bin/clang')
+    with open(clang_path, 'w') as clang:
         clang.write(textwrap.dedent("""\
             #!/bin/bash
             if [ "$1" != "-cc1" ]; then
@@ -200,7 +202,11 @@ def make_clang_scripts(install_dir, triple, windows):
             fi
         """.format(version=version_number, flags=flags)))
 
-    with open(os.path.join(install_dir, 'bin/clang++'), 'w') as clangpp:
+    mode = os.stat(clang_path).st_mode
+    os.chmod(clang_path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+    clangpp_path = os.path.join(install_dir, 'bin/clang++')
+    with open(clangpp_path, 'w') as clangpp:
         clangpp.write(textwrap.dedent("""\
             #!/bin/bash
             if [ "$1" != "-cc1" ]; then
@@ -210,6 +216,9 @@ def make_clang_scripts(install_dir, triple, windows):
                 `dirname $0`/clang{version}++ "$@"
             fi
         """.format(version=version_number, flags=flags)))
+
+    mode = os.stat(clangpp_path).st_mode
+    os.chmod(clangpp_path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
     shutil.copy2(os.path.join(install_dir, 'bin/clang'),
                  os.path.join(install_dir, 'bin', triple + '-clang'))
@@ -276,7 +285,11 @@ def get_src_libdir(src_dir, abi):
 
 
 def get_dest_libdir(dst_dir, triple, abi):
-    dst_libdir = os.path.join(dst_dir, triple, 'lib')
+    libdir_name = 'lib'
+    if abi in ('mips64', 'x86_64'):
+        # ARM64 isn't a real multilib target, so it's just installed to lib.
+        libdir_name = 'lib64'
+    dst_libdir = os.path.join(dst_dir, triple, libdir_name)
     if abi.startswith('armeabi-v7a'):
         dst_libdir = os.path.join(dst_libdir, 'armv7-a')
     return dst_libdir
@@ -373,7 +386,35 @@ def create_toolchain(install_path, arch, gcc_path, clang_path, sysroot_path,
             shutil.copy2(os.path.join(src_libdir, 'libc++_shared.so'),
                          dest_libdir)
             shutil.copy2(os.path.join(src_libdir, 'libc++_static.a'),
+                         dest_libdir)
+            shutil.copy2(os.path.join(src_libdir, 'libandroid_support.a'),
+                         dest_libdir)
+            shutil.copy2(os.path.join(src_libdir, 'libc++abi.a'), dest_libdir)
+
+            if arch == 'arm':
+                shutil.copy2(os.path.join(src_libdir, 'libunwind.a'),
+                             dest_libdir)
+
+            # libc++ is different from the other STLs. It has a libc++.(a|so)
+            # that is a linker script which automatically pulls in the
+            # necessary libraries. This way users don't have to do
+            # `-lc++abi -lunwind -landroid_support` on their own.
+            #
+            # As with the other STLs, we still copy this as libstdc++.a so the
+            # compiler will pick it up by default.
+            #
+            # Unlike the other STLs, also copy libc++.so (another linker
+            # script) over as libstdc++.so.  Since it's a linker script, the
+            # linker will still get the right DT_NEEDED from the SONAME of the
+            # actual linked object.
+            #
+            # TODO(danalbert): We should add linker scripts for the other STLs
+            # too since it lets the user avoid the current mess of having to
+            # always manually add `-lstlport_shared` (or whichever STL).
+            shutil.copy2(os.path.join(src_libdir, 'libc++.a'),
                          os.path.join(dest_libdir, 'libstdc++.a'))
+            shutil.copy2(os.path.join(src_libdir, 'libc++.so'),
+                         os.path.join(dest_libdir, 'libstdc++.so'))
     elif stl == 'stlport':
         stlport_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/stlport')
         gabixx_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/gabi++')

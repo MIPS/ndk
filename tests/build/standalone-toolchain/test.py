@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import logging
 import os
 import shutil
 import site
@@ -24,27 +25,33 @@ site.addsitedir(os.path.join(os.environ['NDK'], 'build/lib'))
 import build_support  # pylint: disable=import-error
 
 
-def make_standalone_toolchain(arch, platform, toolchain, install_dir):
+def logger():
+    return logging.getLogger(__name__)
+
+
+def call_output(cmd, *args, **kwargs):
+    logger().info('COMMAND: ' + ' '.join(cmd))
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, *args, **kwargs)
+    out, _ = proc.communicate()
+    return proc.returncode, out
+
+
+def make_standalone_toolchain(arch, platform, install_dir):
     ndk_dir = os.environ['NDK']
     make_standalone_toolchain_path = os.path.join(
-        ndk_dir, 'build/tools/make-standalone-toolchain.sh')
+        ndk_dir, 'build/tools/make_standalone_toolchain.py')
 
-    cmd = [make_standalone_toolchain_path, '--install-dir=' + install_dir]
+    cmd = [make_standalone_toolchain_path, '--force',
+           '--install-dir=' + install_dir, '--stl=libc++']
 
     if arch is not None:
         cmd.append('--arch=' + arch)
     if platform is not None:
-        cmd.append('--platform=' + platform)
+        cmd.append('--api=' + platform)
 
-    if toolchain is not None:
-        toolchain_triple = build_support.arch_to_toolchain(arch)
-        name = '{}-{}'.format(toolchain_triple, toolchain)
-        cmd.append('--toolchain=' + name)
-
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
-    out, _ = proc.communicate()
-    return proc.returncode == 0, out
+    rc, out = call_output(cmd)
+    return rc == 0, out
 
 
 def test_standalone_toolchain(arch, toolchain, install_dir):
@@ -61,10 +68,9 @@ def test_standalone_toolchain(arch, toolchain, install_dir):
 
     compiler = os.path.join(install_dir, 'bin', compiler_name)
     test_source = 'foo.cpp'
-    proc = subprocess.Popen([compiler, '-shared', test_source],
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    out, _ = proc.communicate()
-    return proc.returncode == 0, out
+    cmd = [compiler, '-shared', test_source, '-Wl,--no-undefined']
+    rc, out = call_output(cmd)
+    return rc == 0, out
 
 
 def run_test(abi=None, platform=None, toolchain=None,
@@ -75,8 +81,7 @@ def run_test(abi=None, platform=None, toolchain=None,
 
     install_dir = tempfile.mkdtemp()
     try:
-        success, out = make_standalone_toolchain(arch, platform, toolchain,
-                                                 install_dir)
+        success, out = make_standalone_toolchain(arch, platform, install_dir)
         if not success:
             return success, out
         return test_standalone_toolchain(arch, toolchain, install_dir)
