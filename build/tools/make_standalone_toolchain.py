@@ -285,7 +285,11 @@ def get_src_libdir(src_dir, abi):
 
 
 def get_dest_libdir(dst_dir, triple, abi):
-    dst_libdir = os.path.join(dst_dir, triple, 'lib')
+    libdir_name = 'lib'
+    if abi in ('mips64', 'x86_64'):
+        # ARM64 isn't a real multilib target, so it's just installed to lib.
+        libdir_name = 'lib64'
+    dst_libdir = os.path.join(dst_dir, triple, libdir_name)
     if abi.startswith('armeabi-v7a'):
         dst_libdir = os.path.join(dst_libdir, 'armv7-a')
     return dst_libdir
