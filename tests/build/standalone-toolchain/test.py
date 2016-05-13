@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import logging
 import os
 import shutil
 import site
@@ -22,6 +23,18 @@ import tempfile
 site.addsitedir(os.path.join(os.environ['NDK'], 'build/lib'))
 
 import build_support  # pylint: disable=import-error
+
+
+def logger():
+    return logging.getLogger(__name__)
+
+
+def call_output(cmd, *args, **kwargs):
+    logger().info('COMMAND: ' + ' '.join(cmd))
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, *args, **kwargs)
+    out, _ = proc.communicate()
+    return proc.returncode, out
 
 
 def make_standalone_toolchain(arch, platform, install_dir):
@@ -37,10 +50,8 @@ def make_standalone_toolchain(arch, platform, install_dir):
     if platform is not None:
         cmd.append('--api=' + platform)
 
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
-    out, _ = proc.communicate()
-    return proc.returncode == 0, out
+    rc, out = call_output(cmd)
+    return rc == 0, out
 
 
 def test_standalone_toolchain(arch, toolchain, install_dir):
@@ -58,10 +69,8 @@ def test_standalone_toolchain(arch, toolchain, install_dir):
     compiler = os.path.join(install_dir, 'bin', compiler_name)
     test_source = 'foo.cpp'
     cmd = [compiler, '-shared', test_source, '-Wl,--no-undefined']
-    proc = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    out, _ = proc.communicate()
-    return proc.returncode == 0, out
+    rc, out = call_output(cmd)
+    return rc == 0, out
 
 
 def run_test(abi=None, platform=None, toolchain=None,
