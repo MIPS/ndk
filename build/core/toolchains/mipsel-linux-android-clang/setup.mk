@@ -65,6 +65,13 @@ TARGET_LDFLAGS += \
     -target $(LLVM_TRIPLE) \
     -no-canonical-prefixes \
 
+# Clang outputs mips32r2 by default, switch to mips32r1
+# TODO: Remove this once mipsel-linux-android target is changed in clang
+ifeq ($(TARGET_ARCH_ABI),mips)
+    TARGET_CFLAGS += -mips32
+    TARGET_LDFLAGS += -mips32
+endif
+
 TARGET_mips_release_CFLAGS := \
     -O2 \
     -DNDEBUG \
