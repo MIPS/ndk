@@ -84,7 +84,7 @@ def expand_packages(package, host, arches):
 def get_all_packages(host, arches):
     packages = [
         ('cpufeatures', 'sources/android/cpufeatures'),
-        ('gabixx', 'sources/cxx-stl/gabi++'),
+        ('gabi++', 'sources/cxx-stl/gabi++'),
         ('gcc-{toolchain}-{host}', 'toolchains/{toolchain}-4.9/prebuilt/{host}'),
         ('gdbserver-{arch}', 'prebuilt/android-{arch}/gdbserver'),
         ('shader-tools-{host}', 'shader-tools/{host}'),
@@ -93,7 +93,7 @@ def get_all_packages(host, arches):
         ('host-tools-{host}', 'prebuilt/{host}'),
         ('libandroid_support', 'sources/android/support'),
         ('libcxx', 'sources/cxx-stl/llvm-libc++'),
-        ('libcxxabi', 'sources/cxx-stl/llvm-libc++abi'),
+        ('libc++abi', 'sources/cxx-stl/llvm-libc++abi'),
         ('llvm-{host}', 'toolchains/llvm/prebuilt/{host}'),
         ('native_app_glue', 'sources/android/native_app_glue'),
         ('ndk-build', 'build'),
@@ -101,7 +101,7 @@ def get_all_packages(host, arches):
         ('platforms', 'platforms'),
         ('python-packages', 'python-packages'),
         ('renderscript-{host}', 'toolchains/renderscript/prebuilt/{host}'),
-        ('renderscript', 'sources/android/renderscript'),
+        ('renderscript-libs', 'sources/android/renderscript'),
         ('shaderc', 'sources/third_party/shaderc'),
         ('simpleperf', 'simpleperf'),
         ('stlport', 'sources/cxx-stl/stlport'),
