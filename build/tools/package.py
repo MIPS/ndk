@@ -209,11 +209,13 @@ def make_shortcut(out_dir, host, path, basename, windows_ext=None):
 
 
 def make_cmd_helper(out_dir, path, basename, windows_ext):
+    shortcut_basename = basename
     if windows_ext is not None:
         basename += '.' + windows_ext
+        shortcut_basename += '.cmd'
 
     full_path = ntpath.join('%~dp0', ntpath.normpath(path), basename)
-    with open(os.path.join(out_dir, basename), 'w') as helper:
+    with open(os.path.join(out_dir, shortcut_basename), 'w') as helper:
         helper.writelines([
             '@echo off\n',
             full_path + ' %*\n',
