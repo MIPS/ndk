@@ -155,7 +155,8 @@ LOCAL_CFLAGS += \
   -Wno-shift-op-parentheses \
   -Wno-string-plus-int \
   -Wno-dangling-else \
-  -Wno-bitwise-op-parentheses
+  -Wno-bitwise-op-parentheses \
+  -Wno-shift-negative-value
 endif
 
 LOCAL_CFLAGS += $(android_support_cflags)
