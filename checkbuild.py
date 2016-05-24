@@ -614,7 +614,7 @@ def launch_build(build_name, build_func, out_dir, dist_dir, args, log_dir):
         try:
             build_func(out_dir, dist_dir, args)
             return build_name, True, log_path
-        except Exception:  # pylint: disable=bare-except
+        except Exception:  # pylint: disable=broad-except
             traceback.print_exc()
             return build_name, False, log_path
     finally:
