@@ -135,8 +135,10 @@ def main():
     # platform checkout.
     site.addsitedir(os.path.join(ndk_path, 'python-packages'))
 
+    # pylint: disable=relative-import
     import printers
     import runners
+    # pylint: enable=relative-import
 
     out_dir = args.out_dir
     if out_dir is not None:

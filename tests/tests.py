@@ -26,8 +26,10 @@ import re
 import shutil
 import subprocess
 
+# pylint: disable=relative-import
 import ndk
 import util
+# pylint: enable=relative-import
 
 # pylint: disable=no-self-use
 
