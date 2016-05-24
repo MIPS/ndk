@@ -207,6 +207,10 @@ class Test(object):
     def run(self, out_dir, test_filters):
         raise NotImplementedError
 
+    # TODO(danalbert): Clean up the gross hacks :(
+    # pylint is right on all of these, and this is actually a pretty gross
+    # implementation that I should fix.
+    # pylint: disable=no-member
     def check_broken(self):
         return self.config.match_broken(self.abi, self.platform,
                                         self.toolchain)
@@ -222,6 +226,7 @@ class Test(object):
     def check_subtest_unsupported(self, name):
         return self.config.match_unsupported(self.abi, self.platform,
                                              self.toolchain, subtest=name)
+    # pylint: enable=no-member
 
 
 class AwkTest(Test):
