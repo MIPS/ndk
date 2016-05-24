@@ -97,8 +97,12 @@ Prerequisites
     * flex
     * libtool
     * mingw-w64
+    * zip
     * pbzip2 (optional, improves packaging times)
     * texinfo
+    * asciidoctor
+    * ruby-pygments.rb
+    * python-nose
     * python3 (used for Vulkan validation layer generation)
     * python-lxml (used for Vulkan validation layer generation)
 * Mac OS X also requires Xcode.
