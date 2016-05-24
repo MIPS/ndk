@@ -106,6 +106,10 @@ Prerequisites
     * python3 (used for Vulkan validation layer generation)
     * python-lxml (used for Vulkan validation layer generation)
 * Mac OS X also requires Xcode.
+* Running tests requires that `adb` is in your `PATH`. This is provided as part
+  of the [Android SDK].
+
+[Android SDK]: https://developer.android.com/studio/index.html#downloads
 
 Building the NDK
 ----------------
