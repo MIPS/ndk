@@ -385,16 +385,11 @@ if [ -n "$PACKAGE_DIR" ] ; then
                               lib64/libsupc++.a lib64/libgnustl_static.a lib64/libgnustl_shared.so"
                     ;;
                 mips64)
-                    MULTILIB="include/32/mips-r1/bits include/32/mips-r2/bits include/32/mips-r6/bits include/bits
-                              lib/libsupc++.a lib/libgnustl_static.a lib/libgnustl_shared.so
-                              libr2/libsupc++.a libr2/libgnustl_static.a libr2/libgnustl_shared.so
-                              libr6/libsupc++.a libr6/libgnustl_static.a libr6/libgnustl_shared.so
-                              lib64/libsupc++.a lib64/libgnustl_static.a lib64/libgnustl_shared.so"
+                    MULTILIB="lib64/libsupc++.a lib64/libgnustl_static.a lib64/libgnustl_shared.so"
                     ;;
                 mips|mips32r6)
-                    MULTILIB="include/mips-r2/bits include/mips-r6/bits include/bits
+                    MULTILIB="include/mips-r6/bits
                               lib/libsupc++.a lib/libgnustl_static.a lib/libgnustl_shared.so
-                              libr2/libsupc++.a libr2/libgnustl_static.a libr2/libgnustl_shared.so
                               libr6/libsupc++.a libr6/libgnustl_static.a libr6/libgnustl_shared.so"
                     ;;
                 *)
