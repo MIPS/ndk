@@ -36,6 +36,11 @@ import sys
 import tempfile
 
 
+THIS_DIR = os.path.realpath(os.path.dirname(__file__))
+site.addsitedir(os.path.join(THIS_DIR, '../build/lib'))
+import build_support  # pylint: disable=import-error
+
+
 SUPPORTED_ABIS = (
     'armeabi',
     'armeabi-v7a',
@@ -62,23 +67,12 @@ LONG_TESTS = (
 )
 
 
-def is_valid_platform_version(version_string):
+def android_platform_version(version_string):
     match = re.match(r'^android-(\d+)$', version_string)
     if not match:
-        return False
-
-    # We don't support anything before Gingerbread.
-    version = int(match.group(1))
-    return version >= 9
-
-
-def android_platform_version(version_string):
-    if is_valid_platform_version(version_string):
-        return version_string
-    else:
         raise argparse.ArgumentTypeError(
-            'Platform version must match the format "android-VERSION", where '
-            'VERSION >= 9.')
+            'Platform version must match the format "android-VERSION".')
+    return int(match.group(1))
 
 
 class ArgParser(argparse.ArgumentParser):
@@ -128,6 +122,11 @@ def main():
 
     args = ArgParser().parse_args()
     ndk_path = args.ndk
+    min_platform = build_support.minimum_platform_level(args.abi)
+    if args.platform is not None and args.platform < min_platform:
+        sys.exit('Unsupported platform version {} for {}. Minimum supported '
+                 'version is android-{}.'.format(args.platform, args.abi,
+                                                 min_platform))
 
     # We need to do this here rather than at the top because we load the module
     # from a path that is given on the command line. We load it from the NDK
@@ -135,8 +134,10 @@ def main():
     # platform checkout.
     site.addsitedir(os.path.join(ndk_path, 'python-packages'))
 
+    # pylint: disable=relative-import
     import printers
     import runners
+    # pylint: enable=relative-import
 
     out_dir = args.out_dir
     if out_dir is not None:
