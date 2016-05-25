@@ -18,6 +18,7 @@ from __future__ import print_function
 import logging
 import os
 import subprocess
+import site
 import sys
 
 import adb  # pylint: disable=import-error
@@ -32,6 +33,11 @@ import util
 
 from tests import AwkTest, BuildTest, DeviceTest
 # pylint: enable=relative-import
+
+
+THIS_DIR = os.path.realpath(os.path.dirname(__file__))
+site.addsitedir(os.path.join(THIS_DIR, '../build/lib'))
+import build_support  # pylint: disable=import-error
 
 
 def get_device_abis(device):
@@ -164,7 +170,8 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
     # We also handle APP_ABI there (as well as here). This merits some cleanup.
     ndk_build_flags = ['APP_ABI={}'.format(abi)]
     if build_api_level is not None:
-        ndk_build_flags.append('APP_PLATFORM={}'.format(build_api_level))
+        ndk_build_flags.append(
+            'APP_PLATFORM=android-{}'.format(build_api_level))
     if verbose_ndk_build:
         logging.basicConfig(level=logging.INFO)
         ndk_build_flags.append('V=1')
@@ -197,10 +204,7 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
         # set the API level to the minimum supported by the ABI so
         # test_config.py checks still behave as expected.
         device = None
-        if abi in ('arm64-v8a', 'mips64', 'x86_64'):
-            device_api_level = 21
-        else:
-            device_api_level = 9
+        device_api_level = build_support.minimum_platform_level(abi)
 
     runner = tests.TestRunner(printer)
     if 'awk' in suites:

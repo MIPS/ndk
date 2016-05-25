@@ -48,9 +48,7 @@ def make_standalone_toolchain(arch, platform, install_dir):
     if arch is not None:
         cmd.append('--arch=' + arch)
     if platform is not None:
-        assert platform.startswith('android-')
-        _, platform_str = platform.split('-')
-        cmd.append('--api=' + platform_str)
+        cmd.append('--api={}'.format(platform))
 
     rc, out = call_output(cmd)
     return rc == 0, out

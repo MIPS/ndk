@@ -70,6 +70,17 @@ ALL_ABIS = (
 )
 
 
+LP32_ABIS = ('armeabi', 'armeabi-v7a', 'mips', 'x86')
+LP64_ABIS = ('arm64-v8a', 'mips64', 'x86_64')
+
+
+def minimum_platform_level(abi):
+    if abi in LP64_ABIS:
+        return 21
+    else:
+        return 9
+
+
 class Timer(object):
     def __init__(self):
         self.start_time = None

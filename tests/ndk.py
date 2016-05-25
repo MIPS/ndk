@@ -16,10 +16,9 @@
 #
 """Interface to NDK build information."""
 import os
-import re
 import sys
 
-import util
+import util  # pylint: disable=relative-import
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -54,16 +53,3 @@ def build(build_flags):
     if os.name == 'nt':
         ndk_build_path += '.cmd'
     return util.call_output([ndk_build_path] + build_flags)
-
-
-def expand_app_abi(abi):
-    all32 = ('armeabi', 'armeabi-v7a', 'mips', 'x86')
-    all64 = ('arm64-v8a', 'mips64', 'x86_64')
-    all_abis = all32 + all64
-    if abi == 'all':
-        return all_abis
-    elif abi == 'all32':
-        return all32
-    elif abi == 'all64':
-        return all64
-    return re.split(r'\s+', abi)
