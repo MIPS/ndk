@@ -37,10 +37,12 @@ NDK_DIR = os.path.realpath(os.path.join(THIS_DIR, '../..'))
 
 
 def logger():
+    """Return the main logger for this module."""
     return logging.getLogger(__name__)
 
 
-def check_ndk():
+def check_ndk_or_die():
+    """Verify that our NDK installation is sane or die."""
     checks = [
         'build/core',
         'prebuilt',
@@ -55,6 +57,7 @@ def check_ndk():
 
 
 def get_triple(arch):
+    """Return the triple for the given architecture."""
     return {
         'arm': 'arm-linux-androideabi',
         'arm64': 'aarch64-linux-android',
@@ -66,6 +69,7 @@ def get_triple(arch):
 
 
 def get_abis(arch):
+    """Return the ABIs supported for the given architecture."""
     return {
         'arm': ['armeabi', 'armeabi-v7a'],
         'arm64': ['arm64-v8a'],
@@ -77,6 +81,7 @@ def get_abis(arch):
 
 
 def get_host_tag_or_die():
+    """Return the host tag for this platform. Die if not supported."""
     if platform.system() == 'Linux':
         return 'linux-x86_64'
     elif platform.system() == 'Darwin':
@@ -90,6 +95,7 @@ def get_host_tag_or_die():
 
 
 def get_sysroot_path_or_die(arch, api_level):
+    """Return the sysroot path for our architecture and API level or die."""
     platforms_root_path = os.path.join(NDK_DIR, 'platforms')
     platform_path = os.path.join(
         platforms_root_path, 'android-{}'.format(api_level))
@@ -107,6 +113,7 @@ def get_sysroot_path_or_die(arch, api_level):
 
 
 def get_gcc_path_or_die(arch, host_tag):
+    """Return the GCC path for our host and architecture or die."""
     toolchain = {
         'arm': 'arm-linux-androideabi',
         'arm64': 'aarch64-linux-android',
@@ -124,6 +131,7 @@ def get_gcc_path_or_die(arch, host_tag):
 
 
 def get_clang_path_or_die(host_tag):
+    """Return the Clang path for our host or die."""
     clang_toolchain_path = os.path.join(
         NDK_DIR, 'toolchains/llvm/prebuilt', host_tag)
     if not os.path.exists(clang_toolchain_path):
@@ -132,6 +140,12 @@ def get_clang_path_or_die(host_tag):
 
 
 def copy_directory_contents(src, dst):
+    """Copies the contents of a directory, merging with the destination.
+
+    shutil.copytree requires that the destination does not exist. This function
+    behaves like `cp -r`. That is, it merges the source and destination
+    directories if appropriate.
+    """
     for root, dirs, files in os.walk(src):
         subdir = os.path.relpath(root, src)
         dst_dir = os.path.join(dst, subdir)
@@ -167,6 +181,17 @@ def copy_directory_contents(src, dst):
 
 
 def make_clang_scripts(install_dir, triple, windows):
+    """Creates Clang wrapper scripts.
+
+    The Clang in standalone toolchains historically was designed to be used as
+    a drop-in replacement for GCC for better compatibility with existing
+    projects. Since a large number of projects are not set up for cross
+    compiling (and those that are expect the GCC style), our Clang should
+    already know what target it is building for.
+
+    Create wrapper scripts that invoke Clang with `-target` and `--sysroot`
+    preset.
+    """
     with open(os.path.join(install_dir, 'AndroidVersion.txt')) as version_file:
         major, minor, _build = version_file.read().strip().split('.')
 
@@ -263,7 +288,9 @@ def make_clang_scripts(install_dir, triple, windows):
                      os.path.join(install_dir, 'bin', triple + '-clang++.cmd'))
 
 
-def copy_stl_abi_headers(src_dir, dst_dir, gcc_ver, triple, abi, thumb=False):
+def copy_gnustl_abi_headers(src_dir, dst_dir, gcc_ver, triple, abi,
+                            thumb=False):
+    """Copy the ABI specific headers for gnustl."""
     abi_src_dir = os.path.join(
         src_dir, 'libs', abi, 'include/bits')
 
@@ -281,10 +308,12 @@ def copy_stl_abi_headers(src_dir, dst_dir, gcc_ver, triple, abi, thumb=False):
 
 
 def get_src_libdir(src_dir, abi):
+    """Gets the ABI specific lib directory for an NDK project."""
     return os.path.join(src_dir, 'libs', abi)
 
 
 def get_dest_libdir(dst_dir, triple, abi):
+    """Get the ABI specific library directory for the toolchain."""
     libdir_name = 'lib'
     if abi in ('mips64', 'x86_64'):
         # ARM64 isn't a real multilib target, so it's just installed to lib.
@@ -296,6 +325,7 @@ def get_dest_libdir(dst_dir, triple, abi):
 
 
 def copy_gnustl_libs(src_dir, dst_dir, triple, abi):
+    """Copy the gnustl libraries to the toolchain."""
     src_libdir = get_src_libdir(src_dir, abi)
     dst_libdir = get_dest_libdir(dst_dir, triple, abi)
 
@@ -315,6 +345,7 @@ def copy_gnustl_libs(src_dir, dst_dir, triple, abi):
 
 
 def copy_stlport_libs(src_dir, dst_dir, triple, abi):
+    """Copy the stlport libraries to the toolchain."""
     src_libdir = get_src_libdir(src_dir, abi)
     dst_libdir = get_dest_libdir(dst_dir, triple, abi)
 
@@ -328,6 +359,7 @@ def copy_stlport_libs(src_dir, dst_dir, triple, abi):
 
 def create_toolchain(install_path, arch, gcc_path, clang_path, sysroot_path,
                      stl, host_tag):
+    """Create a standalone toolchain."""
     copy_directory_contents(gcc_path, install_path)
     copy_directory_contents(clang_path, install_path)
     triple = get_triple(arch)
@@ -349,12 +381,12 @@ def create_toolchain(install_path, arch, gcc_path, clang_path, sysroot_path,
         shutil.copytree(os.path.join(gnustl_dir, 'include'), cxx_headers)
 
         for abi in get_abis(arch):
-            copy_stl_abi_headers(gnustl_dir, install_path, gcc_ver, triple,
-                                 abi)
+            copy_gnustl_abi_headers(gnustl_dir, install_path, gcc_ver, triple,
+                                    abi)
             copy_gnustl_libs(gnustl_dir, install_path, triple, abi)
             if arch == 'arm':
-                copy_stl_abi_headers(gnustl_dir, install_path, gcc_ver, triple,
-                                     abi, thumb=True)
+                copy_gnustl_abi_headers(gnustl_dir, install_path, gcc_ver,
+                                        triple, abi, thumb=True)
     elif stl == 'libc++':
         libcxx_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/llvm-libc++')
         libcxxabi_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/llvm-libc++abi')
@@ -455,6 +487,7 @@ def create_toolchain(install_path, arch, gcc_path, clang_path, sysroot_path,
 
 
 def parse_args():
+    """Parse command line arguments from sys.argv."""
     parser = argparse.ArgumentParser(
         description=inspect.getdoc(sys.modules[__name__]))
 
@@ -488,6 +521,7 @@ def parse_args():
 
 
 def main():
+    """Program entry point."""
     args = parse_args()
 
     if args.verbose == 1:
@@ -495,7 +529,7 @@ def main():
     elif args.verbose >= 2:
         logging.basicConfig(level=logging.DEBUG)
 
-    check_ndk()
+    check_ndk_or_die()
 
     lp32 = args.arch in ('arm', 'mips', 'x86')
     min_api = 9 if lp32 else 21
@@ -529,7 +563,17 @@ def main():
     create_toolchain(install_path, args.arch, gcc_path, clang_path,
                      sysroot_path, args.stl, host_tag)
 
-    # TODO(danalbert): Do the packaging step if we were not installing.
+    if args.install_dir is None:
+        if host_tag.startswith('windows'):
+            package_format = 'zip'
+        else:
+            package_format = 'bztar'
+
+        package_basename = os.path.join(args.package_dir, triple)
+        shutil.make_archive(
+            package_basename, package_format,
+            root_dir=os.path.dirname(install_path),
+            base_dir=os.path.basename(install_path))
 
 
 if __name__ == '__main__':
