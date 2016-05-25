@@ -17,26 +17,32 @@ case "$ABI" in
     armeabi*)
         ARCH=arm
         TRIPLE=arm-linux-androideabi
+        TOOLCHAIN=$TRIPLE
         ;;
     arm64-v8a)
         ARCH=arm64
         TRIPLE=aarch64-linux-android
+        TOOLCHAIN=$TRIPLE
         ;;
     mips)
         ARCH=mips
         TRIPLE=mipsel-linux-android
+        TOOLCHAIN=$TRIPLE
         ;;
     mips64)
         ARCH=mips64
         TRIPLE=mips64el-linux-android
+        TOOLCHAIN=$TRIPLE
         ;;
     x86)
         ARCH=x86
         TRIPLE=i686-linux-android
+        TOOLCHAIN=x86
         ;;
     x86_64)
         ARCH=x86_64
         TRIPLE=x86_64-linux-android
+        TOOLCHAIN=x86_64
         ;;
     *)
         >&2 echo "Unknown ABI: $ABI"
@@ -51,7 +57,7 @@ LIT_ARGS=${@:2}
 
 LIBCXX_DIR=$NDK/sources/cxx-stl/llvm-libc++/libcxx
 sed -e "s:%ABI%:$ABI:g" -e "s:%TRIPLE%:$TRIPLE:g" \
-    -e "s:%ARCH%:$ARCH:g" \
+    -e "s:%ARCH%:$ARCH:g" -e "s:%TOOLCHAIN%:$TOOLCHAIN:g" \
     $LIBCXX_DIR/test/lit.ndk.cfg.in > $LIBCXX_DIR/test/lit.site.cfg
 
 adb push $LIBCXX_DIR/../libs/$ABI/libc++_shared.so /data/local/tmp

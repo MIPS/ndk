@@ -32,7 +32,7 @@ config.configuration_variant = "libcxx.ndk"
 config.target_triple = "%TRIPLE%"
 config.sysroot = os.path.join(ndk, "platforms/android-21/arch-%ARCH%/")
 config.gcc_toolchain = os.path.join(
-    ndk, "toolchains/%TRIPLE%-4.9/prebuilt/linux-x86_64")
+    ndk, "toolchains/%TOOLCHAIN%-4.9/prebuilt/linux-x86_64")
 
 # Let the main config do the real work.
 lit_config.load_config(
