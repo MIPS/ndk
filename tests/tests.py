@@ -209,27 +209,6 @@ class Test(object):
     def run(self, out_dir, test_filters):
         raise NotImplementedError
 
-    # TODO(danalbert): Clean up the gross hacks :(
-    # pylint is right on all of these, and this is actually a pretty gross
-    # implementation that I should fix.
-    # pylint: disable=no-member
-    def check_broken(self):
-        return self.config.match_broken(self.abi, self.platform,
-                                        self.toolchain)
-
-    def check_unsupported(self):
-        return self.config.match_unsupported(self.abi, self.platform,
-                                             self.toolchain)
-
-    def check_subtest_broken(self, name):
-        return self.config.match_broken(self.abi, self.platform,
-                                        self.toolchain, subtest=name)
-
-    def check_subtest_unsupported(self, name):
-        return self.config.match_unsupported(self.abi, self.platform,
-                                             self.toolchain, subtest=name)
-    # pylint: enable=no-member
-
 
 class AwkTest(Test):
     def __init__(self, name, test_dir, script):
@@ -455,7 +434,41 @@ def _run_ndk_build_test(test_name, build_dir, test_dir, build_flags, abi,
             return Failure(test_name, out)
 
 
-class PythonBuildTest(Test):
+class BuildTest(Test):
+    def __init__(self, name, test_dir, abi, platform, toolchain, build_flags):
+        super(BuildTest, self).__init__(name, test_dir)
+        self.abi = abi
+        self.platform = platform
+        self.toolchain = toolchain
+        self.build_flags = build_flags
+
+    def run(self, out_dir, _):
+        raise NotImplementedError
+
+    @classmethod
+    def from_dir(cls, test_dir, abi, platform, toolchain, build_flags):
+        test_name = os.path.basename(test_dir)
+
+        if os.path.isfile(os.path.join(test_dir, 'test.py')):
+            return PythonBuildTest(test_name, test_dir, abi, platform,
+                                   toolchain, build_flags)
+        elif os.path.isfile(os.path.join(test_dir, 'build.sh')):
+            return ShellBuildTest(test_name, test_dir, abi, platform,
+                                  toolchain, build_flags)
+        else:
+            return NdkBuildTest(test_name, test_dir, abi, platform,
+                                toolchain, build_flags)
+
+    def check_broken(self):
+        return self.config.match_broken(self.abi, self.platform,
+                                        self.toolchain)
+
+    def check_unsupported(self):
+        return self.config.match_unsupported(self.abi, self.platform,
+                                             self.toolchain)
+
+
+class PythonBuildTest(BuildTest):
     """A test that is implemented by test.py.
 
     A test.py test has a test.py file in its root directory. This module
@@ -470,11 +483,8 @@ class PythonBuildTest(Test):
                  invoked as a list of strings.
     """
     def __init__(self, name, test_dir, abi, platform, toolchain, build_flags):
-        super(PythonBuildTest, self).__init__(name, test_dir)
-        self.abi = abi
-        self.platform = platform
-        self.toolchain = toolchain
-        self.build_flags = build_flags
+        super(PythonBuildTest, self).__init__(
+            name, test_dir, abi, platform, toolchain, build_flags)
 
     def run(self, out_dir, _):
         build_dir = os.path.join(out_dir, self.name)
@@ -491,13 +501,10 @@ class PythonBuildTest(Test):
                 yield Failure(self.name, failure_message)
 
 
-class ShellBuildTest(Test):
+class ShellBuildTest(BuildTest):
     def __init__(self, name, test_dir, abi, platform, toolchain, build_flags):
-        super(ShellBuildTest, self).__init__(name, test_dir)
-        self.abi = abi
-        self.platform = platform
-        self.toolchain = toolchain
-        self.build_flags = build_flags
+        super(ShellBuildTest, self).__init__(
+            name, test_dir, abi, platform, toolchain, build_flags)
 
     def run(self, out_dir, _):
         build_dir = os.path.join(out_dir, self.name)
@@ -511,13 +518,10 @@ class ShellBuildTest(Test):
                                      self.toolchain)
 
 
-class NdkBuildTest(Test):
+class NdkBuildTest(BuildTest):
     def __init__(self, name, test_dir, abi, platform, toolchain, build_flags):
-        super(NdkBuildTest, self).__init__(name, test_dir)
-        self.abi = abi
-        self.platform = platform
-        self.toolchain = toolchain
-        self.build_flags = build_flags
+        super(NdkBuildTest, self).__init__(
+            name, test_dir, abi, platform, toolchain, build_flags)
 
     def run(self, out_dir, _):
         build_dir = os.path.join(out_dir, self.name)
@@ -525,22 +529,6 @@ class NdkBuildTest(Test):
         yield _run_ndk_build_test(self.name, build_dir, self.test_dir,
                                   self.build_flags, self.abi,
                                   self.platform, self.toolchain)
-
-
-class BuildTest(object):
-    @classmethod
-    def from_dir(cls, test_dir, abi, platform, toolchain, build_flags):
-        test_name = os.path.basename(test_dir)
-
-        if os.path.isfile(os.path.join(test_dir, 'test.py')):
-            return PythonBuildTest(test_name, test_dir, abi, platform,
-                                   toolchain, build_flags)
-        elif os.path.isfile(os.path.join(test_dir, 'build.sh')):
-            return ShellBuildTest(test_name, test_dir, abi, platform,
-                                  toolchain, build_flags)
-        else:
-            return NdkBuildTest(test_name, test_dir, abi, platform,
-                                toolchain, build_flags)
 
 
 def _copy_test_to_device(device, build_dir, device_dir, abi, test_filters,
