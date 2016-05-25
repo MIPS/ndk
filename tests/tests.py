@@ -24,12 +24,17 @@ import os
 import posixpath
 import re
 import shutil
+import site
 import subprocess
 
 # pylint: disable=relative-import
 import ndk
 import util
 # pylint: enable=relative-import
+
+THIS_DIR = os.path.realpath(os.path.dirname(__file__))
+site.addsitedir(os.path.join(THIS_DIR, '../build/lib'))
+import build_support  # pylint: disable=import-error
 
 # pylint: disable=no-self-use
 
@@ -405,8 +410,7 @@ def _run_build_sh_test(test_name, build_dir, test_dir, build_flags, abi,
         test_env = dict(os.environ)
         if abi is not None:
             test_env['APP_ABI'] = abi
-        if platform is not None:
-            test_env['APP_PLATFORM'] = platform
+        test_env['APP_PLATFORM'] = 'android-{}'.format(platform)
         assert toolchain is not None
         test_env['NDK_TOOLCHAIN_VERSION'] = toolchain
         rc, out = util.call_output(build_cmd, env=test_env)
@@ -426,7 +430,7 @@ def _run_ndk_build_test(test_name, build_dir, test_dir, build_flags, abi,
             _get_jobs_arg(),
         ]
         if platform is not None:
-            args.append('APP_PLATFORM=' + platform)
+            args.append('APP_PLATFORM=android-{}'.format(platform))
         rc, out = ndk.build(build_flags + args)
         if rc == 0:
             return Success(test_name)
@@ -437,6 +441,10 @@ def _run_ndk_build_test(test_name, build_dir, test_dir, build_flags, abi,
 class BuildTest(Test):
     def __init__(self, name, test_dir, abi, platform, toolchain, build_flags):
         super(BuildTest, self).__init__(name, test_dir)
+
+        if platform is None:
+            raise ValueError
+
         self.abi = abi
         self.platform = platform
         self.toolchain = toolchain
@@ -483,6 +491,8 @@ class PythonBuildTest(BuildTest):
                  invoked as a list of strings.
     """
     def __init__(self, name, test_dir, abi, platform, toolchain, build_flags):
+        if platform is None:
+            platform = build_support.minimum_platform_level(abi)
         super(PythonBuildTest, self).__init__(
             name, test_dir, abi, platform, toolchain, build_flags)
 
@@ -503,6 +513,8 @@ class PythonBuildTest(BuildTest):
 
 class ShellBuildTest(BuildTest):
     def __init__(self, name, test_dir, abi, platform, toolchain, build_flags):
+        if platform is None:
+            platform = build_support.minimum_platform_level(abi)
         super(ShellBuildTest, self).__init__(
             name, test_dir, abi, platform, toolchain, build_flags)
 
@@ -518,8 +530,67 @@ class ShellBuildTest(BuildTest):
                                      self.toolchain)
 
 
+def _platform_from_application_mk(test_dir):
+    """Determine target API level from a test's Application.mk.
+
+    Args:
+        test_dir: Directory of the test to read.
+
+    Returns:
+        Integer portion of APP_PLATFORM if found, else None.
+
+    Raises:
+        ValueError: Found an unexpected value for APP_PLATFORM.
+    """
+    application_mk = os.path.join(test_dir, 'jni/Application.mk')
+    if not os.path.exists(application_mk):
+        return None
+
+    with open(application_mk) as application_mk_file:
+        for line in application_mk_file:
+            if line.startswith('APP_PLATFORM'):
+                _, platform_str = line.split(':=')
+                break
+        else:
+            return None
+
+    platform_str = platform_str.strip()
+    if not platform_str.startswith('android-'):
+        raise ValueError(platform_str)
+
+    _, api_level_str = platform_str.split('-')
+    return int(api_level_str)
+
+
+def _get_or_infer_app_platform(platform_from_user, test_dir, abi):
+    """Determines the platform level to use for a test using ndk-build.
+
+    Choose the platform level from, in order of preference:
+    1. Value given as argument.
+    2. APP_PLATFORM from jni/Application.mk.
+    3. Default value for the target ABI.
+
+    Args:
+        platform_from_user: A user provided platform level or None.
+        test_dir: The directory containing the ndk-build project.
+        abi: The ABI being targeted.
+
+    Returns:
+        The platform version the test should build against.
+    """
+    if platform_from_user is not None:
+        return platform_from_user
+
+    platform_from_application_mk = _platform_from_application_mk(test_dir)
+    if platform_from_application_mk is not None:
+        return platform_from_application_mk
+
+    return build_support.minimum_platform_level(abi)
+
+
 class NdkBuildTest(BuildTest):
     def __init__(self, name, test_dir, abi, platform, toolchain, build_flags):
+        platform = _get_or_infer_app_platform(platform, test_dir, abi)
         super(NdkBuildTest, self).__init__(
             name, test_dir, abi, platform, toolchain, build_flags)
 
@@ -579,6 +650,9 @@ class DeviceTest(Test):
     def __init__(self, name, test_dir, abi, platform, device, device_platform,
                  toolchain, build_flags, skip_run):
         super(DeviceTest, self).__init__(name, test_dir)
+
+        platform = _get_or_infer_app_platform(platform, test_dir, abi)
+
         self.abi = abi
         self.platform = platform
         self.device = device
