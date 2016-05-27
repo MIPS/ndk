@@ -85,6 +85,10 @@ else
     EXTRA_CONFIG="-target=arm-linux-androideabi --disable-werror"
 fi
 
+if [ "$MINGW" = "yes" ]; then
+    LDFLAGS=$LDFLAGS" -static"
+fi
+
 BINUTILS_BUILD_DIR=$BUILD_DIR/binutils
 BINUTILS_SRC_DIR=$SRC_DIR/binutils/binutils-$DEFAULT_BINUTILS_VERSION
 
