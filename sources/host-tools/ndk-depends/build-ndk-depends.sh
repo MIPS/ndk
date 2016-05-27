@@ -79,6 +79,10 @@ else
     EXTRA_CONFIG="-target=arm-linux-androideabi"
 fi
 
+if [ "$MINGW" = "yes" ]; then
+    LDFLAGS=$LDFLAGS" -static"
+fi
+
 NAME=$(get_host_exec_name ndk-depends)
 INSTALL_ROOT=$(mktemp -d $NDK_TMPDIR/ndk-depends-XXXXXX)
 INSTALL_SUBDIR=host-tools/bin
