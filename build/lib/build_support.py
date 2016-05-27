@@ -146,7 +146,10 @@ def android_path(*args):
 
 def sysroot_path(toolchain):
     arch = toolchain_to_arch(toolchain)
-    version = default_api_level(arch)
+    # Only ARM has more than one ABI, and they both have the same minimum
+    # platform level.
+    abi = arch_to_abis(arch)[0]
+    version = minimum_platform_level(abi)
 
     prebuilt_ndk = 'prebuilts/ndk/current'
     sysroot_subpath = 'platforms/android-{}/arch-{}'.format(version, arch)
@@ -159,13 +162,6 @@ def ndk_path(*args):
 
 def toolchain_path(*args):
     return android_path('toolchain', *args)
-
-
-def default_api_level(arch):
-    if '64' in arch:
-        return 21
-    else:
-        return 9
 
 
 def jobs_arg():
