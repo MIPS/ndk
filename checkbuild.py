@@ -535,16 +535,20 @@ def build_vulkan(out_dir, dist_dir, args):
             install_file(f, source_dir, dest_dir)
 
     # Copy Android build components
+    print('Copying Vulkan build components...')
     src = os.path.join(vulkan_root_dir, 'build-android')
     dst = os.path.join(vulkan_path, 'build-android')
     shutil.rmtree(dst, True)
     shutil.copytree(src, dst, ignore=default_ignore_patterns)
+    print('Copying finished')
 
     # Copy binary validation layer libraries
+    print('Copying Vulkan binary validation layers...')
     src = build_support.android_path('prebuilts/ndk/vulkan-validation-layers')
     dst = os.path.join(vulkan_path, 'build-android/jniLibs')
     shutil.rmtree(dst, True)
     shutil.copytree(src, dst, ignore=default_ignore_patterns)
+    print('Copying finished')
 
     build_support.merge_license_files(
         os.path.join(vulkan_path, 'NOTICE'),
