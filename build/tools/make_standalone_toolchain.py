@@ -391,7 +391,7 @@ def create_toolchain(install_path, arch, gcc_path, clang_path, sysroot_path,
         libcxx_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/llvm-libc++')
         libcxxabi_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/llvm-libc++abi')
         support_dir = os.path.join(NDK_DIR, 'sources/android/support')
-        copy_directory_contents(os.path.join(libcxx_dir, 'libcxx/include'),
+        copy_directory_contents(os.path.join(libcxx_dir, 'include'),
                                 cxx_headers)
         copy_directory_contents(os.path.join(support_dir, 'include'),
                                 cxx_headers)
