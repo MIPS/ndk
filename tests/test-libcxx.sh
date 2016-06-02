@@ -62,7 +62,7 @@ esac
 
 HOST_TAG=linux-x86_64
 
-LIT=$THIS_DIR/../../../../../external/llvm/utils/lit/lit.py
+LIT=$THIS_DIR/../../external/llvm/utils/lit/lit.py
 LIT_ARGS=${@:2}
 
 LIBCXX_DIR=$NDK/sources/cxx-stl/llvm-libc++/libcxx
