@@ -7,9 +7,19 @@ if [ -z "$NDK" ]; then
     exit 1
 fi
 
+function usage() {
+    >&2 echo "usage: $(basename $0) ABI API_LEVEL"
+}
+
 ABI=$1
 if [ -z "$ABI" ]; then
-    >&2 echo "usage: $(basename $0) ABI"
+    usage
+    exit 1
+fi
+
+API=$2
+if [ -z "$API" ]; then
+    usage
     exit 1
 fi
 
@@ -52,12 +62,13 @@ esac
 
 HOST_TAG=linux-x86_64
 
-LIT=$THIS_DIR/../../../../../external/llvm/utils/lit/lit.py
+LIT=$THIS_DIR/../../external/llvm/utils/lit/lit.py
 LIT_ARGS=${@:2}
 
 LIBCXX_DIR=$NDK/sources/cxx-stl/llvm-libc++/libcxx
 sed -e "s:%ABI%:$ABI:g" -e "s:%TRIPLE%:$TRIPLE:g" \
     -e "s:%ARCH%:$ARCH:g" -e "s:%TOOLCHAIN%:$TOOLCHAIN:g" \
+    -e "s:%API%:$API:g" \
     $LIBCXX_DIR/test/lit.ndk.cfg.in > $LIBCXX_DIR/test/lit.site.cfg
 
 adb push $LIBCXX_DIR/../libs/$ABI/libc++_shared.so /data/local/tmp
