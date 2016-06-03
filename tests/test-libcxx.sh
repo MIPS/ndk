@@ -3,7 +3,7 @@
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [ -z "$NDK" ]; then
-    >&2 echo "Error: $$NDK must be set in your environment."
+    >&2 echo "Error: NDK must be set in your environment."
     exit 1
 fi
 
