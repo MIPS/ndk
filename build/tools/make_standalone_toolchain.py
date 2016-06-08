@@ -398,18 +398,16 @@ def create_toolchain(install_path, arch, gcc_path, clang_path, sysroot_path,
 
         # I have no idea why we need this, but the old one does it too.
         copy_directory_contents(
-            os.path.join(libcxxabi_dir, 'libcxxabi/include'),
+            os.path.join(libcxxabi_dir, 'include'),
             os.path.join(install_path, 'include/llvm-libc++abi/include'))
 
         headers = [
             'cxxabi.h',
             '__cxxabi_config.h',
-            'libunwind.h',
-            'unwind.h',
         ]
         for header in headers:
             shutil.copy2(
-                os.path.join(libcxxabi_dir, 'libcxxabi/include', header),
+                os.path.join(libcxxabi_dir, 'include', header),
                 os.path.join(cxx_headers, header))
 
         for abi in get_abis(arch):
