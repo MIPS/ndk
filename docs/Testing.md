@@ -130,8 +130,7 @@ The libc++ tests are not currently integrated into the main NDK tests. To run
 the libc++ tests:
 
 ```bash
-$ NDK=/path/to/extracted/ndk sources/cxx-stl/llvm-libc++/libcxx/test-libcxx.sh \
-    $ABI $API_LEVEL
+$ NDK=/path/to/extracted/ndk tests/test-libcxx.sh $ABI $API_LEVEL
 ```
 
 Note that these tests are far from failure free. In general, most of these tests
@@ -211,4 +210,4 @@ ARM64 will require a physical device.
 
 [run-all.py]: ../tests/run-all.py
 [validate.py]: ../tests/validate.py
-[test-libcxx.sh]: ../sources/cxx-stl/llvm-libc++/libcxx/test-libcxx.sh
+[test-libcxx.sh]: ../tests/test-libcxx.sh
