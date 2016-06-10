@@ -400,7 +400,7 @@ def get_gdbserver_path(args, package_name, app_data_dir, arch):
         destination = "{}/{}-gdbserver".format(app_data_dir, arch)
         log("Copying gdbserver to {}.".format(destination))
         cmd = ["cat", remote_path, "|", "run-as", package_name,
-               "sh", "-c", "cat > {}".format(destination)]
+               "sh", "-c", "'cat > {}'".format(destination)]
         (rc, _, _) = args.device.shell_nocheck(cmd)
         if rc != 0:
             error("Failed to copy gdbserver to {}.".format(destination))
