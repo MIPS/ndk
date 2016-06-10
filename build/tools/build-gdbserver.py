@@ -24,6 +24,14 @@ site.addsitedir(os.path.join(os.path.dirname(__file__), '../lib'))
 
 import build_support
 
+GDBSERVER_TARGETS = (
+    'arm-eabi-linux',
+    'aarch64-eabi-linux',
+    'mipsel-linux-android',
+    'mips64el-linux-android',
+    'i686-linux-android',
+    'x86_64-linux-android',
+)
 
 class ArgParser(build_support.ArgParser):
     def __init__(self):
@@ -41,8 +49,9 @@ def main(args):
 
     print('Building gdbservers: {}'.format(' '.join(arches)))
     for arch in arches:
+        target_triple = dict(zip(build_support.ALL_ARCHITECTURES, GDBSERVER_TARGETS))[arch];
         build_cmd = [
-            'bash', 'build-gdbserver.sh', arch, build_support.toolchain_path(),
+            'bash', 'build-gdbserver.sh', arch, target_triple, build_support.toolchain_path(),
             build_support.ndk_path(), build_support.jobs_arg(),
         ]
 
