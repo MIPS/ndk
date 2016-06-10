@@ -35,19 +35,15 @@ class ArgParser(build_support.ArgParser):
 
 
 def main(args):
-    GCC_VERSION = '4.9'
-
     arches = build_support.ALL_ARCHITECTURES
     if args.arch is not None:
         arches = [args.arch]
 
     print('Building gdbservers: {}'.format(' '.join(arches)))
     for arch in arches:
-        toolchain = build_support.arch_to_toolchain(arch)
-        toolchain_name = '-'.join([toolchain, GCC_VERSION])
         build_cmd = [
-            'bash', 'build-gdbserver.sh', build_support.toolchain_path(),
-            build_support.ndk_path(), toolchain_name, build_support.jobs_arg(),
+            'bash', 'build-gdbserver.sh', arch, build_support.toolchain_path(),
+            build_support.ndk_path(), build_support.jobs_arg(),
         ]
 
         build_support.build(build_cmd, args)
