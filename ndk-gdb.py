@@ -100,9 +100,14 @@ class ArgumentParser(gdbrunner.ArgumentParser):
             help="do not wait for debugger to attach (may miss early JNI "
                  "breakpoints)")
 
+        if sys.platform.startswith("win"):
+            tui_help = argparse.SUPPRESS
+        else:
+            tui_help = "use GDB's tui mode"
+
         debug_group.add_argument(
             "-t", "--tui", action="store_true", dest="tui",
-            help="use GDB's tui mode")
+            help=tui_help)
 
         debug_group.add_argument(
             "--stdcxx-py-pr", dest="stdcxxpypr",
@@ -178,6 +183,10 @@ def handle_args():
     paths = os.environ["PATH"].replace('"', '').split(os.pathsep)
 
     args = ArgumentParser().parse_args()
+
+    if args.tui and sys.platform.startswith("win"):
+        error("TUI is unsupported on Windows.")
+
     ndk_bin = ndk_bin_path()
     args.make_cmd = find_program("make", [ndk_bin])
     args.jdb_cmd = find_program("jdb", paths)
