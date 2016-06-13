@@ -55,7 +55,7 @@ def main(args):
     prebuilt_ndk = build_support.android_path('prebuilts/ndk/current')
     platforms_root = os.path.join(prebuilt_ndk, 'platforms')
     toolchains_root = os.path.join(prebuilt_ndk, 'toolchains')
-    libcxx_path = build_support.ndk_path('sources/cxx-stl/llvm-libc++')
+    libcxx_path = build_support.android_path('external/libcxx')
     obj_out = os.path.join(args.out_dir, 'libcxx/obj')
 
     # TODO(danalbert): Stop building to the source directory.
@@ -78,8 +78,8 @@ def main(args):
         # should go. The defaults in ndk-build are only valid if we have a
         # typical ndk-build layout with a jni/{Android,Application}.mk.
         'NDK_PROJECT_PATH=null',
-        'APP_BUILD_SCRIPT=' + os.path.join(THIS_DIR, 'Android.mk'),
-        'NDK_APPLICATION_MK=' + os.path.join(THIS_DIR, 'Application.mk'),
+        'APP_BUILD_SCRIPT=' + os.path.join(libcxx_path, 'Android.mk'),
+        'NDK_APPLICATION_MK=' + os.path.join(libcxx_path, 'Application.mk'),
         'NDK_OUT=' + obj_out,
         'NDK_LIBS_OUT=' + lib_out,
 
@@ -87,6 +87,7 @@ def main(args):
         'LIBCXX_FORCE_REBUILD=true',
     ]
     print('Building libc++ for ABIs: {}'.format(', '.join(abis)))
+    print('Running: ' + ' '.join(build_cmd))
     subprocess.check_call(build_cmd)
 
     # The static libraries are installed to NDK_OUT, not NDK_LIB_OUT, so we

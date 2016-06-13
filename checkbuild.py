@@ -610,7 +610,7 @@ def build_libandroid_support(_out_dir, dist_dir, _args):
 
 def build_libcxxabi(_out_dir, dist_dir, _args):
     print('Building libc++abi...')
-    path = build_support.ndk_path('sources/cxx-stl/llvm-libc++abi')
+    path = build_support.android_path('external/libcxxabi')
     build_support.make_package('libcxxabi', path, dist_dir)
 
 
