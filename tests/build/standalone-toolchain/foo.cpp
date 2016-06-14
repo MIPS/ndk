@@ -9,3 +9,7 @@ void foo(const std::string& s) {
   printf("%s\n", copy->c_str());
   delete copy;
 }
+
+int main(int, char**) {
+  foo("Hello, world!");
+}
