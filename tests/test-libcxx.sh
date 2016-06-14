@@ -71,5 +71,8 @@ sed -e "s:%ABI%:$ABI:g" -e "s:%TRIPLE%:$TRIPLE:g" \
     -e "s:%API%:$API:g" \
     $LIBCXX_DIR/test/lit.ndk.cfg.in > $LIBCXX_DIR/test/lit.site.cfg
 
-adb push $LIBCXX_DIR/libs/$ABI/libc++_shared.so /data/local/tmp
-$LIT -sv $LIT_ARGS $LIBCXX_DIR/test
+TEST_DIR=/data/local/tmp/libcxx
+adb shell rm -r $TEST_DIR
+adb shell mkdir $TEST_DIR
+adb push $LIBCXX_DIR/libs/$ABI/libc++_shared.so $TEST_DIR
+$LIT -sv $LIT_ARGS $LIBCXX_DIR/test --param=device_dir="$TEST_DIR" --timeout 300
