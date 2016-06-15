@@ -1304,6 +1304,7 @@ NDK_APP_VARS_OPTIONAL := \
     APP_SHORT_COMMANDS \
     APP_STL \
     APP_THIN_ARCHIVE \
+    APP_UNIFIED_HEADERS \
 
 # the list of all variables that may appear in an Application.mk file
 # or defined by the build scripts.
@@ -1639,7 +1640,8 @@ _FLAGS := $$($$(my)CFLAGS) \
           $$(LOCAL_CONLYFLAGS) \
           $$(NDK_APP_CFLAGS) \
           $$(NDK_APP_CONLYFLAGS) \
-          -isystem $$(call host-path,$$(SYSROOT_INC)/usr/include) \
+          --sysroot $$(call host-path,$$(SYSROOT_INC)) \
+          $(SYSROOT_ARCH_INC_ARG) \
           -c \
 
 _TEXT := Compile $$(call get-src-file-text,$1)
@@ -1690,7 +1692,8 @@ _OBJ:=$$(LOCAL_OBJS_DIR:%/=%)/$(2)
 _FLAGS := $$(call host-c-includes,$$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
           $$(LOCAL_ASMFLAGS) \
           $$(NDK_APP_ASMFLAGS) \
-          -isystem $$(call host-path,$$(SYSROOT_INC)/usr/include) \
+          --sysroot $$(call host-path,$$(SYSROOT_INC)) \
+          $(SYSROOT_ARCH_INC_ARG) \
           $$(if $$(filter x86_64, $$(TARGET_ARCH_ABI)), -f elf64, -f elf32 -m x86)
 
 _TEXT := Assemble $$(call get-src-file-text,$1)
@@ -1768,7 +1771,8 @@ _FLAGS := $$($$(my)CXXFLAGS) \
           $$(NDK_APP_CFLAGS) \
           $$(NDK_APP_CPPFLAGS) \
           $$(NDK_APP_CXXFLAGS) \
-          -isystem $$(call host-path,$$(SYSROOT_INC)/usr/include) \
+          --sysroot $$(call host-path,$$(SYSROOT_INC)) \
+          $(SYSROOT_ARCH_INC_ARG) \
           -c \
 
 _CC   := $$(NDK_CCACHE) $$($$(my)CXX)
@@ -1816,7 +1820,8 @@ _CPP_FLAGS := $$($$(my)CXXFLAGS) \
           $$(NDK_APP_CFLAGS) \
           $$(NDK_APP_CPPFLAGS) \
           $$(NDK_APP_CXXFLAGS) \
-          -isystem $$(call host-path,$$(SYSROOT_INC)/usr/include) \
+          --sysroot $$(call host-path,$$(SYSROOT_INC)) \
+          $(SYSROOT_ARCH_INC_ARG) \
           -fno-rtti \
           -c \
 
