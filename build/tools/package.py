@@ -102,6 +102,7 @@ def get_all_packages(host, arches):
         ('shaderc', 'sources/third_party/shaderc'),
         ('simpleperf', 'simpleperf'),
         ('stlport', 'sources/cxx-stl/stlport'),
+        ('sysroot', 'sysroot'),
         ('system-stl', 'sources/cxx-stl/system'),
         ('vulkan', 'sources/third_party/vulkan'),
     ]

@@ -61,6 +61,7 @@ ALL_MODULES = {
     'shader_tools',
     'simpleperf',
     'stlport',
+    'sysroot',
     'system-stl',
     'vulkan',
 }
@@ -556,6 +557,11 @@ def build_gtest(_, dist_dir, __):
     build_support.make_package('gtest', path, dist_dir)
 
 
+def build_sysroot(_out_dir, dist_dir, _args):
+    path = build_support.android_path('prebuilts/ndk/platform/sysroot')
+    build_support.make_package('sysroot', path, dist_dir)
+
+
 def build_vulkan(out_dir, dist_dir, args):
     print('Constructing Vulkan validation layer source...')
     vulkan_root_dir = build_support.android_path(
@@ -812,6 +818,7 @@ def main():
         ('shader_tools', build_shader_tools),
         ('simpleperf', build_simpleperf),
         ('stlport', build_stlport),
+        ('sysroot', build_sysroot),
         ('system-stl', build_system_stl),
         ('vulkan', build_vulkan),
     ])
