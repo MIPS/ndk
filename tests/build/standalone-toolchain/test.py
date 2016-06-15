@@ -68,7 +68,7 @@ def test_standalone_toolchain(arch, toolchain, install_dir):
 
     compiler = os.path.join(install_dir, 'bin', compiler_name)
     test_source = 'foo.cpp'
-    cmd = [compiler, '-shared', test_source, '-Wl,--no-undefined']
+    cmd = [compiler, test_source, '-Wl,--no-undefined', '-Wl,--fatal-warnings']
     rc, out = call_output(cmd)
     return rc == 0, out
 

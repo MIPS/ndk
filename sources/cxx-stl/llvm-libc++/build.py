@@ -117,7 +117,7 @@ def main(args):
         make_linker_script(os.path.join(install_dir, 'libc++.a'), static_libs)
 
         shared_libs = ['-lunwind', '-latomic'] if is_arm else []
-        shared_libs.append('-lc++_shared')
+        shared_libs.extend(['-lc++abi', '-landroid_support', '-lc++_shared'])
         make_linker_script(os.path.join(install_dir, 'libc++.so'), shared_libs)
 
     build_support.make_package('libcxx', libcxx_path, args.dist_dir)
