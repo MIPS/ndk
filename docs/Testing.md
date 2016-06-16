@@ -11,7 +11,7 @@ There are currently three tools used in testing:
 
  1. `run-all.py`, for testing a specific configuration.
  2. `validate.py`, for testing many configurations.
- 3. `test-libcxx.sh`, for testing libc++.
+ 3. `test_libcxx.py`, for testing libc++.
 
 A test configuration is a tuple of (ABI, target platform, toolchain, device).
 
@@ -124,18 +124,18 @@ The configuration is specified by the following arguments:
   device tests. If the test builds fine but fails at runtime, you must gate your
   check with this.
 
-### Testing libc++: [test-libcxx.sh]
+### Testing libc++: [test\_libcxx.py]
 
 The libc++ tests are not currently integrated into the main NDK tests. To run
 the libc++ tests:
 
 ```bash
-$ NDK=/path/to/extracted/ndk tests/test-libcxx.sh $ABI $API_LEVEL
+$ tests/test_libcxx.py --abi $ABI --platform $API_LEVEL path/to/ndk
 ```
 
-Note that these tests are far from failure free. In general, most of these tests
-are locale related and fail because we don't support anything beyond the C
-locale.
+Note that these tests are far from failure free. In general, most of these test
+failures are locale related and fail because we don't support anything beyond
+the C locale.
 
 Setting Up a Test Environment
 -----------------------------
@@ -210,4 +210,4 @@ ARM64 will require a physical device.
 
 [run-all.py]: ../tests/run-all.py
 [validate.py]: ../tests/validate.py
-[test-libcxx.sh]: ../tests/test-libcxx.sh
+[test\_libcxx.sh]: ../tests/test_libcxx.py
