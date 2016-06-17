@@ -386,6 +386,8 @@ def build_libshaderc(_, dist_dir, __):
                 'Android.mk', 'libshaderc/Android.mk',
                 'libshaderc_util/Android.mk',
                 'third_party/Android.mk',
+                'utils/update_build_version.py',
+                'CHANGES',
             ],
             'dirs': [
                 'libshaderc/include', 'libshaderc/src',
@@ -395,8 +397,22 @@ def build_libshaderc(_, dist_dir, __):
         {
             'source_dir': os.path.join(shaderc_root_dir, 'spirv-tools'),
             'dest_dir': 'shaderc/third_party/spirv-tools',
-            'files': ['utils/generate_grammar_tables.py'],
+            'files': [
+                'utils/generate_grammar_tables.py',
+                'utils/update_build_version.py',
+                'CHANGES',
+            ],
             'dirs': ['include', 'source'],
+        },
+        {
+            'source_dir': os.path.join(shaderc_root_dir, 'spirv-headers'),
+            'dest_dir':
+                'shaderc/third_party/spirv-tools/external/spirv-headers',
+            'dirs': ['include',],
+            'files': [
+                'include/spirv/1.0/spirv.py',
+                'include/spirv/1.1/spirv.py'
+            ],
         },
         {
             'source_dir': os.path.join(shaderc_root_dir, 'glslang'),
@@ -430,11 +446,18 @@ def build_libshaderc(_, dist_dir, __):
             for d in properties['dirs']:
                 src = os.path.join(source_dir, d)
                 dst = os.path.join(dest_dir, d)
+                print(src, " -> ", dst)
                 shutil.copytree(src, dst,
                                 ignore=default_ignore_patterns)
             for f in properties['files']:
                 print(source_dir, ':', dest_dir, ":", f)
-                install_file(f, source_dir, dest_dir)
+                # Only copy if the source file exists.  That way
+                # we can update this script in anticipation of
+                # source files yet-to-come.
+                if os.path.exists(os.path.join(source_dir, f)):
+                    install_file(f, source_dir, dest_dir)
+                else:
+                    print(source_dir, ':', dest_dir, ":", f, "SKIPPED")
 
         shaderc_shaderc_dir = os.path.join(shaderc_root_dir, 'shaderc')
         build_support.merge_license_files(
