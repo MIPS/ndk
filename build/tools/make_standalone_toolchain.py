@@ -522,7 +522,11 @@ def main():
     """Program entry point."""
     args = parse_args()
 
-    if args.verbose == 1:
+    if args.verbose is None:
+        # Integer comparisons against None are not supported in python3. Short
+        # circuit the checks below here.
+        pass
+    elif args.verbose == 1:
         logging.basicConfig(level=logging.INFO)
     elif args.verbose >= 2:
         logging.basicConfig(level=logging.DEBUG)
