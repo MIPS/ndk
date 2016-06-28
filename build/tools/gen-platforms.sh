@@ -514,6 +514,7 @@ gen_crt_objects ()
     for SRC_FILE in $(cd "$SRC_DIR" && ls crt*.[cS]); do
         DST_FILE=${SRC_FILE%%.c}
         DST_FILE=${DST_FILE%%.S}.o
+        COPY_CRTBEGIN=false
 
         case "$DST_FILE" in
             "crtend.o")
@@ -533,10 +534,11 @@ gen_crt_objects ()
                 DST_FILE=crtbegin_dynamic.o
                 # Add .note.ABI-tag section
                 SRC_FILE=$SRC_FILE" $CRTBRAND_S"
+                COPY_CRTBEGIN=true
                 ;;
         esac
 
-        log "Generating $ARCH C runtime object: $DST_FILE"
+        log "Generating $ARCH C runtime object: $SRC_FILE -> $DST_FILE"
         (cd "$SRC_DIR" && $CC \
                  -I$SRCDIR/../../bionic/libc/include \
                  -I$SRCDIR/../../bionic/libc/arch-common/bionic \
@@ -547,7 +549,8 @@ gen_crt_objects ()
             dump "ERROR: Could not generate $DST_FILE from $SRC_DIR/$SRC_FILE"
             exit 1
         fi
-        if [ ! -s "$DST_DIR/crtbegin_static.o" ]; then
+        if [ "$COPY_CRTBEGIN" = "true" ]; then
+            dump "cp $DST_DIR/crtbegin_dynamic.o $DST_DIR/crtbegin_static.o"
             cp "$DST_DIR/crtbegin_dynamic.o" "$DST_DIR/crtbegin_static.o"
         fi
     done
