@@ -21,7 +21,7 @@
 # include common function and variable definitions
 . `dirname $0`/prebuilt-common.sh
 
-PROGRAM_PARAMETERS="<src-dir> <ndk-dir> <toolchain>"
+PROGRAM_PARAMETERS="<arch> <src-dir> <ndk-dir>"
 
 PROGRAM_DESCRIPTION=\
 "Rebuild the gdbserver prebuilt binary for the Android NDK toolchain.
@@ -32,7 +32,7 @@ is the name of the toolchain to use (e.g. arm-linux-androideabi-4.8).
 
 The final binary is placed under:
 
-    <ndk-dir>/toolchains <toolchain>/prebuilt/gdbserver
+    <build-out>/gdbserver
 
 NOTE: The --platform option is ignored if --sysroot is used."
 
@@ -65,10 +65,19 @@ setup_default_log_file
 
 set_parameters ()
 {
-    SRC_DIR="$1"
-    NDK_DIR="$2"
-    TOOLCHAIN="$3"
+    ARCH="$1"
+    SRC_DIR="$2"
+    NDK_DIR="$3"
     GDBVER=
+
+    # Check architecture
+    #
+    if [ -z "$ARCH" ] ; then
+        echo "ERROR: Missing target architecture. See --help for details."
+        exit 1
+    fi
+
+    log "Targetting CPU: $ARCH"
 
     # Check source directory
     #
@@ -80,7 +89,7 @@ set_parameters ()
     if [ -n "$GDB_VERSION" ]; then
         GDBVER=$GDB_VERSION
     else
-        GDBVER=$(get_default_gdbserver_version_for_gcc $TOOLCHAIN)
+        GDBVER=$(get_default_gdbserver_version)
     fi
 
     SRC_DIR2="$SRC_DIR/gdb/gdb-$GDBVER/gdb/gdbserver"
@@ -109,13 +118,6 @@ set_parameters ()
     fi
 
     log "Using NDK directory: $NDK_DIR"
-
-    # Check toolchain name
-    #
-    if [ -z "$TOOLCHAIN" ] ; then
-        echo "ERROR: Missing toolchain name parameter. See --help for details."
-        exit 1
-    fi
 }
 
 set_parameters $PARAMETERS
@@ -127,8 +129,42 @@ fi
 
 prepare_target_build
 
-parse_toolchain_name $TOOLCHAIN
-check_toolchain_install $ANDROID_BUILD_TOP/prebuilts/ndk/current $TOOLCHAIN
+GCC_VERSION=$(get_default_gcc_version_for_arch $ARCH)
+log "Using GCC version: $GCC_VERSION"
+TOOLCHAIN_PREFIX=$ANDROID_BUILD_TOP/prebuilts/ndk/current/
+TOOLCHAIN_PREFIX+=$(get_toolchain_binprefix_for_arch $ARCH $GCC_VERSION)
+
+# Determine --host value when building gdbserver
+case "$ARCH" in
+arm)
+    GDBSERVER_HOST=arm-eabi-linux
+    GDBSERVER_CFLAGS="-fno-short-enums"
+    ;;
+arm64)
+    GDBSERVER_HOST=aarch64-eabi-linux
+    GDBSERVER_CFLAGS="-fno-short-enums -DUAPI_HEADERS"
+    ;;
+x86)
+    GDBSERVER_HOST=i686-linux-android
+    GDBSERVER_CFLAGS=
+    ;;
+x86_64)
+    GDBSERVER_HOST=x86_64-linux-android
+    GDBSERVER_CFLAGS=-DUAPI_HEADERS
+    ;;
+mips)
+    GDBSERVER_HOST=mipsel-linux-android
+    GDBSERVER_CFLAGS=
+    ;;
+mips64)
+    GDBSERVER_HOST=mips64el-linux-android
+    GDBSERVER_CFLAGS=-DUAPI_HEADERS
+    ;;
+*)
+    echo "Unknown ARCH=$ARCH"
+    exit
+esac
+
 
 PLATFORM="android-$LATEST_API_LEVEL"
 
@@ -166,8 +202,8 @@ if [ "$NOTHREADS" != "yes" ] ; then
     fi
 
     run cp $LIBTHREAD_DB_DIR/thread_db.h $BUILD_SYSROOT/usr/include/
-    run $TOOLCHAIN_PREFIX-gcc --sysroot=$BUILD_SYSROOT -o $BUILD_SYSROOT/usr/$LIBDIR/libthread_db.o -c $LIBTHREAD_DB_DIR/libthread_db.c
-    run $TOOLCHAIN_PREFIX-ar -rD $BUILD_SYSROOT/usr/$LIBDIR/libthread_db.a $BUILD_SYSROOT/usr/$LIBDIR/libthread_db.o
+    run ${TOOLCHAIN_PREFIX}gcc --sysroot=$BUILD_SYSROOT -o $BUILD_SYSROOT/usr/$LIBDIR/libthread_db.o -c $LIBTHREAD_DB_DIR/libthread_db.c
+    run ${TOOLCHAIN_PREFIX}ar -rD $BUILD_SYSROOT/usr/$LIBDIR/libthread_db.a $BUILD_SYSROOT/usr/$LIBDIR/libthread_db.o
     if [ $? != 0 ] ; then
         dump "ERROR: Could not compile libthread_db.c!"
         exit 1
@@ -177,7 +213,7 @@ fi
 log "Using build sysroot: $BUILD_SYSROOT"
 
 # configure the gdbserver build now
-dump "Configure: $TOOLCHAIN gdbserver-$GDBVER build with $PLATFORM"
+dump "Configure: $ARCH gdbserver-$GDBVER build with $PLATFORM"
 
 # This flag is required to link libthread_db statically to our
 # gdbserver binary. Otherwise, the program will try to dlopen()
@@ -194,9 +230,9 @@ CONFIGURE_FLAGS=$CONFIGURE_FLAGS" --disable-inprocess-agent"
 CONFIGURE_FLAGS=$CONFIGURE_FLAGS" --enable-werror=no"
 
 cd $BUILD_OUT &&
-export CC="$TOOLCHAIN_PREFIX-gcc --sysroot=$BUILD_SYSROOT" &&
-export AR="$TOOLCHAIN_PREFIX-ar" &&
-export RANLIB="$TOOLCHAIN_PREFIX-ranlib" &&
+export CC="${TOOLCHAIN_PREFIX}gcc --sysroot=$BUILD_SYSROOT" &&
+export AR="${TOOLCHAIN_PREFIX}ar" &&
+export RANLIB="${TOOLCHAIN_PREFIX}ranlib" &&
 export CFLAGS="-O2 $GDBSERVER_CFLAGS"  &&
 export LDFLAGS="-static -Wl,-z,nocopyreloc -Wl,--no-undefined" &&
 run $SRC_DIR/configure \
@@ -208,11 +244,11 @@ if [ $? != 0 ] ; then
 fi
 
 # build gdbserver
-dump "Building : $TOOLCHAIN gdbserver."
+dump "Building : $ARCH gdbserver."
 cd $BUILD_OUT &&
 run make -j$NUM_JOBS
 if [ $? != 0 ] ; then
-    dump "Could not build $TOOLCHAIN gdbserver. Use --verbose to see why."
+    dump "Could not build $ARCH gdbserver. Use --verbose to see why."
     exit 1
 fi
 
@@ -226,12 +262,12 @@ if [ "$NOTHREADS" = "yes" ] ; then
 else
     DSTFILE="gdbserver"
 fi
-dump "Install  : $TOOLCHAIN $DSTFILE."
+dump "Install  : $ARCH $DSTFILE."
 INSTALL_DIR=`mktemp -d $TMPDIR/gdbserver.XXXXXX`
 GDBSERVER_SUBDIR="gdbserver-$ARCH"
 DEST=$INSTALL_DIR/$GDBSERVER_SUBDIR
 mkdir -p $DEST &&
-run $TOOLCHAIN_PREFIX-objcopy --strip-unneeded $BUILD_OUT/gdbserver $DEST/$DSTFILE
+run ${TOOLCHAIN_PREFIX}objcopy --strip-unneeded $BUILD_OUT/gdbserver $DEST/$DSTFILE
 if [ $? != 0 ] ; then
     dump "Could not install $DSTFILE. See $TMPLOG"
     exit 1
