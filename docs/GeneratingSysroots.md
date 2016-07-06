@@ -72,11 +72,19 @@ Adding a New Platform API
 These instructions are valid both for adding new native frameworks APIs and
 updating bionic.
 
- 1. If the platform version you are adding your API to does not yet exist, there
-    are no special steps; just make the new directory.
+ 1. If the library you are updating does not yet have symbol lists for your API
+    level you will need to copy over the old files first.
+
+    Example CL: https://android-review.googlesource.com/#/c/245875
+
+    If the API level you're modifying does not exist in ndk/platforms you do
+    **not** need to copy over the files for other libraries. The build system
+    will automatically find the newest relevant files for each library.
  2. Add your (possibly new, possibly updated) headers to the include directory.
  3. Add [Shared Library Definitions] files for each architecture to the
-    `arch-$ARCH/symbols` directory.
+    `arch-$ARCH/symbols` directory, or update the existing ones.
+
+    Example CL: https://android-review.googlesource.com/#/c/245876
  4. Add tests to [tests/device](../tests/device).
  5. Build and test an NDK (see [README.md](../README.md)).
  6. Upload your change(s) and add the current [NDK owners](../OWNERS) as
