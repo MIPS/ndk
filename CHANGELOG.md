@@ -9,7 +9,7 @@ NDK
 ---
 
  * `NDK_TOOLCHAIN_VERSION` now defaults to Clang.
- * libc++ has been updated to TODO(danalbert): Check version before release.
+ * libc++ has been updated to r263688.
      * We've reset to a (nearly) clean upstream. This should remove a number of
        bugs, but we still need to clean up `libandroid_support` before we will
        recommend it as the default.
