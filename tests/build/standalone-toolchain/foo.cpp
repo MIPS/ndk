@@ -1,5 +1,9 @@
 #include <stdio.h>
 
+// Make sure we're not clobbering libc++ headers with libandroid_support.
+#include <cmath>
+
+// If std::strings don't work then there's really no point :)
 #include <string>
 
 void foo(const std::string& s) {
