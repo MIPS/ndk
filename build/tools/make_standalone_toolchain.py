@@ -376,6 +376,16 @@ def create_toolchain(install_path, arch, gcc_path, clang_path, sysroot_path,
 
     cxx_headers = os.path.join(install_path, 'include/c++', gcc_ver)
 
+    # Historically these were installed to the same directory as the C++
+    # headers, but with the updated libc++ we have copies of a lot of those
+    # headers in libc++ itself that we end up clobbering.
+    #
+    # This problem should go away with unified headers, but those aren't ready
+    # yet. For the time being, install the libandroid_support headers to a
+    # different builtin include path. usr/local/include seems to be the least
+    # objectionable option.
+    support_headers = os.path.join(install_path, 'sysroot/usr/local/include')
+
     if stl == 'gnustl':
         gnustl_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/gnu-libstdc++/4.9')
         shutil.copytree(os.path.join(gnustl_dir, 'include'), cxx_headers)
@@ -394,7 +404,7 @@ def create_toolchain(install_path, arch, gcc_path, clang_path, sysroot_path,
         copy_directory_contents(os.path.join(libcxx_dir, 'include'),
                                 cxx_headers)
         copy_directory_contents(os.path.join(support_dir, 'include'),
-                                cxx_headers)
+                                support_headers)
 
         # I have no idea why we need this, but the old one does it too.
         copy_directory_contents(
