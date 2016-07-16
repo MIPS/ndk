@@ -21,7 +21,7 @@
 # include common function and variable definitions
 . `dirname $0`/prebuilt-common.sh
 
-PROGRAM_PARAMETERS="<arch> <src-dir> <ndk-dir>"
+PROGRAM_PARAMETERS="<arch> <target-triple> <src-dir> <ndk-dir>"
 
 PROGRAM_DESCRIPTION=\
 "Rebuild the gdbserver prebuilt binary for the Android NDK toolchain.
@@ -66,8 +66,9 @@ setup_default_log_file
 set_parameters ()
 {
     ARCH="$1"
-    SRC_DIR="$2"
-    NDK_DIR="$3"
+    GDBSERVER_HOST="$2"
+    SRC_DIR="$3"
+    NDK_DIR="$4"
     GDBVER=
 
     # Check architecture
@@ -78,6 +79,15 @@ set_parameters ()
     fi
 
     log "Targetting CPU: $ARCH"
+
+    # Check host value
+    #
+    if [ -z "$GDBSERVER_HOST" ] ; then
+        echo "ERROR: Missing target triple. See --help for details."
+        exit 1
+    fi
+
+    log "GDB target triple: $GDBSERVER_HOST"
 
     # Check source directory
     #
@@ -134,35 +144,18 @@ log "Using GCC version: $GCC_VERSION"
 TOOLCHAIN_PREFIX=$ANDROID_BUILD_TOP/prebuilts/ndk/current/
 TOOLCHAIN_PREFIX+=$(get_toolchain_binprefix_for_arch $ARCH $GCC_VERSION)
 
-# Determine --host value when building gdbserver
+# Determine cflags when building gdbserver
+GDBSERVER_CFLAGS=
 case "$ARCH" in
-arm)
-    GDBSERVER_HOST=arm-eabi-linux
-    GDBSERVER_CFLAGS="-fno-short-enums"
+arm*)
+    GDBSERVER_CFLAGS+="-fno-short-enums"
     ;;
-arm64)
-    GDBSERVER_HOST=aarch64-eabi-linux
-    GDBSERVER_CFLAGS="-fno-short-enums -DUAPI_HEADERS"
+esac
+
+case "$ARCH" in
+*64)
+    GDBSERVER_CFLAGS+=" -DUAPI_HEADERS"
     ;;
-x86)
-    GDBSERVER_HOST=i686-linux-android
-    GDBSERVER_CFLAGS=
-    ;;
-x86_64)
-    GDBSERVER_HOST=x86_64-linux-android
-    GDBSERVER_CFLAGS=-DUAPI_HEADERS
-    ;;
-mips)
-    GDBSERVER_HOST=mipsel-linux-android
-    GDBSERVER_CFLAGS=
-    ;;
-mips64)
-    GDBSERVER_HOST=mips64el-linux-android
-    GDBSERVER_CFLAGS=-DUAPI_HEADERS
-    ;;
-*)
-    echo "Unknown ARCH=$ARCH"
-    exit
 esac
 
 
