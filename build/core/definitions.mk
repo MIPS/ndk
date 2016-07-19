@@ -2118,7 +2118,7 @@ $(call ndk-stl-register,\
 $(call ndk-stl-register,\
     c++_shared,\
     cxx-stl/llvm-libc++,\
-    libunwind,\
+    libandroid_support libunwind,\
     c++_shared,\
     \
     )
