@@ -310,8 +310,6 @@ copy_gnustl_libs ()
     local BUILDDIR="$2"
     local ARCH=$(convert_abi_to_arch $ABI)
     local GCC_VERSION="$3"
-    local PREFIX=$(get_default_toolchain_prefix_for_arch $ARCH)
-    PREFIX=${PREFIX%%-}
 
     local GNUSTL_SRCDIR=$SRCDIR/gcc/gcc-$GCC_VERSION/libstdc++-v3
     local INCLUDE_VERSION=`cat $GNUSTL_SRCDIR/../gcc/BASE-VER`
@@ -323,7 +321,7 @@ copy_gnustl_libs ()
     # Copy the common headers only once per gcc version
     if [ -z `var_value HAS_COMMON_HEADERS_$GCC_VERSION_NO_DOT` ]; then
         copy_directory "$SDIR/include/c++/$INCLUDE_VERSION" "$DDIR/include"
-        rm -rf "$DDIR/include/$PREFIX"
+        rm -rf "$DDIR/include/$BUILD_HOST"
 	eval HAS_COMMON_HEADERS_$GCC_VERSION_NO_DOT=true
     fi
 
@@ -331,9 +329,9 @@ copy_gnustl_libs ()
     mkdir -p "$DDIR/libs/$ABI/include"
 
     # Copy the ABI-specific headers
-    copy_directory "$SDIR/include/c++/$INCLUDE_VERSION/$PREFIX/bits" "$DDIR/libs/$ABI/include/bits"
+    copy_directory "$SDIR/include/c++/$INCLUDE_VERSION/$BUILD_HOST/bits" "$DDIR/libs/$ABI/include/bits"
 
-    LDIR=lib
+    local LDIR=lib
     if [ "$ARCH" != "${ARCH%%64*}" ]; then
         #Can't call $(get_default_libdir_for_arch $ARCH) which contain hack for arm64
         LDIR=lib64

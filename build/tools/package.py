@@ -43,11 +43,11 @@ ANDROID_TOP = os.path.realpath(os.path.join(THIS_DIR, '../../..'))
 def expand_packages(package, host, arches):
     """Expands package definition tuple into list of full package names.
 
-    >>> expand_packages('gcc-{arch}-{host}', 'linux', ['arm64', 'x86_64'])
-    ['gcc-arm64-linux-x86_64', 'gcc-x86_64-linux-x86_64']
+    >>> expand_packages('gcc-{toolchain}-{host}', 'linux', ['arm', 'x86_64'])
+    ['gcc-arm-linux-androideabi-4.9-x86_64', 'gcc-x86_64-linux-x86_64']
 
-    >>> expand_packages('gcclibs-{arch}', 'linux', ['arm64', 'x86_64'])
-    ['gcclibs-arm64', 'gcclibs-x86_64']
+    >>> expand_packages('gdbserver-{arch}', 'linux', ['arm64', 'x86_64'])
+    ['gdbserver-arm64', 'gdbserver-x86_64']
 
     >>> expand_packages('llvm-{host}', 'linux', ['arm'])
     ['llvm-linux-x86_64']
@@ -84,7 +84,7 @@ def get_all_packages(host, arches):
     packages = [
         ('cpufeatures', 'sources/android/cpufeatures'),
         ('gabixx', 'sources/cxx-stl/gabi++'),
-        ('gcc-{arch}-{host}', 'toolchains/{toolchain}-4.9/prebuilt/{host}'),
+        ('gcc-{toolchain}-{host}', 'toolchains/{toolchain}-4.9/prebuilt/{host}'),
         ('gdbserver-{arch}', 'prebuilt/android-{arch}/gdbserver'),
         ('shader-tools-{host}', 'shader-tools/{host}'),
         ('gnustl-4.9', 'sources/cxx-stl/gnu-libstdc++/4.9'),
