@@ -58,10 +58,11 @@ def check_ndk_or_die():
 
 def get_triple(arch):
     """Return the triple for the given architecture."""
+    """Use same GCC toolchain for both mips arches."""
     return {
         'arm': 'arm-linux-androideabi',
         'arm64': 'aarch64-linux-android',
-        'mips': 'mipsel-linux-android',
+        'mips': 'mips64el-linux-android',
         'mips64': 'mips64el-linux-android',
         'x86': 'i686-linux-android',
         'x86_64': 'x86_64-linux-android',
@@ -79,6 +80,16 @@ def get_abis(arch):
         'x86_64': ['x86_64'],
     }[arch]
 
+def get_dst_dir(arch):
+    """Return directory for the given architecture."""
+    return {
+        'arm': 'arm-linux-androideabi',
+        'arm64': 'aarch64-linux-android',
+        'mips': 'mipsel-linux-android',
+        'mips64': 'mips64el-linux-android',
+        'x86': 'i686-linux-android',
+        'x86_64': 'x86_64-linux-android',
+    }[arch]
 
 def get_host_tag_or_die():
     """Return the host tag for this platform. Die if not supported."""
@@ -117,7 +128,7 @@ def get_gcc_path_or_die(arch, host_tag):
     toolchain = {
         'arm': 'arm-linux-androideabi',
         'arm64': 'aarch64-linux-android',
-        'mips': 'mipsel-linux-android',
+        'mips': 'mips64el-linux-android',
         'mips64': 'mips64el-linux-android',
         'x86': 'x86',
         'x86_64': 'x86_64',
@@ -180,7 +191,7 @@ def copy_directory_contents(src, dst):
                 shutil.copy2(src_file, dst_dir)
 
 
-def make_clang_scripts(install_dir, triple, windows):
+def make_clang_scripts(install_dir, target_arch, triple, windows):
     """Creates Clang wrapper scripts.
 
     The Clang in standalone toolchains historically was designed to be used as
@@ -208,12 +219,16 @@ def make_clang_scripts(install_dir, triple, windows):
                 os.path.join(bin_dir, 'clang{}++'.format(
                     version_number) + exe))
 
+    extra_flags = ''
     arch, os_name, env = triple.split('-')
     if arch == 'arm':
         arch = 'armv7a'  # Target armv7, not armv5.
+    elif arch == 'mips64el' and target_arch == 'mips':
+        arch = 'mipsel'
+        extra_flags = ' -mips32'  # Target mips32 on mips64el compiler
 
     target = '-'.join([arch, 'none', os_name, env])
-    flags = '-target {} --sysroot `dirname $0`/../sysroot'.format(target)
+    flags = '-target {}{} --sysroot `dirname $0`/../sysroot'.format(target, extra_flags)
 
     clang_path = os.path.join(install_dir, 'bin/clang')
     with open(clang_path, 'w') as clang:
@@ -288,7 +303,7 @@ def make_clang_scripts(install_dir, triple, windows):
                      os.path.join(install_dir, 'bin', triple + '-clang++.cmd'))
 
 
-def copy_gnustl_abi_headers(src_dir, dst_dir, gcc_ver, triple, abi,
+def copy_gnustl_abi_headers(src_dir, dst_dir, gcc_ver, arch, abi,
                             thumb=False):
     """Copy the ABI specific headers for gnustl."""
     abi_src_dir = os.path.join(
@@ -302,7 +317,7 @@ def copy_gnustl_abi_headers(src_dir, dst_dir, gcc_ver, triple, abi,
     if abi == 'armeabi-v7a':
         bits_dst_dir = os.path.join('armv7-a', bits_dst_dir)
     abi_dst_dir = os.path.join(
-        dst_dir, 'include/c++', gcc_ver, triple, bits_dst_dir)
+        dst_dir, 'include/c++', gcc_ver, get_dst_dir(arch), bits_dst_dir)
 
     shutil.copytree(abi_src_dir, abi_dst_dir)
 
@@ -363,7 +378,7 @@ def create_toolchain(install_path, arch, gcc_path, clang_path, sysroot_path,
     copy_directory_contents(gcc_path, install_path)
     copy_directory_contents(clang_path, install_path)
     triple = get_triple(arch)
-    make_clang_scripts(install_path, triple, host_tag.startswith('windows'))
+    make_clang_scripts(install_path, arch, triple, host_tag.startswith('windows'))
     shutil.copytree(sysroot_path, os.path.join(install_path, 'sysroot'))
 
     prebuilt_path = os.path.join(NDK_DIR, 'prebuilt', host_tag)
@@ -391,12 +406,12 @@ def create_toolchain(install_path, arch, gcc_path, clang_path, sysroot_path,
         shutil.copytree(os.path.join(gnustl_dir, 'include'), cxx_headers)
 
         for abi in get_abis(arch):
-            copy_gnustl_abi_headers(gnustl_dir, install_path, gcc_ver, triple,
+            copy_gnustl_abi_headers(gnustl_dir, install_path, gcc_ver, arch,
                                     abi)
             copy_gnustl_libs(gnustl_dir, install_path, triple, abi)
             if arch == 'arm':
                 copy_gnustl_abi_headers(gnustl_dir, install_path, gcc_ver,
-                                        triple, abi, thumb=True)
+                                        arch, abi, thumb=True)
     elif stl == 'libc++':
         libcxx_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/llvm-libc++')
         libcxxabi_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/llvm-libc++abi')
@@ -489,7 +504,7 @@ def create_toolchain(install_path, arch, gcc_path, clang_path, sysroot_path,
 
     # Not needed for every STL, but the old one does this. Keep it for the sake
     # of diff. Done at the end so copytree works.
-    cxx_target_headers = os.path.join(cxx_headers, triple)
+    cxx_target_headers = os.path.join(cxx_headers, get_dst_dir(arch))
     if not os.path.exists(cxx_target_headers):
         os.makedirs(cxx_target_headers)
 
