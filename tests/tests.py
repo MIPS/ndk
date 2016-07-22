@@ -402,11 +402,11 @@ class DeviceTestConfig(TestConfig):
         # pylint: enable=unused-argument
 
 
-def _run_build_sh_test(test_name, build_dir, test_dir, build_flags, abi,
+def _run_build_sh_test(test_name, build_dir, test_dir, ndk_build_flags, abi,
                        platform, toolchain):
     _prep_build_dir(test_dir, build_dir)
     with util.cd(build_dir):
-        build_cmd = ['bash', 'build.sh', _get_jobs_arg()] + build_flags
+        build_cmd = ['bash', 'build.sh', _get_jobs_arg()] + ndk_build_flags
         test_env = dict(os.environ)
         if abi is not None:
             test_env['APP_ABI'] = abi
@@ -420,7 +420,7 @@ def _run_build_sh_test(test_name, build_dir, test_dir, build_flags, abi,
             return Failure(test_name, out)
 
 
-def _run_ndk_build_test(test_name, build_dir, test_dir, build_flags, abi,
+def _run_ndk_build_test(test_name, build_dir, test_dir, ndk_build_flags, abi,
                         platform, toolchain):
     _prep_build_dir(test_dir, build_dir)
     with util.cd(build_dir):
@@ -431,15 +431,68 @@ def _run_ndk_build_test(test_name, build_dir, test_dir, build_flags, abi,
         ]
         if platform is not None:
             args.append('APP_PLATFORM=android-{}'.format(platform))
-        rc, out = ndk.build(build_flags + args)
+        rc, out = ndk.build(ndk_build_flags + args)
         if rc == 0:
             return Success(test_name)
         else:
             return Failure(test_name, out)
 
 
+def _run_cmake_build_test(test_name, build_dir, test_dir, cmake_flags, abi,
+                          platform, toolchain):
+    _prep_build_dir(test_dir, build_dir)
+
+    # Add prebuilts to PATH.
+    prebuilts_host_tag = build_support.get_default_host() + '-x86'
+    prebuilts_bin = build_support.android_path(
+        'prebuilts', 'cmake', prebuilts_host_tag, 'bin')
+    env = {'PATH': prebuilts_bin + os.pathsep + os.environ['PATH']}
+
+    # Skip if we don't have a working cmake executable, either from the
+    # prebuilts, or from the SDK, or if a new enough version is installed.
+    rc, out = util.call_output(['cmake', '--version'], env=env)
+    if rc != 0:
+        return Skipped(test_name, 'cmake executable not found')
+    version = map(int, re.match('cmake version (\d+)\.(\d+)\.', out).groups())
+    if version < [3, 6]:
+        return Skipped(test_name, 'cmake 3.6 or above required')
+
+    toolchain_file = os.path.join(os.environ['NDK'], 'build', 'cmake',
+                                  'android.toolchain.cmake')
+    objs_dir = os.path.join(build_dir, 'objs', abi)
+    libs_dir = os.path.join(build_dir, 'libs', abi)
+    if toolchain != 'clang':
+        toolchain = 'gcc'
+    args = [
+        '-H' + build_dir,
+        '-B' + objs_dir,
+        '-DCMAKE_TOOLCHAIN_FILE=' + toolchain_file,
+        '-DANDROID_ABI=' + abi,
+        '-DANDROID_TOOLCHAIN=' + toolchain,
+        '-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=' + libs_dir,
+        '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + libs_dir
+    ]
+    rc, _ = util.call_output(['ninja', '--version'], env=env)
+    if rc == 0:
+        args += [
+            '-GNinja',
+            '-DCMAKE_MAKE_PROGRAM=ninja',
+        ]
+    if platform is not None:
+        args.append('-DANDROID_PLATFORM=android-{}'.format(platform))
+    rc, out = util.call_output(['cmake'] + cmake_flags + args, env=env)
+    if rc != 0:
+        return Failure(test_name, out)
+    rc, out = util.call_output(['cmake', '--build', objs_dir,
+                                '--', _get_jobs_arg()], env=env)
+    if rc != 0:
+        return Failure(test_name, out)
+    return Success(test_name)
+
+
 class BuildTest(Test):
-    def __init__(self, name, test_dir, abi, platform, toolchain, build_flags):
+    def __init__(self, name, test_dir, abi, platform, toolchain,
+                 ndk_build_flags=[], cmake_flags=[]):
         super(BuildTest, self).__init__(name, test_dir)
 
         if platform is None:
@@ -448,24 +501,29 @@ class BuildTest(Test):
         self.abi = abi
         self.platform = platform
         self.toolchain = toolchain
-        self.build_flags = build_flags
+        self.ndk_build_flags = ndk_build_flags
+        self.cmake_flags = cmake_flags
 
     def run(self, out_dir, _):
         raise NotImplementedError
 
     @classmethod
-    def from_dir(cls, test_dir, abi, platform, toolchain, build_flags):
+    def from_dir(cls, test_dir, abi, platform, toolchain, ndk_build_flags,
+                 cmake_flags):
         test_name = os.path.basename(test_dir)
 
         if os.path.isfile(os.path.join(test_dir, 'test.py')):
             return PythonBuildTest(test_name, test_dir, abi, platform,
-                                   toolchain, build_flags)
+                                   toolchain, ndk_build_flags)
         elif os.path.isfile(os.path.join(test_dir, 'build.sh')):
             return ShellBuildTest(test_name, test_dir, abi, platform,
-                                  toolchain, build_flags)
+                                  toolchain, ndk_build_flags)
+        elif os.path.isfile(os.path.join(test_dir, 'CMakeLists.txt')):
+            return CMakeBuildTest(test_name, test_dir, abi, platform,
+                                  toolchain, cmake_flags)
         else:
             return NdkBuildTest(test_name, test_dir, abi, platform,
-                                toolchain, build_flags)
+                                toolchain, ndk_build_flags)
 
     def check_broken(self):
         return self.config.match_broken(self.abi, self.platform,
@@ -487,14 +545,16 @@ class PythonBuildTest(BuildTest):
     abi: ABI to test as a string.
     platform: Platform to build against as a string.
     toolchain: Toolchain to use as a string.
-    build_flags: Additional build flags that should be passed to ndk-build if
-                 invoked as a list of strings.
+    ndk_build_flags: Additional build flags that should be passed to ndk-build
+                     if invoked as a list of strings.
     """
-    def __init__(self, name, test_dir, abi, platform, toolchain, build_flags):
+    def __init__(self, name, test_dir, abi, platform, toolchain,
+                 ndk_build_flags):
         if platform is None:
             platform = build_support.minimum_platform_level(abi)
         super(PythonBuildTest, self).__init__(
-            name, test_dir, abi, platform, toolchain, build_flags)
+            name, test_dir, abi, platform, toolchain,
+            ndk_build_flags=ndk_build_flags)
 
     def run(self, out_dir, _):
         build_dir = os.path.join(out_dir, self.name)
@@ -504,7 +564,7 @@ class PythonBuildTest(BuildTest):
             module = imp.load_source('test', 'test.py')
             success, failure_message = module.run_test(
                 abi=self.abi, platform=self.platform, toolchain=self.toolchain,
-                build_flags=self.build_flags)
+                build_flags=self.ndk_build_flags)
             if success:
                 yield Success(self.name)
             else:
@@ -512,11 +572,12 @@ class PythonBuildTest(BuildTest):
 
 
 class ShellBuildTest(BuildTest):
-    def __init__(self, name, test_dir, abi, platform, toolchain, build_flags):
+    def __init__(self, name, test_dir, abi, platform, toolchain,
+                 ndk_build_flags):
         if platform is None:
             platform = build_support.minimum_platform_level(abi)
         super(ShellBuildTest, self).__init__(
-            name, test_dir, abi, platform, toolchain, build_flags)
+            name, test_dir, abi, platform, toolchain, ndk_build_flags)
 
     def run(self, out_dir, _):
         build_dir = os.path.join(out_dir, self.name)
@@ -526,8 +587,8 @@ class ShellBuildTest(BuildTest):
             yield Skipped(self.name, reason)
         else:
             yield _run_build_sh_test(self.name, build_dir, self.test_dir,
-                                     self.build_flags, self.abi, self.platform,
-                                     self.toolchain)
+                                     self.ndk_build_flags, self.abi,
+                                     self.platform, self.toolchain)
 
 
 def _platform_from_application_mk(test_dir):
@@ -589,17 +650,32 @@ def _get_or_infer_app_platform(platform_from_user, test_dir, abi):
 
 
 class NdkBuildTest(BuildTest):
-    def __init__(self, name, test_dir, abi, platform, toolchain, build_flags):
+    def __init__(self, name, test_dir, abi, platform, toolchain,
+                 ndk_build_flags):
         platform = _get_or_infer_app_platform(platform, test_dir, abi)
         super(NdkBuildTest, self).__init__(
-            name, test_dir, abi, platform, toolchain, build_flags)
+            name, test_dir, abi, platform, toolchain, ndk_build_flags)
 
     def run(self, out_dir, _):
         build_dir = os.path.join(out_dir, self.name)
         print('Building test: {}'.format(self.name))
         yield _run_ndk_build_test(self.name, build_dir, self.test_dir,
-                                  self.build_flags, self.abi,
+                                  self.ndk_build_flags, self.abi,
                                   self.platform, self.toolchain)
+
+
+class CMakeBuildTest(BuildTest):
+    def __init__(self, name, test_dir, abi, platform, toolchain, cmake_flags):
+        platform = _get_or_infer_app_platform(platform, test_dir, abi)
+        super(CMakeBuildTest, self).__init__(
+            name, test_dir, abi, platform, toolchain, cmake_flags=cmake_flags)
+
+    def run(self, out_dir, _):
+        build_dir = os.path.join(out_dir, self.name)
+        print('Building test: {}'.format(self.name))
+        yield _run_cmake_build_test(self.name, build_dir, self.test_dir,
+                                    self.cmake_flags, self.abi,
+                                    self.platform, self.toolchain)
 
 
 def _copy_test_to_device(device, build_dir, device_dir, abi, test_filters,
@@ -648,7 +724,7 @@ def _copy_test_to_device(device, build_dir, device_dir, abi, test_filters,
 
 class DeviceTest(Test):
     def __init__(self, name, test_dir, abi, platform, device, device_platform,
-                 toolchain, build_flags, skip_run):
+                 toolchain, ndk_build_flags, cmake_flags, skip_run):
         super(DeviceTest, self).__init__(name, test_dir)
 
         platform = _get_or_infer_app_platform(platform, test_dir, abi)
@@ -658,15 +734,16 @@ class DeviceTest(Test):
         self.device = device
         self.device_platform = device_platform
         self.toolchain = toolchain
-        self.build_flags = build_flags
+        self.ndk_build_flags = ndk_build_flags
+        self.cmake_flags = cmake_flags
         self.skip_run = skip_run
 
     @classmethod
     def from_dir(cls, test_dir, abi, platform, device, device_platform,
-                 toolchain, build_flags, skip_run):
+                 toolchain, ndk_build_flags, cmake_flags, skip_run):
         test_name = os.path.basename(test_dir)
         return cls(test_name, test_dir, abi, platform, device, device_platform,
-                   toolchain, build_flags, skip_run)
+                   toolchain, ndk_build_flags, cmake_flags, skip_run)
 
     def get_test_config(self):
         return DeviceTestConfig.from_test_dir(self.test_dir)
@@ -691,11 +768,10 @@ class DeviceTest(Test):
                                              self.device_platform,
                                              self.toolchain, subtest=name)
 
-    def run(self, out_dir, test_filters):
-        print('Building device test: {}'.format(self.name))
+    def run_ndk_build(self, out_dir, test_filters):
         build_dir = os.path.join(out_dir, self.name)
         build_result = _run_ndk_build_test(self.name, build_dir, self.test_dir,
-                                           self.build_flags, self.abi,
+                                           self.ndk_build_flags, self.abi,
                                            self.platform, self.toolchain)
         if not build_result.passed():
             yield build_result
@@ -705,7 +781,30 @@ class DeviceTest(Test):
             yield build_result
             return
 
-        device_dir = posixpath.join('/data/local/tmp/ndk-tests', self.name)
+        for result in self.run_device_test(build_dir, 'ndk-tests',
+                                           test_filters):
+            yield result
+
+    def run_cmake_build(self, out_dir, test_filters):
+        build_dir = os.path.join(out_dir, self.name)
+        build_result = _run_cmake_build_test(self.name, build_dir,
+                                             self.test_dir, self.cmake_flags,
+                                             self.abi, self.platform,
+                                             self.toolchain)
+        if not build_result.passed():
+            yield build_result
+            return
+
+        if self.skip_run:
+            yield build_result
+            return
+
+        for result in self.run_device_test(build_dir, 'cmake-tests',
+                                           test_filters):
+            yield result
+
+    def run_device_test(self, build_dir, test_dir, test_filters):
+        device_dir = posixpath.join('/data/local/tmp', test_dir, self.name)
 
         # We have to use `ls foo || mkdir foo` because Gingerbread was lacking
         # `mkdir -p`, the -d check for directory existence, stat, dirname, and
@@ -744,3 +843,13 @@ class DeviceTest(Test):
                         yield ExpectedFailure(case_name, config, bug)
         finally:
             self.device.shell_nocheck(['rm', '-r', device_dir])
+
+    def run(self, out_dir, test_filters):
+        if os.path.exists(os.path.join(self.test_dir, 'jni', 'Android.mk')):
+            print('Building device test with ndk-build: {}'.format(self.name))
+            for result in self.run_ndk_build(out_dir, test_filters):
+                yield result
+        if os.path.exists(os.path.join(self.test_dir, 'CMakeLists.txt')):
+            print('Building device test with cmake: {}'.format(self.name))
+            for result in self.run_cmake_build(out_dir, test_filters):
+                yield result
