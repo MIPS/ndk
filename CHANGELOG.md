@@ -21,6 +21,7 @@ NDK
  * Issues with `crtbegin_static.o` that resulted in missing `atexit` at link
    time when building a static executable for ARM android-21+ have been
    resolved: https://github.com/android-ndk/ndk/issues/132
+ * Added CMake toolchain file in build/cmake/android.toolchain.cmake.
 
 Known Issues
 ------------
