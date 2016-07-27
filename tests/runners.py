@@ -127,7 +127,7 @@ class ResultStats(object):
 
 
 def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
-                             build_api_level=None, verbose_ndk_build=False,
+                             build_api_level=None, verbose_build=False,
                              suites=None, test_filter=None,
                              device_serial=None, skip_run=False):
     """Runs all the tests for the given configuration.
@@ -145,7 +145,7 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
         toolchain: Toolchain to build with.
         build_api_level: API level to build against. If None, will default to
             the value set in the test's Application.mk, or ndk-build's default.
-        verbose_ndk_build: Show verbose output from ndk-build.
+        verbose_build: Show verbose output from ndk-build and cmake.
         suites: Set of strings denoting which test suites to run. Possible
             values are 'awk', 'build', and 'device'. If None, will run all
             suites.
@@ -169,12 +169,16 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
     # For some reason we handle NDK_TOOLCHAIN_VERSION in _run_ndk_build_test...
     # We also handle APP_ABI there (as well as here). This merits some cleanup.
     ndk_build_flags = ['APP_ABI={}'.format(abi)]
+    cmake_flags = ['-DANDROID_ABI={}'.format(abi)]
     if build_api_level is not None:
         ndk_build_flags.append(
             'APP_PLATFORM=android-{}'.format(build_api_level))
-    if verbose_ndk_build:
+        cmake_flags.append(
+            '-DANDROID_PLATFORM=android-{}'.format(build_api_level))
+    if verbose_build:
         logging.basicConfig(level=logging.INFO)
         ndk_build_flags.append('V=1')
+        cmake_flags.append('-DCMAKE_VERBOSE_MAKEFILE=ON')
 
     # Do this early so we find any device issues now rather than after we've
     # run all the build tests.
@@ -188,6 +192,7 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
         # if we're running on a newer device.
         if device_api_level >= 21:
             ndk_build_flags.append('APP_PIE=true')
+            cmake_flags.append('-DANDROID_PIE=TRUE')
 
         os.environ['ANDROID_SERIAL'] = device.serial
 
@@ -198,6 +203,8 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
         # because Gingerbread didn't actually support -p :(
         device.shell_nocheck(['rm -r /data/local/tmp/ndk-tests 2>&1'])
         device.shell(['mkdir /data/local/tmp/ndk-tests 2>&1'])
+        device.shell_nocheck(['rm -r /data/local/tmp/cmake-tests 2>&1'])
+        device.shell(['mkdir /data/local/tmp/cmake-tests 2>&1'])
     elif skip_run:
         # We need to fake these if we're skipping running the tests. Set device
         # to None so any attempt to interact with it will raise an error, and
@@ -211,11 +218,11 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
         runner.add_suite('awk', 'awk', AwkTest)
     if 'build' in suites:
         runner.add_suite('build', 'build', BuildTest, abi, build_api_level,
-                         toolchain, ndk_build_flags)
+                         toolchain, ndk_build_flags, cmake_flags)
     if 'device' in suites:
         runner.add_suite('device', 'device', DeviceTest, abi, build_api_level,
                          device, device_api_level, toolchain, ndk_build_flags,
-                         skip_run)
+                         cmake_flags, skip_run)
 
     test_filters = filters.TestFilter.from_string(test_filter)
     results = runner.run(out_dir, test_filters)
