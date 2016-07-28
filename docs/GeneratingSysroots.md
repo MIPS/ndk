@@ -4,6 +4,10 @@ Generating NDK Sysroots
 The latest version of this document is available at
 https://android.googlesource.com/platform/ndk/+/master/docs/GeneratingSysroots.md.
 
+**Note:** This document covers the old (but still in use) method of getting
+platform APIs into the NDK. The new process is covered by [Platform
+APIs](PlatformApis.md).
+
 The `platforms/` subtree of an NDK package contains sysroots for each
 architecture and API level. The contents of these sysroots are generated as part
 of the NDK build.
