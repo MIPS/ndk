@@ -27,6 +27,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import textwrap
 import zipfile
 
 site.addsitedir(os.path.join(os.path.dirname(__file__), '../..'))
@@ -252,6 +253,16 @@ def copy_changelog(out_dir):
     shutil.copy2(changelog_path, out_dir)
 
 
+CANARY_TEXT = textwrap.dedent("""\
+    This is a canary build of the Android NDK. It's updated almost every day.
+
+    Canary builds are designed for early adopters and can be prone to breakage.
+    Sometimes they can break completely. To aid development and testing, this
+    distribution can be installed side-by-side with your existing, stable NDK
+    release.
+    """)
+
+
 def make_package(build_number, package_dir, packages, host, out_dir, temp_dir):
     release_name = 'android-ndk-{}'.format(config.release)
     extract_dir = os.path.join(temp_dir, release_name)
@@ -264,6 +275,11 @@ def make_package(build_number, package_dir, packages, host, out_dir, temp_dir):
     make_shortcuts(extract_dir, host)
     make_source_properties(extract_dir, build_number)
     copy_changelog(extract_dir)
+
+    if config.canary:
+        canary_path = os.path.join(extract_dir, 'README.canary')
+        with open(canary_path, 'w') as canary_file:
+            canary_file.write(CANARY_TEXT)
 
     host_tag = build_support.host_to_tag(host)
     # The release tooling really wants us to only name packages with the build
