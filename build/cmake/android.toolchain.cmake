@@ -504,6 +504,14 @@ else()
 	list(APPEND ANDROID_LINKER_FLAGS
 		-Wl,-z,noexecstack)
 endif()
+if(ANDROID_TOOLCHAIN STREQUAL clang)
+	# CMake automatically forwards all compiler flags to the linker,
+	# and clang doesn't like having -Wa flags being used for linking.
+	# To prevent CMake from doing this would require meddling with
+	# the CMAKE_<LANG>_COMPILE_OBJECT rules, which would get quite messy.
+	list(APPEND ANDROID_LINKER_FLAGS
+		-Qunused-arguments)
+endif()
 if(ANDROID_DISABLE_RELRO)
 	list(APPEND ANDROID_LINKER_FLAGS
 		-Wl,-z,norelro -Wl,-z,lazy)
