@@ -202,6 +202,8 @@ def get_default_host():
         return 'linux'
     elif sys.platform == 'darwin':
         return 'darwin'
+    elif sys.platform == 'win32':
+        return 'windows'
     else:
         raise RuntimeError('Unsupported host: {}'.format(sys.platform))
 
