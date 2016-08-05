@@ -579,31 +579,22 @@ def build_vulkan(out_dir, dist_dir, args):
                 'vk.xml'
             ],
             'dirs': [
-                'layers', 'include'
+                'layers', 'include', 'tests', 'common', 'libs'
             ],
         },
         {
             'source_dir': vulkan_root_dir + '/loader',
             'dest_dir': 'vulkan/src/loader',
             'files': [
-                'vk_loader_platform.h'
+                'vk_loader_platform.h',
+                'vk_loader_layer.h'
             ],
             'dirs': [],
-        },
-        {
-            'source_dir': build_support.android_path(
-                'external/shaderc/glslang'),
-            'dest_dir': 'vulkan/glslang',
-            'files': [],
-            'dirs': [
-                'SPIRV',
-            ],
-        },
+        }
     ]
 
     default_ignore_patterns = shutil.ignore_patterns(
         "*CMakeLists.txt",
-        "*test.h",
         "*test.cc",
         "linux",
         "windows")
