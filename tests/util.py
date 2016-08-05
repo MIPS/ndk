@@ -53,7 +53,10 @@ def call_output(cmd, *args, **kwargs):
 
     Returns: Tuple of (exit_code, output).
     """
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT, *args, **kwargs)
-    out, _ = proc.communicate()
-    return proc.returncode, out
+    try:
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, *args, **kwargs)
+        out, _ = proc.communicate()
+        return proc.returncode, out
+    except WindowsError as error:
+        return error.winerror, error.strerror
