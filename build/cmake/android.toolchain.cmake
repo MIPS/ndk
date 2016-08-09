@@ -53,6 +53,11 @@ endif()
 string(REGEX REPLACE "${ANDROID_NDK_SOURCE_PROPERTIES_REGEX}" "\\1"
 	ANDROID_NDK_REVISION "${ANDROID_NDK_SOURCE_PROPERTIES}")
 
+# Touch toolchain variable to suppress "unused variable" warning.
+# This happens if CMake is invoked with the same command line the second time.
+if(CMAKE_TOOLCHAIN_FILE)
+endif()
+
 # Compatibility for configurable variables.
 # Compatible with configurable variables from the other toolchain file:
 #         https://github.com/taka-no-me/android-cmake
@@ -534,33 +539,38 @@ set(CMAKE_C_COMPILER        "${ANDROID_C_COMPILER}")
 set(CMAKE_CXX_COMPILER      "${ANDROID_CXX_COMPILER}")
 set(_CMAKE_TOOLCHAIN_PREFIX "${ANDROID_TOOLCHAIN_PREFIX}")
 
-set(CMAKE_C_FLAGS
-	"${ANDROID_COMPILER_FLAGS} ${CMAKE_C_FLAGS}"
+# Set or retrieve the cached flags.
+# This is necessary in case the user sets/changes flags in subsequent
+# configures. If we included the Android flags in here, they would get
+# overwritten.
+set(CMAKE_C_FLAGS ""
 	CACHE STRING "Flags used by the compiler during all build types.")
-set(CMAKE_CXX_FLAGS
-	"${ANDROID_COMPILER_FLAGS} ${ANDROID_COMPILER_FLAGS_CXX} ${CMAKE_CXX_FLAGS}"
+set(CMAKE_CXX_FLAGS ""
 	CACHE STRING "Flags used by the compiler during all build types.")
-set(CMAKE_C_FLAGS_DEBUG
-	"${ANDROID_COMPILER_FLAGS_DEBUG} ${CMAKE_C_FLAGS_DEBUG}"
+set(CMAKE_C_FLAGS_DEBUG ""
 	CACHE STRING "Flags used by the compiler during debug builds.")
-set(CMAKE_CXX_FLAGS_DEBUG
-	"${ANDROID_COMPILER_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_DEBUG}"
+set(CMAKE_CXX_FLAGS_DEBUG ""
 	CACHE STRING "Flags used by the compiler during debug builds.")
-set(CMAKE_C_FLAGS_RELEASE
-	"${ANDROID_COMPILER_FLAGS_RELEASE} ${CMAKE_C_FLAGS_RELEASE}"
+set(CMAKE_C_FLAGS_RELEASE ""
 	CACHE STRING "Flags used by the compiler during release builds.")
-set(CMAKE_CXX_FLAGS_RELEASE
-	"${ANDROID_COMPILER_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_RELEASE}"
+set(CMAKE_CXX_FLAGS_RELEASE ""
 	CACHE STRING "Flags used by the compiler during release builds.")
-set(CMAKE_MODULE_LINKER_FLAGS
-	"${ANDROID_LINKER_FLAGS} ${CMAKE_SHARED_LINKER_FLAGS}"
+set(CMAKE_MODULE_LINKER_FLAGS ""
 	CACHE STRING "Flags used by the linker during the creation of modules.")
-set(CMAKE_SHARED_LINKER_FLAGS
-	"${ANDROID_LINKER_FLAGS} ${CMAKE_MODULE_LINKER_FLAGS}"
+set(CMAKE_SHARED_LINKER_FLAGS ""
 	CACHE STRING "Flags used by the linker during the creation of dll's.")
-set(CMAKE_EXE_LINKER_FLAGS
-	"${ANDROID_LINKER_FLAGS} ${ANDROID_LINKER_FLAGS_EXE} ${CMAKE_EXE_LINKER_FLAGS}"
+set(CMAKE_EXE_LINKER_FLAGS ""
 	CACHE STRING "Flags used by the linker.")
+
+set(CMAKE_C_FLAGS             "${ANDROID_COMPILER_FLAGS} ${CMAKE_C_FLAGS}")
+set(CMAKE_CXX_FLAGS           "${ANDROID_COMPILER_FLAGS} ${ANDROID_COMPILER_FLAGS_CXX} ${CMAKE_CXX_FLAGS}")
+set(CMAKE_C_FLAGS_DEBUG       "${ANDROID_COMPILER_FLAGS_DEBUG} ${CMAKE_C_FLAGS_DEBUG}")
+set(CMAKE_CXX_FLAGS_DEBUG     "${ANDROID_COMPILER_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_DEBUG}")
+set(CMAKE_C_FLAGS_RELEASE     "${ANDROID_COMPILER_FLAGS_RELEASE} ${CMAKE_C_FLAGS_RELEASE}")
+set(CMAKE_CXX_FLAGS_RELEASE   "${ANDROID_COMPILER_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_RELEASE}")
+set(CMAKE_SHARED_LINKER_FLAGS "${ANDROID_LINKER_FLAGS} ${CMAKE_SHARED_LINKER_FLAGS}")
+set(CMAKE_MODULE_LINKER_FLAGS "${ANDROID_LINKER_FLAGS} ${CMAKE_MODULE_LINKER_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS    "${ANDROID_LINKER_FLAGS} ${ANDROID_LINKER_FLAGS_EXE} ${CMAKE_EXE_LINKER_FLAGS}")
 
 # Compatibility for read-only variables.
 # Read-only variables for compatibility with the other toolchain file.
