@@ -242,6 +242,8 @@ def make_source_properties(out_dir, build_number):
         version = '{}.{}.{}'.format(config.major, config.hotfix, build_number)
         if config.beta > 0:
             version += '-beta{}'.format(config.beta)
+        if config.canary:
+            version += '-canary'
         source_properties.writelines([
             'Pkg.Desc = Android NDK\n',
             'Pkg.Revision = {}\n'.format(version)
