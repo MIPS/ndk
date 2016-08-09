@@ -5,23 +5,7 @@ Report issues to [GitHub].
 
 [GitHub]: https://github.com/android-ndk/ndk/issues
 
-NDK
----
 
- * `NDK_TOOLCHAIN_VERSION` now defaults to Clang.
- * libc++ has been updated to r263688.
-     * We've reset to a (nearly) clean upstream. This should remove a number of
-       bugs, but we still need to clean up `libandroid_support` before we will
-       recommend it as the default.
- * `make-standalone-toolchain.sh` is now simply a wrapper around the Python
-   version of the tool. There are a few behavioral differences. See
-   https://android-review.googlesource.com/#/c/245453/
- * Some libraries for unsupported ABIs have been removed (mips64r2, mips32r6,
-   mips32r2, and x32). There might still be some stragglers.
- * Issues with `crtbegin_static.o` that resulted in missing `atexit` at link
-   time when building a static executable for ARM android-21+ have been
-   resolved: https://github.com/android-ndk/ndk/issues/132
- * Added CMake toolchain file in build/cmake/android.toolchain.cmake.
 
 Known Issues
 ------------
