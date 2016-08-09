@@ -46,7 +46,7 @@ file(TO_CMAKE_PATH "${ANDROID_NDK}" ANDROID_NDK)
 # Android NDK revision
 file(READ "${ANDROID_NDK}/source.properties" ANDROID_NDK_SOURCE_PROPERTIES)
 set(ANDROID_NDK_SOURCE_PROPERTIES_REGEX
-	"^Pkg\\.Desc = Android NDK\nPkg\\.Revision = ([0-9]+)\\.[^.-]+\\.[^.-]+(-beta[0-9]+)?\n$")
+	"^Pkg\\.Desc = Android NDK\nPkg\\.Revision = ([0-9]+)\\.")
 if(NOT ANDROID_NDK_SOURCE_PROPERTIES MATCHES "${ANDROID_NDK_SOURCE_PROPERTIES_REGEX}")
 	message(SEND_ERROR "Failed to parse Android NDK revision: ${ANDROID_NDK}/source.properties.\n${ANDROID_NDK_SOURCE_PROPERTIES}")
 endif()
