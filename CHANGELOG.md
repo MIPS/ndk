@@ -23,7 +23,7 @@ Known Issues
  * Standlone toolchains using libc++ and GCC do not work. This seems to be a bug
    in GCC. See the following commit message for more details:
    https://android-review.googlesource.com/#/c/247498
- * x86 ASAN still does work. See discussion on
+ * x86 ASAN still doesn't work. See discussion on
    https://android-review.googlesource.com/#/c/186276/
  * Exception unwinding with `c++_shared` still does not work for ARM on
    Gingerbread or Ice Cream Sandwich.
