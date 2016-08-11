@@ -61,6 +61,7 @@ ALL_MODULES = {
     'platforms',
     'python-packages',
     'shader_tools',
+    'simpleperf',
     'stlport',
     'system-stl',
     'vulkan',
@@ -637,6 +638,22 @@ def build_libcxxabi(_out_dir, dist_dir, _args):
     build_support.make_package('libcxxabi', path, dist_dir)
 
 
+def build_simpleperf(out_dir, dist_dir, _args):
+    print('Building simpleperf...')
+    install_dir = os.path.join(out_dir, 'simpleperf')
+    if os.path.exists(install_dir):
+        shutil.rmtree(install_dir)
+    os.makedirs(install_dir)
+
+    simpleperf_path = build_support.android_path('prebuilts/simpleperf')
+    shutil.copytree(os.path.join(simpleperf_path, 'android'),
+                    os.path.join(install_dir, 'android'))
+
+    shutil.copy2(os.path.join(simpleperf_path, 'NOTICE'), install_dir)
+
+    build_support.make_package('simpleperf', install_dir, dist_dir)
+
+
 def launch_build(build_name, build_func, out_dir, dist_dir, args, log_dir):
     log_path = os.path.join(log_dir, build_name) + '.log'
     tee = subprocess.Popen(["tee", log_path], stdin=subprocess.PIPE)
@@ -681,6 +698,7 @@ def main():
             'ndk-build',
             'python-packages',
             'shader_tools',
+            'simpleperf',
         }
 
     required_package_modules = ALL_MODULES
@@ -737,6 +755,7 @@ def main():
         ('platforms', build_platforms),
         ('python-packages', build_python_packages),
         ('shader_tools', build_shader_tools),
+        ('simpleperf', build_simpleperf),
         ('stlport', build_stlport),
         ('system-stl', build_system_stl),
         ('vulkan', build_vulkan),
