@@ -408,7 +408,7 @@ def build_libshaderc(_, dist_dir, __):
             'source_dir': os.path.join(shaderc_root_dir, 'spirv-headers'),
             'dest_dir':
                 'shaderc/third_party/spirv-tools/external/spirv-headers',
-            'dirs': ['include',],
+            'dirs': ['include'],
             'files': [
                 'include/spirv/1.0/spirv.py',
                 'include/spirv/1.1/spirv.py'
