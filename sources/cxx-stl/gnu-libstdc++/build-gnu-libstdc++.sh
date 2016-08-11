@@ -175,7 +175,7 @@ build_gnustl_for_abi ()
     fi
 
     EXTRA_CFLAGS="-ffunction-sections -fdata-sections"
-    EXTRA_LDFLAGS=
+    EXTRA_LDFLAGS="-Wl,--build-id"
 
     # arm32 libs are built as thumb.
     if [ "$ABI" != "${ABI%%arm*}" -a "$ABI" = "${ABI%%64*}" ] ; then
