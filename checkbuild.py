@@ -649,6 +649,9 @@ def build_simpleperf(out_dir, dist_dir, _args):
     shutil.copytree(os.path.join(simpleperf_path, 'android'),
                     os.path.join(install_dir, 'android'))
 
+    shutil.copy2(
+        os.path.join(simpleperf_path, 'simpleperf_report.py'), install_dir)
+    shutil.copy2(os.path.join(simpleperf_path, 'README.md'), install_dir)
     shutil.copy2(os.path.join(simpleperf_path, 'NOTICE'), install_dir)
 
     build_support.make_package('simpleperf', install_dir, dist_dir)
