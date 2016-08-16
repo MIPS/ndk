@@ -349,6 +349,10 @@ class TestConfig(object):
             Returns: The string unsupported_configuration or None.
             """
             return None
+
+        @staticmethod
+        def extra_cmake_flags():
+            return []
         # pylint: enable=unused-argument
 
     def __init__(self, file_path):
@@ -372,6 +376,11 @@ class TestConfig(object):
             self.match_unsupported = self.module.match_unsupported
         except AttributeError:
             self.match_unsupported = self.NullTestConfig.match_unsupported
+
+        try:
+            self.extra_cmake_flags = self.module.extra_cmake_flags
+        except AttributeError:
+            self.extra_cmake_flags = self.NullTestConfig.extra_cmake_flags
 
     @classmethod
     def from_test_dir(cls, test_dir):
@@ -399,6 +408,10 @@ class DeviceTestConfig(TestConfig):
         def match_unsupported(abi, platform, device_platform, toolchain,
                               subtest=None):
             return None
+
+        @staticmethod
+        def extra_cmake_flags():
+            return []
         # pylint: enable=unused-argument
 
 
@@ -502,7 +515,7 @@ class BuildTest(Test):
         self.platform = platform
         self.toolchain = toolchain
         self.ndk_build_flags = ndk_build_flags
-        self.cmake_flags = cmake_flags
+        self.cmake_flags = cmake_flags + self.get_extra_cmake_flags()
 
     def run(self, out_dir, _):
         raise NotImplementedError
@@ -532,6 +545,9 @@ class BuildTest(Test):
     def check_unsupported(self):
         return self.config.match_unsupported(self.abi, self.platform,
                                              self.toolchain)
+
+    def get_extra_cmake_flags(self):
+        return self.config.extra_cmake_flags()
 
 
 class PythonBuildTest(BuildTest):
@@ -735,7 +751,7 @@ class DeviceTest(Test):
         self.device_platform = device_platform
         self.toolchain = toolchain
         self.ndk_build_flags = ndk_build_flags
-        self.cmake_flags = cmake_flags
+        self.cmake_flags = cmake_flags + self.get_extra_cmake_flags()
         self.skip_run = skip_run
 
     @classmethod
@@ -767,6 +783,9 @@ class DeviceTest(Test):
         return self.config.match_unsupported(self.abi, self.platform,
                                              self.device_platform,
                                              self.toolchain, subtest=name)
+
+    def get_extra_cmake_flags(self):
+        return self.config.extra_cmake_flags()
 
     def run_ndk_build(self, out_dir, test_filters):
         build_dir = os.path.join(out_dir, self.name)
