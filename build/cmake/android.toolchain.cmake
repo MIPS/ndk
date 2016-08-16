@@ -484,7 +484,7 @@ if(ANDROID_ABI MATCHES "armeabi")
 	else()
 		message(FATAL_ERROR "Invalid Android ARM mode: ${ANDROID_ARM_MODE}.")
 	endif()
-	if(ANDROID_STL STREQUAL armeabi-v7a AND ANDROID_ARM_NEON)
+	if(ANDROID_ABI STREQUAL armeabi-v7a AND ANDROID_ARM_NEON)
 		list(APPEND ANDROID_COMPILER_FLAGS
 			-mfpu=neon)
 	endif()
