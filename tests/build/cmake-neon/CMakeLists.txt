@@ -1,1 +1,1 @@
-add_executable(cmake-neon cmake-neon.c)
+add_executable(cmake-neon cmake-neon.cpp)
