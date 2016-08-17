@@ -239,6 +239,11 @@ def main():
         sys.exit(ndk_build_path + ' does not exist.')
 
     fleet = find_devices()
+    print('Test configuration:')
+    for version in sorted(fleet.get_versions()):
+        print('\tandroid-{}:'.format(version))
+        for abi in sorted(fleet.get_abis(version)):
+            print('\t\t{}: {}'.format(abi, fleet.get_device(version, abi)))
     missing_configs = fleet.get_missing()
     if len(missing_configs):
         print('Missing configurations: {}'.format(', '.join(missing_configs)))
