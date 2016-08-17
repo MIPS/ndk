@@ -32,15 +32,17 @@ THIS_DIR = os.path.realpath(os.path.dirname(__file__))
 
 
 class Device(object):
-    def __init__(self, serial, name, version, abis, is_emulator):
+    def __init__(self, serial, name, version, build_id, abis, is_emulator):
         self.serial = serial
         self.name = name
         self.version = version
+        self.build_id = build_id
         self.abis = abis
         self.is_emulator = is_emulator
 
     def __str__(self):
-        return 'android-{} {} {}'.format(self.version, self.name, self.serial)
+        return 'android-{} {} {} {}'.format(
+            self.version, self.name, self.serial, self.build_id)
 
 
 class DeviceFleet(object):
@@ -125,8 +127,9 @@ def get_device_details(serial):
     name = props['ro.product.name']
     version = int(props['ro.build.version.sdk'])
     supported_abis = get_device_abis(props)
+    build_id = props['ro.build.id']
     is_emulator = props.get('ro.build.characteristics') == 'emulator'
-    return Device(serial, name, version, supported_abis, is_emulator)
+    return Device(serial, name, version, build_id, supported_abis, is_emulator)
 
 
 def find_devices():
