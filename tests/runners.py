@@ -157,7 +157,18 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
             steps if CI doesn't have the device available.
 
     Returns:
-        True if all tests completed successfully, False if there were failures.
+        Tuple of (result, details).
+
+        result is True if all tests completed successfully, False if there were
+        failures.
+
+        details is the dict returned by tests.TestRunner: {
+            "suite_name": [
+                tests.TestResult,
+                ...
+            ],
+            ...
+        }
     """
     if suites is None:
         suites = ('awk', 'build', 'device')

@@ -154,7 +154,61 @@ def package_ndk(out_dir, dist_dir, args):
     invoke_build('package.py', package_args)
 
 
-def test_ndk(out_dir, args):
+def group_by_test(details):
+    """Arranges per-ABI test results into failures by name.
+
+    Args:
+        details: dict of {abi: {suite_name: [results]}}.
+
+    Returns:
+        Dict of {test_name: (abi, result)}.
+    """
+    by_test = {}
+    for abi, suites in details.iteritems():
+        for suite, test_results in suites.iteritems():
+            for test in test_results:
+                if test.failed():
+                    name = '.'.join([suite, test.test_name])
+                    if name not in by_test:
+                        by_test[name] = []
+                    by_test[name].append((abi, test))
+    return by_test
+
+
+def make_test_report(details, use_color):
+    """Returns a string containing a test failure report.
+
+    Args:
+        details: dict of {abi: suite_name: [results]}}.
+        use_color: Print results with color if True.
+
+    Returns:
+        Test failure report as a string.
+    """
+    grouped_details = group_by_test(details)
+    lines = []
+    for test_name, test_failures in grouped_details.iteritems():
+        lines.append('BEGIN TEST RESULT: ' + test_name)
+        lines.append('=' * 80)
+        for abi, result in test_failures:
+            lines.append('FAILED {}'.format(abi))
+            lines.append(result.to_string(colored=use_color))
+    return os.linesep.join(lines)
+
+
+def test_ndk(out_dir, dist_dir, args):
+    """Runs the host-only tests on the just built NDK.
+
+    Only runs the tests for Clang due to resource constraints.
+
+    Args:
+        out_dir: Build output directory.
+        dist_dir: Preserved artifact directory.
+        args: Parsed command line arguments.
+
+    Returns:
+        True if all tests pass, else False.
+    """
     # The packaging step extracts all the modules to a known directory for
     # packaging. This directory is not cleaned up after packaging, so we can
     # reuse that for testing.
@@ -174,17 +228,26 @@ def test_ndk(out_dir, args):
     import tests.runners
     import tests.printers
 
+    details = {}
     for abi in abis:
         test_out_dir = os.path.join(out_dir, 'test', abi)
-        results[abi], _ = tests.runners.run_single_configuration(
+        results[abi], details[abi] = tests.runners.run_single_configuration(
             test_dir, test_out_dir,
             tests.printers.StdoutPrinter(use_color=use_color),
             abi, 'clang', skip_run=True)
 
+    all_pass = all(results.values())
+    if not all_pass:
+        test_report = make_test_report(details, use_color)
+        print(test_report)
+        log_path = os.path.join(dist_dir, 'logs/build_error.log')
+        with open(log_path, 'a') as error_log:
+            error_log.write(test_report)
+
     print('Results:')
     for abi, result in results.iteritems():
         print('{}: {}'.format(abi, 'PASS' if result else 'FAIL'))
-    return all(results.values())
+    return all_pass
 
 
 def common_build_args(out_dir, dist_dir, args):
@@ -829,7 +892,7 @@ def main():
     test_timer = build_support.Timer()
     with test_timer:
         if args.test:
-            good = test_ndk(out_dir, args)
+            good = test_ndk(out_dir, dist_dir, args)
             print()  # Blank line between test results and timing data.
 
     total_timer.finish()
