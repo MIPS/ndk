@@ -23,23 +23,21 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import argparse
-import atexit
 import collections
 import inspect
 import multiprocessing
 import os
 import shutil
-import signal
 import site
 import subprocess
 import sys
 import tempfile
 import textwrap
-import time
 import traceback
 
 import config
 import build.lib.build_support as build_support
+import ndk.workqueue
 
 
 ALL_MODULES = {
@@ -78,7 +76,7 @@ class ArgParser(argparse.ArgumentParser):
             choices=('arm', 'arm64', 'mips', 'mips64', 'x86', 'x86_64'),
             help='Build for the given architecture. Build all by default.')
         self.add_argument(
-            '-j', '--jobs', type=int,
+            '-j', '--jobs', type=int, default=multiprocessing.cpu_count(),
             help=('Number of parallel builds to run. Note that this will not '
                   'affect the -j used for make; this just parallelizes '
                   'checkbuild.py. Defaults to the number of CPUs available.'))
@@ -829,59 +827,47 @@ def main():
 
     print('Building modules: {}'.format(' '.join(modules)))
     print('Machine has {} CPUs'.format(multiprocessing.cpu_count()))
-    pool = multiprocessing.Pool(processes=args.jobs)
 
     log_dir = os.path.join(dist_dir, 'logs')
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-    def kill_all_children():
-        pool.terminate()
-        pool.join()
-
-        # Subprocesses of the pool workers will not be killed by terminate.
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
-        os.kill(0, signal.SIGINT)
-
-    atexit.register(kill_all_children)
-
     build_timer = build_support.Timer()
     with build_timer:
-        jobs = []
-        for name, build_func in module_builds.iteritems():
-            if name in modules:
-                jobs.append(pool.apply_async(
-                    launch_build,
-                    (name, build_func, out_dir, dist_dir, args, log_dir)))
+        workqueue = ndk.workqueue.WorkQueue(args.jobs)
+        try:
+            for name, build_func in module_builds.iteritems():
+                if name in modules:
+                    workqueue.add_task(
+                        launch_build, name, build_func, out_dir, dist_dir,
+                        args, log_dir)
 
-        while len(jobs) > 0:
-            for i, job in enumerate(jobs):
-                if job.ready():
-                    build_name, result, log_path = job.get()
-                    if result:
-                        print('BUILD SUCCESSFUL: ' + build_name)
-                    else:
-                        # Kill all the children so the error we print appears
-                        # last.
-                        kill_all_children()
+            while not workqueue.finished():
+                build_name, result, log_path = workqueue.get_result()
+                if result:
+                    print('BUILD SUCCESSFUL: ' + build_name)
+                else:
+                    # Kill all the children so the error we print appears last.
+                    workqueue.terminate()
+                    workqueue.join()
 
-                        print('BUILD FAILED: ' + build_name)
-                        with open(log_path, 'r') as log_file:
-                            contents = log_file.read()
-                            print(contents)
+                    print('BUILD FAILED: ' + build_name)
+                    with open(log_path, 'r') as log_file:
+                        contents = log_file.read()
+                        print(contents)
 
-                            # The build server has a build_error.log file that
-                            # is supposed to be the short log of the failure
-                            # that stopped the build. Append our failing log to
-                            # that.
-                            build_error_log = os.path.join(
-                                dist_dir, 'logs/build_error.log')
-                            with open(build_error_log, 'a') as error_log:
-                                error_log.write('\n')
-                                error_log.write(contents)
-                        sys.exit(1)
-                    del jobs[i]
-            time.sleep(1)
+                        # The build server has a build_error.log file that is
+                        # supposed to be the short log of the failure that
+                        # stopped the build. Append our failing log to that.
+                        build_error_log = os.path.join(
+                            dist_dir, 'logs/build_error.log')
+                        with open(build_error_log, 'a') as error_log:
+                            error_log.write('\n')
+                            error_log.write(contents)
+                    sys.exit(1)
+        finally:
+            workqueue.terminate()
+            workqueue.join()
 
     package_timer = build_support.Timer()
     with package_timer:
