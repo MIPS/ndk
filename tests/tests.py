@@ -467,7 +467,8 @@ def _run_cmake_build_test(test_name, build_dir, test_dir, cmake_flags, abi,
     rc, out = util.call_output(['cmake', '--version'], env=env)
     if rc != 0:
         return Skipped(test_name, 'cmake executable not found')
-    version = map(int, re.match('cmake version (\d+)\.(\d+)\.', out).groups())
+    version_pattern = r'cmake version (\d+)\.(\d+)\.'
+    version = [int(v) for v in re.match(version_pattern, out).groups()]
     if version < [3, 6]:
         return Skipped(test_name, 'cmake 3.6 or above required')
 
@@ -506,8 +507,13 @@ def _run_cmake_build_test(test_name, build_dir, test_dir, cmake_flags, abi,
 
 class BuildTest(Test):
     def __init__(self, name, test_dir, abi, platform, toolchain,
-                 ndk_build_flags=[], cmake_flags=[]):
+                 ndk_build_flags=None, cmake_flags=None):
         super(BuildTest, self).__init__(name, test_dir)
+
+        if ndk_build_flags is None:
+            ndk_build_flags = []
+        if cmake_flags is None:
+            cmake_flags = []
 
         if platform is None:
             raise ValueError
