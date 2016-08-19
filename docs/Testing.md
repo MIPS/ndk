@@ -86,26 +86,26 @@ By default, `run_tests.py` will hide expected failures from the output since the
 user is most likely only interested in seeing what effect their change had. To
 see the list of expected failures, pass `--show-all`.
 
-Here's an example `test_config.py` that marks this test as broken on arm64 and
-unsupported before Lollipop:
+Here's an example `test_config.py` that marks this test as broken when building
+for arm64 and unsupported when running on a pre-Lollipop device:
 
 ```python
-def match_broken(abi, platform, device_platform, toolchain, subtest=None):
+def build_broken(abi, platform, toolchain):
     if abi == 'arm64-v8a':
         return abi, 'https://github.com/android-ndk/ndk/issues/foo'
     return None, None
 
-def match_unsupported(abi, platform, device_platform, toolchain, subtest=None):
-    if device_platform < 21:
-        return device_platform
+def run_unsupported(abi, device_api, toolchain, subtest):
+    if device_api < 21:
+        return device_api
     return None
 ```
 
-`match_broken` returns a tuple of `(broken_configuration, bug_url)` if the given
-configuration is known to be broken, else `(None, None)`.
+The `_broken` checks return a tuple of `(broken_configuration, bug_url)` if the
+given configuration is known to be broken, else `(None, None)`.
 
-`match_unsupported` returns `broken_configuration` if the given configuration is
-unsupported, else `None`.
+The `_unsupported` checks return `broken_configuration` if the given
+configuration is unsupported, else `None`.
 
 The configuration is specified by the following arguments:
 
