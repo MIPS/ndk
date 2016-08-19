@@ -24,17 +24,11 @@ import os
 import posixpath
 import re
 import shutil
-import site
 import subprocess
 
-# pylint: disable=relative-import
-import ndk
-import util
-# pylint: enable=relative-import
-
-THIS_DIR = os.path.realpath(os.path.dirname(__file__))
-site.addsitedir(os.path.join(THIS_DIR, '../build/lib'))
-import build_support  # pylint: disable=import-error
+import build.lib.build_support
+import tests.ndk as ndk
+import tests.util as util
 
 # pylint: disable=no-self-use
 
@@ -456,8 +450,8 @@ def _run_cmake_build_test(test_name, build_dir, test_dir, cmake_flags, abi,
     _prep_build_dir(test_dir, build_dir)
 
     # Add prebuilts to PATH.
-    prebuilts_host_tag = build_support.get_default_host() + '-x86'
-    prebuilts_bin = build_support.android_path(
+    prebuilts_host_tag = build.lib.build_support.get_default_host() + '-x86'
+    prebuilts_bin = build.lib.build_support.android_path(
         'prebuilts', 'cmake', prebuilts_host_tag, 'bin')
     env = dict(os.environ)
     env['PATH'] = prebuilts_bin + os.pathsep + os.environ['PATH']
@@ -574,7 +568,7 @@ class PythonBuildTest(BuildTest):
     def __init__(self, name, test_dir, abi, platform, toolchain,
                  ndk_build_flags):
         if platform is None:
-            platform = build_support.minimum_platform_level(abi)
+            platform = build.lib.build_support.minimum_platform_level(abi)
         super(PythonBuildTest, self).__init__(
             name, test_dir, abi, platform, toolchain,
             ndk_build_flags=ndk_build_flags)
@@ -598,7 +592,7 @@ class ShellBuildTest(BuildTest):
     def __init__(self, name, test_dir, abi, platform, toolchain,
                  ndk_build_flags):
         if platform is None:
-            platform = build_support.minimum_platform_level(abi)
+            platform = build.lib.build_support.minimum_platform_level(abi)
         super(ShellBuildTest, self).__init__(
             name, test_dir, abi, platform, toolchain, ndk_build_flags)
 
@@ -669,7 +663,7 @@ def _get_or_infer_app_platform(platform_from_user, test_dir, abi):
     if platform_from_application_mk is not None:
         return platform_from_application_mk
 
-    return build_support.minimum_platform_level(abi)
+    return build.lib.build_support.minimum_platform_level(abi)
 
 
 class NdkBuildTest(BuildTest):

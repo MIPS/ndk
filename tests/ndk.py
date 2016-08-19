@@ -18,7 +18,7 @@
 import os
 import sys
 
-import util  # pylint: disable=relative-import
+import tests.util as util
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))

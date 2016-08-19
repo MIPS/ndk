@@ -20,17 +20,14 @@ import os
 import site
 import subprocess
 
-
-THIS_DIR = os.path.realpath(os.path.dirname(__file__))
-site.addsitedir(os.path.join(THIS_DIR, '../build/lib'))
-import build_support  # pylint: disable=import-error
+import build.lib.build_support
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '-a', '--abi', required=True, choices=build_support.ALL_ABIS,
+        '-a', '--abi', required=True, choices=build.lib.build_support.ALL_ABIS,
         help='ABI to test.')
     parser.add_argument(
         '-p', '--platform', required=True, type=int,
@@ -57,11 +54,12 @@ def main():
     import adb  # pylint: disable=import-error
     device = adb.get_device()
 
-    arch = build_support.abi_to_arch(args.abi)
-    triple = build_support.arch_to_triple(arch)
-    toolchain = build_support.arch_to_toolchain(arch)
+    arch = build.lib.build_support.abi_to_arch(args.abi)
+    triple = build.lib.build_support.arch_to_triple(arch)
+    toolchain = build.lib.build_support.arch_to_toolchain(arch)
 
-    lit_path = build_support.android_path('external/llvm/utils/lit/lit.py')
+    lit_path = build.lib.build_support.android_path(
+        'external/llvm/utils/lit/lit.py')
     libcxx_dir = os.path.join(args.ndk, 'sources/cxx-stl/llvm-libc++')
 
     replacements = [

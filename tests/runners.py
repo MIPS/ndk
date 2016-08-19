@@ -13,31 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import absolute_import
 from __future__ import print_function
 
 import logging
 import os
 import subprocess
-import site
 import sys
 
 import adb  # pylint: disable=import-error
+import build.lib.build_support
+import tests.filters
+import tests.printers
+import tests.ndk
+import tests.testlib
+import tests.util
 
-# TODO(danalbert): Clean up our imports.
-# pylint: disable=relative-import
-import filters
-import printers
-import ndk
-import tests
-import util
-
-from tests import AwkTest, BuildTest, DeviceTest
-# pylint: enable=relative-import
-
-
-THIS_DIR = os.path.realpath(os.path.dirname(__file__))
-site.addsitedir(os.path.join(THIS_DIR, '../build/lib'))
-import build_support  # pylint: disable=import-error
+from tests.testlib import AwkTest, BuildTest, DeviceTest
 
 
 def get_device_abis(device):
@@ -93,7 +85,7 @@ def can_use_asan(device, abi, api, toolchain):
 def asan_device_setup():
     path = os.path.join(
         os.environ['NDK'], 'toolchains', 'llvm', 'prebuilt',
-        ndk.get_host_tag(), 'bin', 'asan_device_setup')
+        tests.ndk.get_host_tag(), 'bin', 'asan_device_setup')
     try:
         # Don't want to use check_call because we want to keep this quiet
         # unless there's a problem.
@@ -222,9 +214,9 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
         # set the API level to the minimum supported by the ABI so
         # test_config.py checks still behave as expected.
         device = None
-        device_api_level = build_support.minimum_platform_level(abi)
+        device_api_level = build.lib.build_support.minimum_platform_level(abi)
 
-    runner = tests.TestRunner(printer)
+    runner = tests.testlib.TestRunner(printer)
     if 'awk' in suites:
         runner.add_suite('awk', 'awk', AwkTest)
     if 'build' in suites:
@@ -235,7 +227,7 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
                          device, device_api_level, toolchain, ndk_build_flags,
                          cmake_flags, skip_run)
 
-    test_filters = filters.TestFilter.from_string(test_filter)
+    test_filters = tests.filters.TestFilter.from_string(test_filter)
     results = runner.run(out_dir, test_filters)
 
     stats = ResultStats(suites, results)
@@ -252,7 +244,7 @@ def run_tests(ndk_path, device, abi, toolchain, out_dir, log_dir, test_filter):
     toolchain_name = 'gcc' if toolchain == '4.9' else toolchain
     log_file_name = '{}-{}-{}.log'.format(toolchain_name, abi, device.version)
     with open(os.path.join(log_dir, log_file_name), 'w') as log_file:
-        printer = printers.FilePrinter(log_file)
+        printer = tests.printers.FilePrinter(log_file)
         good, details = run_single_configuration(
             ndk_path, out_dir, printer, abi, toolchain,
             device_serial=device.serial, test_filter=test_filter)
@@ -288,8 +280,8 @@ def run_for_fleet(ndk_path, fleet, out_dir, log_dir, test_filter,
                 result, run_details = run_tests(
                     ndk_path, device, abi, toolchain, out_dir, log_dir,
                     test_filter)
-                pass_label = util.maybe_color('PASS', 'green', use_color)
-                fail_label = util.maybe_color('FAIL', 'red', use_color)
+                pass_label = tests.util.maybe_color('PASS', 'green', use_color)
+                fail_label = tests.util.maybe_color('FAIL', 'red', use_color)
                 results.append('android-{} {} {}: {}'.format(
                     version, abi, toolchain,
                     pass_label if result else fail_label))
