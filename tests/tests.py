@@ -781,6 +781,9 @@ class DeviceTest(Test):
                                         self.toolchain, subtest=name)
 
     def check_subtest_unsupported(self, name):
+        if self.platform > self.device_platform:
+            return 'device platform {} < build platform {}'.format(
+                self.device_platform, self.platform)
         return self.config.match_unsupported(self.abi, self.platform,
                                              self.device_platform,
                                              self.toolchain, subtest=name)
