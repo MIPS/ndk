@@ -459,7 +459,8 @@ def _run_cmake_build_test(test_name, build_dir, test_dir, cmake_flags, abi,
     prebuilts_host_tag = build_support.get_default_host() + '-x86'
     prebuilts_bin = build_support.android_path(
         'prebuilts', 'cmake', prebuilts_host_tag, 'bin')
-    env = {'PATH': prebuilts_bin + os.pathsep + os.environ['PATH']}
+    env = dict(os.environ)
+    env['PATH'] = prebuilts_bin + os.pathsep + os.environ['PATH']
 
     # Skip if we don't have a working cmake executable, either from the
     # prebuilts, or from the SDK, or if a new enough version is installed.
