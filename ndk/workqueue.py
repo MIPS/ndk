@@ -66,7 +66,7 @@ class Task(object):
 
 class WorkQueue(object):
     """A pool of processes for executing work asynchronously."""
-    def __init__(self, num_workers):
+    def __init__(self, num_workers=multiprocessing.cpu_count()):
         """Creates a WorkQueue.
 
         Worker threads are spawned immediately and remain live until both
