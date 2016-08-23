@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import absolute_import
 from __future__ import print_function
 
 import difflib
@@ -27,6 +28,7 @@ import shutil
 import subprocess
 
 import build.lib.build_support
+from ndk.workqueue import WorkQueue
 import tests.ndk as ndk
 import tests.util as util
 
@@ -50,6 +52,50 @@ def _scan_test_suite(suite_dir, test_class, *args):
     return tests
 
 
+def _fixup_expected_failure(result, config, bug):
+    if isinstance(result, Failure):
+        return ExpectedFailure(result.test_name, config, bug)
+    elif isinstance(result, Success):
+        return UnexpectedSuccess(result.test_name, config, bug)
+    else:  # Skipped, UnexpectedSuccess, or ExpectedFailure.
+        return result
+
+
+# TODO(danalbert): Split building and running into separate tasks.
+# If we allowed the test build to queue additional jobs for running each
+# subtest, we could parallelize within a test as well. It would also let us
+# retrieve results from the queue as they come in so we can print them
+# immediately.
+def _run_test(suite, test, out_dir, test_filters):
+    """Runs a given test according to the given filters.
+
+    Args:
+        suite: Name of the test suite the test belongs to.
+        test: The test to be run.
+        out_dir: Out directory for building tests.
+        test_filters: Filters to apply when running tests.
+
+    Returns: Tuple of (suite, [TestResult]).
+    """
+    if not test_filters.filter(test.name):
+        return suite, []
+
+    config = test.check_build_unsupported()
+    if config is not None:
+        message = 'test unsupported for {}'.format(config)
+        return suite, [Skipped(test.name, message)]
+
+    results = []
+    config, bug = test.check_build_broken()
+    for result in test.run(out_dir, test_filters):
+        if config is not None:
+            # We need to check change each pass/fail to either an
+            # ExpectedFailure or an UnexpectedSuccess as necessary.
+            result = _fixup_expected_failure(result, config, bug)
+        results.append(result)
+    return suite, results
+
+
 class TestRunner(object):
     def __init__(self, printer):
         self.printer = printer
@@ -60,43 +106,24 @@ class TestRunner(object):
             raise KeyError('suite {} already exists'.format(name))
         self.tests[name] = _scan_test_suite(path, test_class, *args)
 
-    def _fixup_expected_failure(self, result, config, bug):
-        if isinstance(result, Failure):
-            return ExpectedFailure(result.test_name, config, bug)
-        elif isinstance(result, Success):
-            return UnexpectedSuccess(result.test_name, config, bug)
-        else:  # Skipped, UnexpectedSuccess, or ExpectedFailure.
-            return result
-
-    def _run_test(self, test, out_dir, test_filters):
-        if not test_filters.filter(test.name):
-            return []
-
-        config = test.check_build_unsupported()
-        if config is not None:
-            message = 'test unsupported for {}'.format(config)
-            return [Skipped(test.name, message)]
-
-        config, bug = test.check_build_broken()
-        results = []
-        for result in test.run(out_dir, test_filters):
-            if config is not None:
-                # We need to check change each pass/fail to either an
-                # ExpectedFailure or an UnexpectedSuccess as necessary.
-                result = self._fixup_expected_failure(result, config, bug)
-            self.printer.print_result(result)
-            results.append(result)
-        return results
-
     def run(self, out_dir, test_filters):
-        results = {suite: [] for suite in self.tests.keys()}
-        for suite, tests in self.tests.items():
-            test_results = []
-            for test in tests:
-                test_results.extend(self._run_test(test, out_dir,
-                                                   test_filters))
-            results[suite] = test_results
-        return results
+        workqueue = WorkQueue()
+        try:
+            for suite, tests in self.tests.items():
+                for test in tests:
+                    workqueue.add_task(
+                        _run_test, suite, test, out_dir, test_filters)
+
+            results = {suite: [] for suite in self.tests.keys()}
+            while not workqueue.finished():
+                suite, test_results = workqueue.get_result()
+                results[suite].extend(test_results)
+                for result in test_results:
+                    self.printer.print_result(result)
+            return results
+        finally:
+            workqueue.terminate()
+            workqueue.join()
 
 
 class TestResult(object):
