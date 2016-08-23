@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 """Defines WorkQueue for delegating asynchronous work to subprocesses."""
+import collections
 import multiprocessing
 import os
 import signal
@@ -128,3 +129,43 @@ class WorkQueue(object):
                 target=worker_main, args=(self.task_queue, self.result_queue))
             worker.start()
             self.workers.append(worker)
+
+
+class DummyWorkQueue(object):
+    """A fake WorkQueue that does not parallelize.
+
+    Useful for debugging when trying to determine if an issue is being caused
+    by multiprocess specific behavior.
+    """
+    def __init__(self):
+        """Creates a SerialWorkQueue."""
+        self.task_queue = collections.deque()
+
+    def add_task(self, func, *args, **kwargs):
+        """Queues up a new task for execution.
+
+        Tasks are executed when get_result is called.
+
+        Args:
+            func: An invocable object to be executed by a worker process.
+            args: Arguments to be passed to the task.
+            kwargs: Keyword arguments to be passed to the task.
+        """
+        self.task_queue.append(Task(func, args, kwargs))
+
+    def get_result(self):
+        """Executes a task and returns the result."""
+        task = self.task_queue.popleft()
+        return task.run()
+
+    def terminate(self):
+        """Does nothing."""
+        pass
+
+    def join(self):
+        """Does nothing."""
+        pass
+
+    def finished(self):
+        """Returns True if all tasks have completed execution."""
+        return len(self.task_queue) == 0
