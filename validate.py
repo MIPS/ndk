@@ -255,8 +255,8 @@ def main():
     use_color = sys.stdin.isatty() and os.name != 'nt'
     out_dir = tempfile.mkdtemp()
     try:
-        import runners  # pylint: disable=relative-import
-        good, details = runners.run_for_fleet(
+        import tests.runners
+        good, details = tests.runners.run_for_fleet(
             args.ndk, fleet, out_dir, args.log_dir, args.filter, use_color)
     finally:
         shutil.rmtree(out_dir)

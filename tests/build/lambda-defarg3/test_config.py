@@ -1,4 +1,4 @@
-def match_unsupported(abi, platform, toolchain, subtest=None):
+def build_unsupported(abi, platform, toolchain):
     if toolchain != '4.9':
         return toolchain
     return None

@@ -1,4 +1,4 @@
-def match_unsupported(abi, platform, toolchain, subtest=None):
+def build_unsupported(abi, platform, toolchain):
     # Note that these test that use .arm and .neon actually do work for
     # x86/x86_64 because those ABIs have some emulation for neon, and ignore
     # the .arm tag.

@@ -24,17 +24,11 @@ import os
 import posixpath
 import re
 import shutil
-import site
 import subprocess
 
-# pylint: disable=relative-import
-import ndk
-import util
-# pylint: enable=relative-import
-
-THIS_DIR = os.path.realpath(os.path.dirname(__file__))
-site.addsitedir(os.path.join(THIS_DIR, '../build/lib'))
-import build_support  # pylint: disable=import-error
+import build.lib.build_support
+import tests.ndk as ndk
+import tests.util as util
 
 # pylint: disable=no-self-use
 
@@ -78,12 +72,12 @@ class TestRunner(object):
         if not test_filters.filter(test.name):
             return []
 
-        config = test.check_unsupported()
+        config = test.check_build_unsupported()
         if config is not None:
             message = 'test unsupported for {}'.format(config)
             return [Skipped(test.name, message)]
 
-        config, bug = test.check_broken()
+        config, bug = test.check_build_broken()
         results = []
         for result in test.run(out_dir, test_filters):
             if config is not None:
@@ -206,7 +200,6 @@ class Test(object):
     def __init__(self, name, test_dir):
         self.name = name
         self.test_dir = test_dir
-        self.config = self.get_test_config()
 
     def get_test_config(self):
         return TestConfig.from_test_dir(self.test_dir)
@@ -239,10 +232,10 @@ class AwkTest(Test):
 
     # Awk tests only run in a single configuration. Disabling them per ABI,
     # platform, or toolchain has no meaning. Stub out the checks.
-    def check_broken(self):
+    def check_build_broken(self):
         return None, None
 
-    def check_unsupported(self):
+    def check_build_unsupported(self):
         return None
 
     def run(self, out_dir, test_filters):
@@ -321,7 +314,7 @@ class TestConfig(object):
 
         # pylint: disable=unused-argument
         @staticmethod
-        def match_broken(abi, platform, toolchain, subtest=None):
+        def build_broken(abi, platform, toolchain):
             """Tests if a given configuration is known broken.
 
             A broken test is a known failing test that should be fixed.
@@ -338,7 +331,7 @@ class TestConfig(object):
             return None, None
 
         @staticmethod
-        def match_unsupported(abi, platform, toolchain, subtest=None):
+        def build_unsupported(abi, platform, toolchain):
             """Tests if a given configuration is unsupported.
 
             An unsupported test is a test that do not make sense to run for a
@@ -356,7 +349,6 @@ class TestConfig(object):
         # pylint: enable=unused-argument
 
     def __init__(self, file_path):
-
         # Note that this namespace isn't actually meaningful from our side;
         # it's only what the loaded module's __name__ gets set to.
         dirname = os.path.dirname(file_path)
@@ -368,14 +360,14 @@ class TestConfig(object):
             self.module = None
 
         try:
-            self.match_broken = self.module.match_broken
+            self.build_broken = self.module.build_broken
         except AttributeError:
-            self.match_broken = self.NullTestConfig.match_broken
+            self.build_broken = self.NullTestConfig.build_broken
 
         try:
-            self.match_unsupported = self.module.match_unsupported
+            self.build_unsupported = self.module.build_unsupported
         except AttributeError:
-            self.match_unsupported = self.NullTestConfig.match_unsupported
+            self.build_unsupported = self.NullTestConfig.build_unsupported
 
         try:
             self.extra_cmake_flags = self.module.extra_cmake_flags
@@ -394,25 +386,33 @@ class DeviceTestConfig(TestConfig):
     We need to mark some tests as broken or unsupported based on what device
     they are running on, as opposed to just what they were built for.
     """
-    class NullTestConfig(object):
-        def __init__(self):
-            pass
-
+    class NullTestConfig(TestConfig.NullTestConfig):
         # pylint: disable=unused-argument
         @staticmethod
-        def match_broken(abi, platform, device_platform, toolchain,
-                         subtest=None):
+        def run_broken(abi, device_api, toolchain, subtest):
             return None, None
 
         @staticmethod
-        def match_unsupported(abi, platform, device_platform, toolchain,
-                              subtest=None):
+        def run_unsupported(abi, device_api, toolchain, subtest):
             return None
 
         @staticmethod
         def extra_cmake_flags():
             return []
         # pylint: enable=unused-argument
+
+    def __init__(self, file_path):
+        super(DeviceTestConfig, self).__init__(file_path)
+
+        try:
+            self.run_broken = self.module.run_broken
+        except AttributeError:
+            self.run_broken = self.NullTestConfig.run_broken
+
+        try:
+            self.run_unsupported = self.module.run_unsupported
+        except AttributeError:
+            self.run_unsupported = self.NullTestConfig.run_unsupported
 
 
 def _run_build_sh_test(test_name, build_dir, test_dir, ndk_build_flags, abi,
@@ -456,8 +456,8 @@ def _run_cmake_build_test(test_name, build_dir, test_dir, cmake_flags, abi,
     _prep_build_dir(test_dir, build_dir)
 
     # Add prebuilts to PATH.
-    prebuilts_host_tag = build_support.get_default_host() + '-x86'
-    prebuilts_bin = build_support.android_path(
+    prebuilts_host_tag = build.lib.build_support.get_default_host() + '-x86'
+    prebuilts_bin = build.lib.build_support.android_path(
         'prebuilts', 'cmake', prebuilts_host_tag, 'bin')
     env = dict(os.environ)
     env['PATH'] = prebuilts_bin + os.pathsep + os.environ['PATH']
@@ -467,7 +467,8 @@ def _run_cmake_build_test(test_name, build_dir, test_dir, cmake_flags, abi,
     rc, out = util.call_output(['cmake', '--version'], env=env)
     if rc != 0:
         return Skipped(test_name, 'cmake executable not found')
-    version = map(int, re.match('cmake version (\d+)\.(\d+)\.', out).groups())
+    version_pattern = r'cmake version (\d+)\.(\d+)\.'
+    version = [int(v) for v in re.match(version_pattern, out).groups()]
     if version < [3, 6]:
         return Skipped(test_name, 'cmake 3.6 or above required')
 
@@ -506,8 +507,13 @@ def _run_cmake_build_test(test_name, build_dir, test_dir, cmake_flags, abi,
 
 class BuildTest(Test):
     def __init__(self, name, test_dir, abi, platform, toolchain,
-                 ndk_build_flags=[], cmake_flags=[]):
+                 ndk_build_flags=None, cmake_flags=None):
         super(BuildTest, self).__init__(name, test_dir)
+
+        if ndk_build_flags is None:
+            ndk_build_flags = []
+        if cmake_flags is None:
+            cmake_flags = []
 
         if platform is None:
             raise ValueError
@@ -539,16 +545,16 @@ class BuildTest(Test):
             return NdkBuildTest(test_name, test_dir, abi, platform,
                                 toolchain, ndk_build_flags)
 
-    def check_broken(self):
-        return self.config.match_broken(self.abi, self.platform,
-                                        self.toolchain)
+    def check_build_broken(self):
+        return self.get_test_config().build_broken(
+            self.abi, self.platform, self.toolchain)
 
-    def check_unsupported(self):
-        return self.config.match_unsupported(self.abi, self.platform,
-                                             self.toolchain)
+    def check_build_unsupported(self):
+        return self.get_test_config().build_unsupported(
+            self.abi, self.platform, self.toolchain)
 
     def get_extra_cmake_flags(self):
-        return self.config.extra_cmake_flags()
+        return self.get_test_config().extra_cmake_flags()
 
 
 class PythonBuildTest(BuildTest):
@@ -568,7 +574,7 @@ class PythonBuildTest(BuildTest):
     def __init__(self, name, test_dir, abi, platform, toolchain,
                  ndk_build_flags):
         if platform is None:
-            platform = build_support.minimum_platform_level(abi)
+            platform = build.lib.build_support.minimum_platform_level(abi)
         super(PythonBuildTest, self).__init__(
             name, test_dir, abi, platform, toolchain,
             ndk_build_flags=ndk_build_flags)
@@ -592,7 +598,7 @@ class ShellBuildTest(BuildTest):
     def __init__(self, name, test_dir, abi, platform, toolchain,
                  ndk_build_flags):
         if platform is None:
-            platform = build_support.minimum_platform_level(abi)
+            platform = build.lib.build_support.minimum_platform_level(abi)
         super(ShellBuildTest, self).__init__(
             name, test_dir, abi, platform, toolchain, ndk_build_flags)
 
@@ -663,7 +669,7 @@ def _get_or_infer_app_platform(platform_from_user, test_dir, abi):
     if platform_from_application_mk is not None:
         return platform_from_application_mk
 
-    return build_support.minimum_platform_level(abi)
+    return build.lib.build_support.minimum_platform_level(abi)
 
 
 class NdkBuildTest(BuildTest):
@@ -765,28 +771,27 @@ class DeviceTest(Test):
     def get_test_config(self):
         return DeviceTestConfig.from_test_dir(self.test_dir)
 
-    def check_broken(self):
-        return self.config.match_broken(self.abi, self.platform,
-                                        self.device_platform,
-                                        self.toolchain)
+    def check_build_broken(self):
+        return self.get_test_config().build_broken(
+            self.abi, self.platform, self.toolchain)
 
-    def check_unsupported(self):
-        return self.config.match_unsupported(self.abi, self.platform,
-                                             self.device_platform,
-                                             self.toolchain)
+    def check_build_unsupported(self):
+        return self.get_test_config().build_unsupported(
+            self.abi, self.platform, self.toolchain)
 
-    def check_subtest_broken(self, name):
-        return self.config.match_broken(self.abi, self.platform,
-                                        self.device_platform,
-                                        self.toolchain, subtest=name)
+    def check_run_broken(self, subtest):
+        return self.get_test_config().run_broken(
+            self.abi, self.device_platform, self.toolchain, subtest)
 
-    def check_subtest_unsupported(self, name):
-        return self.config.match_unsupported(self.abi, self.platform,
-                                             self.device_platform,
-                                             self.toolchain, subtest=name)
+    def check_run_unsupported(self, subtest):
+        if self.platform > self.device_platform:
+            return 'device platform {} < build platform {}'.format(
+                self.device_platform, self.platform)
+        return self.get_test_config().run_unsupported(
+            self.abi, self.device_platform, self.toolchain, subtest)
 
     def get_extra_cmake_flags(self):
-        return self.config.extra_cmake_flags()
+        return self.get_test_config().extra_cmake_flags()
 
     def run_ndk_build(self, out_dir, test_filters):
         build_dir = os.path.join(out_dir, self.name)
@@ -840,7 +845,7 @@ class DeviceTest(Test):
                 if not test_filters.filter(case_name):
                     continue
 
-                config = self.check_subtest_unsupported(case)
+                config = self.check_run_unsupported(case)
                 if config is not None:
                     message = 'test unsupported for {}'.format(config)
                     yield Skipped(case_name, message)
@@ -850,7 +855,7 @@ class DeviceTest(Test):
                     device_dir, device_dir, case)
                 result, out, _ = self.device.shell_nocheck([cmd])
 
-                config, bug = self.check_subtest_broken(case)
+                config, bug = self.check_run_broken(case)
                 if config is None:
                     if result == 0:
                         yield Success(case_name)

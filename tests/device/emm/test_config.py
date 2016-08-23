@@ -1,10 +1,10 @@
-def match_unsupported(abi, platform, device_platform, toolchain, subtest=None):
+def build_unsupported(abi, platform, toolchain):
     if abi != 'x86':
         return abi
 
     # mm_malloc.h depends on posix_memalign, which wasn't added until
     # android-16.
-    if device_platform < 16:
-        return device_platform
+    if platform < 16:
+        return platform
 
     return None

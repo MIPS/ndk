@@ -9,7 +9,7 @@ Testing Tools
 
 There are currently three tools used in testing:
 
- 1. `run-all.py`, for testing a specific configuration.
+ 1. `run_tests.py`, for testing a specific configuration.
  2. `validate.py`, for testing many configurations.
  3. `test_libcxx.py`, for testing libc++.
 
@@ -17,9 +17,9 @@ A test configuration is a tuple of (ABI, target platform, toolchain, device).
 
 At some point the three of these will most likely merge into one script.
 
-### Testing a Single Configuration: [run-all.py]
+### Testing a Single Configuration: [run\_tests.py]
 
-For targeted testing during development, `run-all.py` can be used to verify a
+For targeted testing during development, `run_tests.py` can be used to verify a
 single test configuration, as well as run specific tests.
 
 Running the NDK tests requires a complete NDK package (see [README.md] for
@@ -30,7 +30,7 @@ building instructions).
 From the NDK source directory (not the extracted package):
 
 ```bash
-$ python tests/run-all.py --abi $ABI_TO_TEST path/to/built/ndk
+$ python run_tests.py --abi $ABI_TO_TEST path/to/built/ndk
 ```
 
 In the case of a local build, the path to the built NDK will be
@@ -60,7 +60,7 @@ To use this script, connect any devices and launch any emulators you need for
 testing (make sure ADB has authorization to control them), then run:
 
 ```bash
-$ python tests/validate.py path/to/built/ndk
+$ python validate.py path/to/built/ndk
 ```
 
 In the case of a local build, the path to the built NDK will be
@@ -82,30 +82,30 @@ A test that fails will become an "EXPECTED FAILURE" and not be counted as a
 failure, whereas a passing test will become an "UNEXPECTED SUCCESS" and count as
 a failure.
 
-By default, `run-all.py` will hide expected failures from the output since the
+By default, `run_tests.py` will hide expected failures from the output since the
 user is most likely only interested in seeing what effect their change had. To
 see the list of expected failures, pass `--show-all`.
 
-Here's an example `test_config.py` that marks this test as broken on arm64 and
-unsupported before Lollipop:
+Here's an example `test_config.py` that marks this test as broken when building
+for arm64 and unsupported when running on a pre-Lollipop device:
 
 ```python
-def match_broken(abi, platform, device_platform, toolchain, subtest=None):
+def build_broken(abi, platform, toolchain):
     if abi == 'arm64-v8a':
         return abi, 'https://github.com/android-ndk/ndk/issues/foo'
     return None, None
 
-def match_unsupported(abi, platform, device_platform, toolchain, subtest=None):
-    if device_platform < 21:
-        return device_platform
+def run_unsupported(abi, device_api, toolchain, subtest):
+    if device_api < 21:
+        return device_api
     return None
 ```
 
-`match_broken` returns a tuple of `(broken_configuration, bug_url)` if the given
-configuration is known to be broken, else `(None, None)`.
+The `_broken` checks return a tuple of `(broken_configuration, bug_url)` if the
+given configuration is known to be broken, else `(None, None)`.
 
-`match_unsupported` returns `broken_configuration` if the given configuration is
-unsupported, else `None`.
+The `_unsupported` checks return `broken_configuration` if the given
+configuration is unsupported, else `None`.
 
 The configuration is specified by the following arguments:
 
@@ -130,7 +130,7 @@ The libc++ tests are not currently integrated into the main NDK tests. To run
 the libc++ tests:
 
 ```bash
-$ tests/test_libcxx.py --abi $ABI --platform $API_LEVEL path/to/ndk
+$ ./test_libcxx.py --abi $ABI --platform $API_LEVEL path/to/ndk
 ```
 
 Note that these tests are far from failure free. In general, most of these test
@@ -208,6 +208,6 @@ Each API level/ABI pair will be checked with both Clang and GCC.
 Note that there are no ARM64 emulators whatsoever in the SDK manager. Testing
 ARM64 will require a physical device.
 
-[run-all.py]: ../tests/run-all.py
-[validate.py]: ../tests/validate.py
-[test\_libcxx.sh]: ../tests/test_libcxx.py
+[run\_tests.py]: ../run_tests.py
+[validate.py]: ../validate.py
+[test\_libcxx.sh]: ../test_libcxx.py
