@@ -8,3 +8,9 @@ def match_unsupported(abi, platform, toolchain, subtest=None):
         return platform
 
     return None
+
+
+def match_broken(abi, platform, toolchain, subtest=None):
+    if toolchain == '4.9':
+        return toolchain, 'http://b/31021045'
+    return None, None
