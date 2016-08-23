@@ -200,7 +200,6 @@ class Test(object):
     def __init__(self, name, test_dir):
         self.name = name
         self.test_dir = test_dir
-        self.config = self.get_test_config()
 
     def get_test_config(self):
         return TestConfig.from_test_dir(self.test_dir)
@@ -547,15 +546,15 @@ class BuildTest(Test):
                                 toolchain, ndk_build_flags)
 
     def check_build_broken(self):
-        return self.config.build_broken(
+        return self.get_test_config().build_broken(
             self.abi, self.platform, self.toolchain)
 
     def check_build_unsupported(self):
-        return self.config.build_unsupported(
+        return self.get_test_config().build_unsupported(
             self.abi, self.platform, self.toolchain)
 
     def get_extra_cmake_flags(self):
-        return self.config.extra_cmake_flags()
+        return self.get_test_config().extra_cmake_flags()
 
 
 class PythonBuildTest(BuildTest):
@@ -773,26 +772,26 @@ class DeviceTest(Test):
         return DeviceTestConfig.from_test_dir(self.test_dir)
 
     def check_build_broken(self):
-        return self.config.build_broken(
+        return self.get_test_config().build_broken(
             self.abi, self.platform, self.toolchain)
 
     def check_build_unsupported(self):
-        return self.config.build_unsupported(
+        return self.get_test_config().build_unsupported(
             self.abi, self.platform, self.toolchain)
 
     def check_run_broken(self, subtest):
-        return self.config.run_broken(
+        return self.get_test_config().run_broken(
             self.abi, self.device_platform, self.toolchain, subtest)
 
     def check_run_unsupported(self, subtest):
         if self.platform > self.device_platform:
             return 'device platform {} < build platform {}'.format(
                 self.device_platform, self.platform)
-        return self.config.run_unsupported(
+        return self.get_test_config().run_unsupported(
             self.abi, self.device_platform, self.toolchain, subtest)
 
     def get_extra_cmake_flags(self):
-        return self.config.extra_cmake_flags()
+        return self.get_test_config().extra_cmake_flags()
 
     def run_ndk_build(self, out_dir, test_filters):
         build_dir = os.path.join(out_dir, self.name)
