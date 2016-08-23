@@ -1,7 +1,7 @@
-def match_unsupported(abi, platform, toolchain, subtest=None):
+def build_unsupported(abi, platform, toolchain):
     # Vulkan isn't supported on armeabi
     if abi == 'armeabi':
-            return abi
+        return abi
 
     # Vulkan support wasn't added until android-24
     if platform < 24:
@@ -10,7 +10,7 @@ def match_unsupported(abi, platform, toolchain, subtest=None):
     return None
 
 
-def match_broken(abi, platform, toolchain, subtest=None):
+def build_broken(abi, platform, toolchain):
     if toolchain == '4.9':
         return toolchain, 'http://b/31021045'
     return None, None

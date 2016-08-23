@@ -1,4 +1,4 @@
-def match_unsupported(abi, platform, device_platform, toolchain, subtest=None):
+def build_unsupported(abi, platform, toolchain):
     if abi in ('x86', 'mips') and platform < 12:
         return abi
     return None

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import platform
 
 
-def match_unsupported(abi, _platform, toolchain, _subtest=None):
+def build_unsupported(abi, _platform, toolchain):
     # Clang does LTO via gold plugin, but gold doesn't support MIPS yet.
     if toolchain == 'clang' and abi.startswith('mips'):
         return '{} {}'.format(toolchain, abi)
