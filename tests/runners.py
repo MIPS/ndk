@@ -169,15 +169,8 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
 
     os.environ['NDK'] = ndk_path
 
-    # For some reason we handle NDK_TOOLCHAIN_VERSION in _run_ndk_build_test...
-    # We also handle APP_ABI there (as well as here). This merits some cleanup.
-    ndk_build_flags = ['APP_ABI={}'.format(abi)]
-    cmake_flags = ['-DANDROID_ABI={}'.format(abi)]
-    if build_api_level is not None:
-        ndk_build_flags.append(
-            'APP_PLATFORM=android-{}'.format(build_api_level))
-        cmake_flags.append(
-            '-DANDROID_PLATFORM=android-{}'.format(build_api_level))
+    ndk_build_flags = []
+    cmake_flags = []
     if verbose_build:
         logging.basicConfig(level=logging.INFO)
         ndk_build_flags.append('V=1')
