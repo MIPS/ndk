@@ -210,16 +210,6 @@ build_gnustl_for_abi ()
             ;;
     esac
 
-    # Copy the sysroot to a temporary build directory
-    run mkdir -p "$BUILDDIR/sysroot"
-    run cp -RHL "$SYSROOT"/* "$BUILDDIR/sysroot"
-    SYSROOT=$BUILDDIR/sysroot
-    BUILDDIR=$BUILDDIR/build
-    # Ensure multilib toolchains can use sysroot
-    if [ ! -d "$SYSROOT/usr/lib64" ] ; then
-        mkdir "$SYSROOT/usr/lib64"
-    fi
-
     CFLAGS="-fPIC $CFLAGS --sysroot=$SYSROOT -fexceptions -funwind-tables -D__BIONIC__ -O2 $EXTRA_CFLAGS"
     CXXFLAGS="-fPIC $CXXFLAGS --sysroot=$SYSROOT -fexceptions -frtti -funwind-tables -D__BIONIC__ -O2 $EXTRA_CFLAGS"
     CPPFLAGS="$CPPFLAGS --sysroot=$SYSROOT"
@@ -254,14 +244,6 @@ build_gnustl_for_abi ()
         arm64-v8a)
             CFLAGS="$CFLAGS -mfix-cortex-a53-835769"
             CXXFLAGS=$CXXFLAGS" -mfix-cortex-a53-835769"
-            ;;
-        mips)
-            # $CFLAGS are not used for all configure steps,
-            # ensure -mips32 flag is provided using $CC.
-            CC="$CC -mips32"
-            CXX="$CXX -mips32"
-            AS="$AS -mips32"
-            LDFLAGS="$LDFLAGS -mips32"
             ;;
     esac
 

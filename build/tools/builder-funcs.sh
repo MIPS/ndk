@@ -642,12 +642,6 @@ builder_begin_android ()
             builder_cxxflags "$SCRATCH_FLAGS"
             builder_ldflags "-march=armv7-a -Wl,--fix-cortex-a8"
             ;;
-        mips)
-            SCRATCH_FLAGS="-mips32"
-            builder_cflags "$SCRATCH_FLAGS"
-            builder_cxxflags "$SCRATCH_FLAGS"
-            builder_ldflags "-mips32"
-            ;;
     esac
 }
 

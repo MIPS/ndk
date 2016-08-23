@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-# this file is used to prepare the NDK to build 32-bit mips with the mips64el llvm toolchain
+# this file is used to prepare the NDK to build with the mipsel llvm toolchain
 # any number of source files
 #
 # its purpose is to define (or re-define) templates used to build
@@ -30,7 +30,7 @@
 LLVM_TOOLCHAIN_PREBUILT_ROOT := $(call get-toolchain-root,llvm)
 LLVM_TOOLCHAIN_PREFIX := $(LLVM_TOOLCHAIN_PREBUILT_ROOT)/bin/
 
-TOOLCHAIN_NAME := mips64el-linux-android
+TOOLCHAIN_NAME := mipsel-linux-android
 BINUTILS_ROOT := $(call get-binutils-root,$(NDK_ROOT),$(TOOLCHAIN_NAME))
 TOOLCHAIN_ROOT := $(call get-toolchain-root,$(TOOLCHAIN_NAME)-4.9)
 TOOLCHAIN_PREFIX := $(TOOLCHAIN_ROOT)/bin/$(TOOLCHAIN_NAME)-
