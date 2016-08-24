@@ -43,12 +43,211 @@ def _make_subtest_name(test, case):
     return '.'.join([test, case])
 
 
-def _scan_test_suite(suite_dir, test_class, *args):
+class TestScanner(object):
+    """Creates a Test objects for a given test directory.
+
+    A test scanner is used to turn a test directory into a list of Tests for
+    any of the test types found in the directory.
+    """
+    def find_tests(self, path, name):
+        """Searches a directory for tests.
+
+        Args:
+            path: Path to the test directory.
+            name: Name of the test.
+
+        Returns: List of Tests, possibly empty.
+        """
+        raise NotImplementedError
+
+
+class BuildConfiguration(object):
+    def __init__(self, abi, api, toolchain, force_pie, verbose):
+        self.abi = abi
+        self.api = api
+        self.toolchain = toolchain
+        self.force_pie = force_pie
+        self.verbose = verbose
+
+    def __eq__(self, other):
+        if self.abi != other.abi:
+            return False
+        if self.api != other.api:
+            return False
+        if self.toolchain != other.toolchain:
+            return False
+        if self.force_pie != other.force_pie:
+            return False
+        if self.verbose != other.verbose:
+            return False
+        return True
+
+    def get_extra_ndk_build_flags(self):
+        extra_flags = []
+        if self.force_pie:
+            extra_flags.append('APP_PIE=true')
+        if self.verbose:
+            extra_flags.append('V=1')
+        return extra_flags
+
+    def get_extra_cmake_flags(self):
+        extra_flags = []
+        if self.force_pie:
+            extra_flags.append('-DANDROID_PIE=TRUE')
+        if self.verbose:
+            extra_flags.append('-DCMAKE_VERBOSE_MAKEFILE=ON')
+        return extra_flags
+
+
+class DeviceConfiguration(BuildConfiguration):
+    def __init__(self, abi, api, toolchain, force_pie, verbose, device,
+                 device_api, skip_run):
+        super(DeviceConfiguration, self).__init__(
+            abi, api, toolchain, force_pie, verbose)
+        self.device = device
+        self.device_api = device_api
+        self.skip_run = skip_run
+
+    def __eq__(self, other):
+        if not super(DeviceConfiguration, self).__eq__(other):
+            return False
+        if self.device != other.device:
+            return False
+        if self.device_api != other.device_api:
+            return False
+        if self.skip_run != other.skip_run:
+            return False
+        return True
+
+
+class AwkTestScanner(TestScanner):
+    def find_tests(self, path, name):
+        script_name = name + '.awk'
+        script = os.path.join(ndk.NDK_ROOT, 'build/awk', script_name)
+        if not os.path.isfile(script):
+            msg = '{} missing test script: {}'.format(name, script)
+            raise RuntimeError(msg)
+
+        # Check that all of our test cases are valid.
+        for test_case in glob.glob(os.path.join(path, '*.in')):
+            golden_path = re.sub(r'\.in$', '.out', test_case)
+            if not os.path.isfile(golden_path):
+                msg = '{} missing output: {}'.format(name, golden_path)
+                raise RuntimeError(msg)
+        return [AwkTest(name, path, script)]
+
+
+class BuildTestScanner(TestScanner):
+    def __init__(self):
+        self.build_configurations = set()
+
+    def add_build_configuration(self, abi, api, toolchain, force_pie, verbose):
+        self.build_configurations.add(BuildConfiguration(
+            abi, api, toolchain, force_pie, verbose))
+
+    def find_tests(self, path, name):
+        # If we have a build.sh, that takes precedence over the Android.mk.
+        build_sh_path = os.path.join(path, 'build.sh')
+        if os.path.exists(build_sh_path):
+            return self.make_build_sh_tests(path, name)
+
+        # Same for test.py
+        build_sh_path = os.path.join(path, 'test.py')
+        if os.path.exists(build_sh_path):
+            return self.make_test_py_tests(path, name)
+
+        # But we can have both ndk-build and cmake tests in the same directory.
+        tests = []
+        android_mk_path = os.path.join(path, 'jni/Android.mk')
+        if os.path.exists(android_mk_path):
+            tests.extend(self.make_ndk_build_tests(path, name))
+
+        cmake_lists_path = os.path.join(path, 'CMakeLists.txt')
+        if os.path.exists(cmake_lists_path):
+            tests.extend(self.make_cmake_tests(path, name))
+        return tests
+
+    def make_build_sh_tests(self, path, name):
+        tests = []
+        for config in self.build_configurations:
+            tests.append(ShellBuildTest(
+                name, path, config.abi, config.api, config.toolchain,
+                config.get_extra_ndk_build_flags()))
+        return tests
+
+    def make_test_py_tests(self, path, name):
+        tests = []
+        for config in self.build_configurations:
+            tests.append(PythonBuildTest(
+                name, path, config.abi, config.api, config.toolchain,
+                config.get_extra_ndk_build_flags()))
+        return tests
+
+    def make_ndk_build_tests(self, path, name):
+        tests = []
+        for config in self.build_configurations:
+            tests.append(NdkBuildTest(
+                name, path, config.abi, config.api, config.toolchain,
+                config.get_extra_ndk_build_flags()))
+        return tests
+
+    def make_cmake_tests(self, path, name):
+        tests = []
+        for config in self.build_configurations:
+            tests.append(CMakeBuildTest(
+                name, path, config.abi, config.api, config.toolchain,
+                config.get_extra_cmake_flags()))
+        return tests
+
+
+class DeviceTestScanner(TestScanner):
+    def __init__(self):
+        self.device_configurations = set()
+
+    def add_device_configuration(self, abi, api, toolchain, force_pie, verbose,
+                                 device, device_api, skip_run):
+        self.device_configurations.add(DeviceConfiguration(
+            abi, api, toolchain, force_pie, verbose, device, device_api,
+            skip_run))
+
+    def find_tests(self, path, name):
+        # If we have a build.sh, that takes precedence over the Android.mk.
+        tests = []
+        android_mk_path = os.path.join(path, 'jni/Android.mk')
+        if os.path.exists(android_mk_path):
+            tests.extend(self.make_ndk_build_tests(path, name))
+
+        cmake_lists_path = os.path.join(path, 'CMakeLists.txt')
+        if os.path.exists(cmake_lists_path):
+            tests.extend(self.make_cmake_tests(path, name))
+        return tests
+
+    def make_ndk_build_tests(self, path, name):
+        tests = []
+        for config in self.device_configurations:
+            tests.append(NdkBuildDeviceTest(
+                name, path, config.abi, config.api, config.toolchain,
+                config.get_extra_ndk_build_flags(), config.device,
+                config.device_api, config.skip_run))
+        return tests
+
+    def make_cmake_tests(self, path, name):
+        tests = []
+        for config in self.device_configurations:
+            tests.append(CMakeDeviceTest(
+                name, path, config.abi, config.api, config.toolchain,
+                config.get_extra_cmake_flags(), config.device,
+                config.device_api, config.skip_run))
+        return tests
+
+
+def _scan_test_suite(suite_dir, test_scanner):
     tests = []
     for dentry in os.listdir(suite_dir):
         path = os.path.join(suite_dir, dentry)
         if os.path.isdir(path):
-            tests.append(test_class.from_dir(path, *args))
+            test_name = os.path.basename(path)
+            tests.extend(test_scanner.find_tests(path, test_name))
     return tests
 
 
@@ -101,10 +300,10 @@ class TestRunner(object):
         self.printer = printer
         self.tests = {}
 
-    def add_suite(self, name, path, test_class, *args):
+    def add_suite(self, name, path, test_scanner):
         if name in self.tests:
             raise KeyError('suite {} already exists'.format(name))
-        self.tests[name] = _scan_test_suite(path, test_class, *args)
+        self.tests[name] = _scan_test_suite(path, test_scanner)
 
     def run(self, out_dir, test_filters):
         workqueue = WorkQueue()
@@ -239,23 +438,6 @@ class AwkTest(Test):
     def __init__(self, name, test_dir, script):
         super(AwkTest, self).__init__(name, test_dir)
         self.script = script
-
-    @classmethod
-    def from_dir(cls, test_dir):
-        test_name = os.path.basename(test_dir)
-        script_name = test_name + '.awk'
-        script = os.path.join(ndk.NDK_ROOT, 'build/awk', script_name)
-        if not os.path.isfile(script):
-            msg = '{} missing test script: {}'.format(test_name, script)
-            raise RuntimeError(msg)
-
-        # Check that all of our test cases are valid.
-        for test_case in glob.glob(os.path.join(test_dir, '*.in')):
-            golden_path = re.sub(r'\.in$', '.out', test_case)
-            if not os.path.isfile(golden_path):
-                msg = '{} missing output: {}'.format(test_name, golden_path)
-                raise RuntimeError(msg)
-        return cls(test_name, test_dir, script)
 
     # Awk tests only run in a single configuration. Disabling them per ABI,
     # platform, or toolchain has no meaning. Stub out the checks.
@@ -561,24 +743,6 @@ class BuildTest(Test):
     def run(self, out_dir, _):
         raise NotImplementedError
 
-    @classmethod
-    def from_dir(cls, test_dir, abi, platform, toolchain, ndk_build_flags,
-                 cmake_flags):
-        test_name = os.path.basename(test_dir)
-
-        if os.path.isfile(os.path.join(test_dir, 'test.py')):
-            return PythonBuildTest(test_name, test_dir, abi, platform,
-                                   toolchain, ndk_build_flags)
-        elif os.path.isfile(os.path.join(test_dir, 'build.sh')):
-            return ShellBuildTest(test_name, test_dir, abi, platform,
-                                  toolchain, ndk_build_flags)
-        elif os.path.isfile(os.path.join(test_dir, 'CMakeLists.txt')):
-            return CMakeBuildTest(test_name, test_dir, abi, platform,
-                                  toolchain, cmake_flags)
-        else:
-            return NdkBuildTest(test_name, test_dir, abi, platform,
-                                toolchain, ndk_build_flags)
-
     def check_build_broken(self):
         return self.get_test_config().build_broken(
             self.abi, self.platform, self.toolchain)
@@ -781,7 +945,7 @@ def _copy_test_to_device(device, build_dir, device_dir, abi, test_filters,
 
 class DeviceTest(Test):
     def __init__(self, name, test_dir, abi, platform, device, device_platform,
-                 toolchain, ndk_build_flags, cmake_flags, skip_run):
+                 toolchain, skip_run):
         super(DeviceTest, self).__init__(name, test_dir)
 
         platform = _get_or_infer_app_platform(platform, test_dir, abi)
@@ -791,16 +955,7 @@ class DeviceTest(Test):
         self.device = device
         self.device_platform = device_platform
         self.toolchain = toolchain
-        self.ndk_build_flags = ndk_build_flags
-        self.cmake_flags = cmake_flags + self.get_extra_cmake_flags()
         self.skip_run = skip_run
-
-    @classmethod
-    def from_dir(cls, test_dir, abi, platform, device, device_platform,
-                 toolchain, ndk_build_flags, cmake_flags, skip_run):
-        test_name = os.path.basename(test_dir)
-        return cls(test_name, test_dir, abi, platform, device, device_platform,
-                   toolchain, ndk_build_flags, cmake_flags, skip_run)
 
     def get_test_config(self):
         return DeviceTestConfig.from_test_dir(self.test_dir)
@@ -823,44 +978,6 @@ class DeviceTest(Test):
                 self.device_platform, self.platform)
         return self.get_test_config().run_unsupported(
             self.abi, self.device_platform, self.toolchain, subtest)
-
-    def get_extra_cmake_flags(self):
-        return self.get_test_config().extra_cmake_flags()
-
-    def run_ndk_build(self, out_dir, test_filters):
-        build_dir = os.path.join(out_dir, self.name)
-        build_result = _run_ndk_build_test(self.name, build_dir, self.test_dir,
-                                           self.ndk_build_flags, self.abi,
-                                           self.platform, self.toolchain)
-        if not build_result.passed():
-            yield build_result
-            return
-
-        if self.skip_run:
-            yield build_result
-            return
-
-        for result in self.run_device_test(build_dir, 'ndk-tests',
-                                           test_filters):
-            yield result
-
-    def run_cmake_build(self, out_dir, test_filters):
-        build_dir = os.path.join(out_dir, self.name)
-        build_result = _run_cmake_build_test(self.name, build_dir,
-                                             self.test_dir, self.cmake_flags,
-                                             self.abi, self.platform,
-                                             self.toolchain)
-        if not build_result.passed():
-            yield build_result
-            return
-
-        if self.skip_run:
-            yield build_result
-            return
-
-        for result in self.run_device_test(build_dir, 'cmake-tests',
-                                           test_filters):
-            yield result
 
     def run_device_test(self, build_dir, test_dir, test_filters):
         device_dir = posixpath.join('/data/local/tmp', test_dir, self.name)
@@ -904,11 +1021,70 @@ class DeviceTest(Test):
             self.device.shell_nocheck(['rm', '-r', device_dir])
 
     def run(self, out_dir, test_filters):
-        if os.path.exists(os.path.join(self.test_dir, 'jni', 'Android.mk')):
-            print('Building device test with ndk-build: {}'.format(self.name))
-            for result in self.run_ndk_build(out_dir, test_filters):
-                yield result
-        if os.path.exists(os.path.join(self.test_dir, 'CMakeLists.txt')):
-            print('Building device test with cmake: {}'.format(self.name))
-            for result in self.run_cmake_build(out_dir, test_filters):
-                yield result
+        raise NotImplementedError
+
+
+class NdkBuildDeviceTest(DeviceTest):
+    def __init__(self, name, test_dir, abi, platform, toolchain,
+                 ndk_build_flags, device, device_api, skip_run):
+        super(NdkBuildDeviceTest, self).__init__(
+            name, test_dir, abi, platform, device, device_api, toolchain,
+            skip_run)
+        self.ndk_build_flags = ndk_build_flags
+
+    def run(self, out_dir, test_filters):
+        print('Building device test with ndk-build: {}'.format(self.name))
+        for result in self.run_ndk_build(out_dir, test_filters):
+            yield result
+
+    def run_ndk_build(self, out_dir, test_filters):
+        build_dir = os.path.join(out_dir, self.name)
+        build_result = _run_ndk_build_test(self.name, build_dir, self.test_dir,
+                                           self.ndk_build_flags, self.abi,
+                                           self.platform, self.toolchain)
+        if not build_result.passed():
+            yield build_result
+            return
+
+        if self.skip_run:
+            yield build_result
+            return
+
+        for result in self.run_device_test(build_dir, 'ndk-tests',
+                                           test_filters):
+            yield result
+
+
+class CMakeDeviceTest(DeviceTest):
+    def __init__(self, name, test_dir, abi, platform, toolchain, cmake_flags,
+                 device, device_api, skip_run):
+        super(CMakeDeviceTest, self).__init__(
+            name, test_dir, abi, platform, device, device_api, toolchain,
+            skip_run)
+        self.cmake_flags = cmake_flags + self.get_extra_cmake_flags()
+
+    def get_extra_cmake_flags(self):
+        return self.get_test_config().extra_cmake_flags()
+
+    def run(self, out_dir, test_filters):
+        print('Building device test with cmake: {}'.format(self.name))
+        for result in self.run_cmake_build(out_dir + '.cmake', test_filters):
+            yield result
+
+    def run_cmake_build(self, out_dir, test_filters):
+        build_dir = os.path.join(out_dir, self.name)
+        build_result = _run_cmake_build_test(self.name, build_dir,
+                                             self.test_dir, self.cmake_flags,
+                                             self.abi, self.platform,
+                                             self.toolchain)
+        if not build_result.passed():
+            yield build_result
+            return
+
+        if self.skip_run:
+            yield build_result
+            return
+
+        for result in self.run_device_test(build_dir, 'cmake-tests',
+                                           test_filters):
+            yield result
