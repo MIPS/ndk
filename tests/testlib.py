@@ -26,6 +26,7 @@ import posixpath
 import re
 import shutil
 import subprocess
+import time
 
 import build.lib.build_support
 from ndk.workqueue import WorkQueue
@@ -943,6 +944,21 @@ def _copy_test_to_device(device, build_dir, device_dir, abi, test_filters,
     return test_cases
 
 
+def is_text_busy(out):
+    # Anything longer than this isn't going to be a text busy message, so don't
+    # waste time scanning it.
+    if len(out) > 1024:
+        return False
+    # 'text busy' was printed on Gingerbread.
+    if 'text busy' in out:
+        return True
+    # 'Text file busy' was printed on Jelly Bean (not sure exactly when this
+    # changed).
+    if 'Text file busy' in out:
+        return True
+    return False
+
+
 class DeviceTest(Test):
     def __init__(self, name, test_dir, abi, platform, device, device_platform,
                  toolchain, skip_run):
@@ -1004,7 +1020,13 @@ class DeviceTest(Test):
 
                 cmd = 'cd {} && LD_LIBRARY_PATH={} ./{} 2>&1'.format(
                     device_dir, device_dir, case)
-                result, out, _ = self.device.shell_nocheck([cmd])
+                for _ in range(8):
+                    result, out, _ = self.device.shell_nocheck([cmd])
+                    if result == 0:
+                        break
+                    if not is_text_busy(out):
+                        break
+                    time.sleep(1)
 
                 config, bug = self.check_run_broken(case)
                 if config is None:
