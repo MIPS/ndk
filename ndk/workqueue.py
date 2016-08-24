@@ -19,11 +19,26 @@ import multiprocessing
 import os
 import signal
 import sys
+import traceback
 
 
 def worker_sigterm_handler(_signum, _frame):
     """Raises SystemExit so atexit/finally handlers can be executed."""
     sys.exit()
+
+
+class TaskError(Exception):
+    """An error for an exception raised in a worker process.
+
+    Exceptions raised in the worker will not be printed by default, and will
+    also not halt execution. We catch these exceptions in the worker process
+    and pass them through the queue. Results are checked, and if the result is
+    a TaskError the TaskError is raised in the caller's process. The message
+    for the TaskError is the stack trace of the original exception, and will be
+    printed if the TaskError is not caught.
+    """
+    def __init__(self, trace):
+        super(TaskError, self).__init__(trace)
 
 
 def worker_main(task_queue, result_queue):
@@ -40,6 +55,9 @@ def worker_main(task_queue, result_queue):
             task = task_queue.get()
             result = task.run()
             result_queue.put(result)
+    except:  # pylint: disable=bare-except
+        trace = ''.join(traceback.format_exception(*sys.exc_info()))
+        result_queue.put(TaskError(trace))
     finally:
         # multiprocessing.Process.terminate() doesn't kill our descendents.
         os.kill(0, signal.SIGTERM)
@@ -100,6 +118,8 @@ class WorkQueue(object):
     def get_result(self):
         """Gets a result from the queue, blocking until one is available."""
         result = self.result_queue.get()
+        if type(result) == TaskError:
+            raise result
         self.num_tasks -= 1
         return result
 
@@ -156,7 +176,11 @@ class DummyWorkQueue(object):
     def get_result(self):
         """Executes a task and returns the result."""
         task = self.task_queue.popleft()
-        return task.run()
+        try:
+            return task.run()
+        except:
+            trace = ''.join(traceback.format_exception(*sys.exc_info()))
+            raise TaskError(trace)
 
     def terminate(self):
         """Does nothing."""
