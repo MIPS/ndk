@@ -253,7 +253,14 @@ class AwkTest(Test):
         if not test_filters.filter(name):
             return None
 
-        out_path = os.path.join(out_dir, os.path.basename(golden_out_path))
+        # We need a subdirectory named for our test to handle the case where
+        # multiple awk tests share names for test cases. If run simultaneously,
+        # the outputs will collide.
+        out_path = os.path.join(
+            out_dir, 'awk', name, os.path.basename(golden_out_path))
+        test_out_dir = os.path.dirname(out_path)
+        if not os.path.exists(test_out_dir):
+            os.makedirs(test_out_dir)
 
         with open(test_case, 'r') as test_in, open(out_path, 'w') as out_file:
             awk_path = ndk.get_tool('awk')
