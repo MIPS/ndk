@@ -16,6 +16,14 @@
 import fnmatch
 
 
+class FilterFunc(object):
+    def __init__(self, pattern):
+        self.pattern = pattern
+
+    def __call__(self, test_name):
+        return fnmatch.fnmatch(test_name, self.pattern)
+
+
 class TestFilter(object):
     def __init__(self, patterns):
         self.early_filters = []
@@ -71,17 +79,11 @@ class TestFilter(object):
         self._add_early_filter(early_pattern)
         self._add_late_filter(late_pattern)
 
-    def _make_filter_function(self, pattern):
-        # pylint: disable=no-self-use
-        def func(test_name):
-            return fnmatch.fnmatch(test_name, pattern)
-        return func
-
     def _add_early_filter(self, pattern):
-        self.early_filters.append(self._make_filter_function(pattern))
+        self.early_filters.append(FilterFunc(pattern))
 
     def _add_late_filter(self, pattern):
-        self.late_filters.append(self._make_filter_function(pattern))
+        self.late_filters.append(FilterFunc(pattern))
 
     @classmethod
     def from_string(cls, filter_string):

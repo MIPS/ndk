@@ -14,15 +14,31 @@
 # limitations under the License.
 #
 """Defines WorkQueue for delegating asynchronous work to subprocesses."""
+import collections
 import multiprocessing
 import os
 import signal
 import sys
+import traceback
 
 
 def worker_sigterm_handler(_signum, _frame):
     """Raises SystemExit so atexit/finally handlers can be executed."""
     sys.exit()
+
+
+class TaskError(Exception):
+    """An error for an exception raised in a worker process.
+
+    Exceptions raised in the worker will not be printed by default, and will
+    also not halt execution. We catch these exceptions in the worker process
+    and pass them through the queue. Results are checked, and if the result is
+    a TaskError the TaskError is raised in the caller's process. The message
+    for the TaskError is the stack trace of the original exception, and will be
+    printed if the TaskError is not caught.
+    """
+    def __init__(self, trace):
+        super(TaskError, self).__init__(trace)
 
 
 def worker_main(task_queue, result_queue):
@@ -39,6 +55,9 @@ def worker_main(task_queue, result_queue):
             task = task_queue.get()
             result = task.run()
             result_queue.put(result)
+    except:  # pylint: disable=bare-except
+        trace = ''.join(traceback.format_exception(*sys.exc_info()))
+        result_queue.put(TaskError(trace))
     finally:
         # multiprocessing.Process.terminate() doesn't kill our descendents.
         os.kill(0, signal.SIGTERM)
@@ -65,7 +84,7 @@ class Task(object):
 
 class WorkQueue(object):
     """A pool of processes for executing work asynchronously."""
-    def __init__(self, num_workers):
+    def __init__(self, num_workers=multiprocessing.cpu_count()):
         """Creates a WorkQueue.
 
         Worker threads are spawned immediately and remain live until both
@@ -99,6 +118,8 @@ class WorkQueue(object):
     def get_result(self):
         """Gets a result from the queue, blocking until one is available."""
         result = self.result_queue.get()
+        if type(result) == TaskError:
+            raise result
         self.num_tasks -= 1
         return result
 
@@ -128,3 +149,47 @@ class WorkQueue(object):
                 target=worker_main, args=(self.task_queue, self.result_queue))
             worker.start()
             self.workers.append(worker)
+
+
+class DummyWorkQueue(object):
+    """A fake WorkQueue that does not parallelize.
+
+    Useful for debugging when trying to determine if an issue is being caused
+    by multiprocess specific behavior.
+    """
+    def __init__(self):
+        """Creates a SerialWorkQueue."""
+        self.task_queue = collections.deque()
+
+    def add_task(self, func, *args, **kwargs):
+        """Queues up a new task for execution.
+
+        Tasks are executed when get_result is called.
+
+        Args:
+            func: An invocable object to be executed by a worker process.
+            args: Arguments to be passed to the task.
+            kwargs: Keyword arguments to be passed to the task.
+        """
+        self.task_queue.append(Task(func, args, kwargs))
+
+    def get_result(self):
+        """Executes a task and returns the result."""
+        task = self.task_queue.popleft()
+        try:
+            return task.run()
+        except:
+            trace = ''.join(traceback.format_exception(*sys.exc_info()))
+            raise TaskError(trace)
+
+    def terminate(self):
+        """Does nothing."""
+        pass
+
+    def join(self):
+        """Does nothing."""
+        pass
+
+    def finished(self):
+        """Returns True if all tasks have completed execution."""
+        return len(self.task_queue) == 0
