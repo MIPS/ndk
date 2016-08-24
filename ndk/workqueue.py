@@ -17,6 +17,7 @@
 import collections
 import multiprocessing
 import os
+import Queue
 import signal
 import sys
 import traceback
@@ -25,6 +26,15 @@ import traceback
 def worker_sigterm_handler(_signum, _frame):
     """Raises SystemExit so atexit/finally handlers can be executed."""
     sys.exit()
+
+
+def _flush_queue(queue):
+    """Flushes all pending items from a Queue."""
+    try:
+        while True:
+            queue.get_nowait()
+    except Queue.Empty:
+        pass
 
 
 class TaskError(Exception):
@@ -127,6 +137,20 @@ class WorkQueue(object):
         """Terminates all worker processes."""
         for worker in self.workers:
             worker.terminate()
+        self._flush()
+
+    def _flush(self):
+        """Flushes all pending tasks and results.
+
+        If there are still items pending in the queues when terminate is
+        called, the subsequent join will hang waiting for the queues to be
+        emptied.
+
+        We call _flush after all workers have been terminated to ensure that we
+        can exit cleanly.
+        """
+        _flush_queue(self.task_queue)
+        _flush_queue(self.result_queue)
 
     def join(self):
         """Waits for all worker processes to exit."""
