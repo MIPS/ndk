@@ -71,6 +71,11 @@ def spawn_child(pid_queue):
     sleep_until_sigterm(pid_queue)
 
 
+def raise_error():
+    """Raises a RuntimeError to be re-raised in the caller."""
+    raise RuntimeError('Error in child')
+
+
 class WorkQueueTest(unittest.TestCase):
     """Tests for WorkQueue."""
     def test_put_func(self):
@@ -143,3 +148,76 @@ class WorkQueueTest(unittest.TestCase):
         killed_pid = queue.get()
         self.assertIn(killed_pid, pids)
         pids.remove(killed_pid)
+
+    def test_subprocess_exception(self):
+        """Tests that exceptions raised in the task are re-raised."""
+        workqueue = ndk.workqueue.WorkQueue()
+
+        try:
+            workqueue.add_task(raise_error)
+            with self.assertRaises(ndk.workqueue.TaskError):
+                workqueue.get_result()
+        finally:
+            workqueue.terminate()
+            workqueue.join()
+
+
+class DummyWorkQueueTest(unittest.TestCase):
+    """Tests for DummyWorkQueue."""
+    def test_put_func(self):
+        """Test that we can pass a function to the queue and get results."""
+        workqueue = ndk.workqueue.DummyWorkQueue()
+
+        workqueue.add_task(put, 1)
+        workqueue.add_task(put, 2)
+        expected_results = [1, 2]
+
+        while expected_results:
+            i = workqueue.get_result()
+            self.assertIn(i, expected_results)
+            expected_results.remove(i)
+
+        workqueue.terminate()
+        workqueue.join()
+
+    def test_put_functor(self):
+        """Test that we can pass a functor to the queue and get results."""
+        workqueue = ndk.workqueue.DummyWorkQueue()
+
+        workqueue.add_task(Functor(1))
+        workqueue.add_task(Functor(2))
+        expected_results = [1, 2]
+
+        while expected_results:
+            i = workqueue.get_result()
+            self.assertIn(i, expected_results)
+            expected_results.remove(i)
+
+        workqueue.terminate()
+        workqueue.join()
+
+    def test_finished(self):
+        """Tests that finished() returns the correct result."""
+        workqueue = ndk.workqueue.WorkQueue()
+        self.assertTrue(workqueue.finished())
+
+        workqueue.add_task(put, 1)
+        self.assertFalse(workqueue.finished())
+        workqueue.get_result()
+        self.assertTrue(workqueue.finished())
+
+        workqueue.terminate()
+        workqueue.join()
+        self.assertTrue(workqueue.finished())
+
+    def test_subprocess_exception(self):
+        """Tests that exceptions raised in the task are re-raised."""
+        workqueue = ndk.workqueue.DummyWorkQueue()
+
+        try:
+            workqueue.add_task(raise_error)
+            with self.assertRaises(ndk.workqueue.TaskError):
+                workqueue.get_result()
+        finally:
+            workqueue.terminate()
+            workqueue.join()
