@@ -779,7 +779,7 @@ class PythonBuildTest(BuildTest):
             ndk_build_flags=ndk_build_flags)
 
     def run(self, out_dir, _):
-        build_dir = os.path.join(out_dir, self.name)
+        build_dir = os.path.join(out_dir, 'build/tests.py', self.name)
         print('Building test: {}'.format(self.name))
         _prep_build_dir(self.test_dir, build_dir)
         with util.cd(build_dir):
@@ -802,7 +802,7 @@ class ShellBuildTest(BuildTest):
             name, test_dir, abi, platform, toolchain, ndk_build_flags)
 
     def run(self, out_dir, _):
-        build_dir = os.path.join(out_dir, self.name)
+        build_dir = os.path.join(out_dir, 'build/build.sh', self.name)
         print('Building test: {}'.format(self.name))
         if os.name == 'nt':
             reason = 'build.sh tests are not supported on Windows'
@@ -879,7 +879,7 @@ class NdkBuildTest(BuildTest):
             name, test_dir, abi, platform, toolchain, ndk_build_flags)
 
     def run(self, out_dir, _):
-        build_dir = os.path.join(out_dir, self.name)
+        build_dir = os.path.join(out_dir, 'build/ndk-build', self.name)
         print('Building test: {}'.format(self.name))
         yield _run_ndk_build_test(self.name, build_dir, self.test_dir,
                                   self.ndk_build_flags, self.abi,
@@ -893,7 +893,7 @@ class CMakeBuildTest(BuildTest):
             name, test_dir, abi, platform, toolchain, cmake_flags=cmake_flags)
 
     def run(self, out_dir, _):
-        build_dir = os.path.join(out_dir, self.name)
+        build_dir = os.path.join(out_dir, 'build/cmake', self.name)
         print('Building test: {}'.format(self.name))
         yield _run_cmake_build_test(self.name, build_dir, self.test_dir,
                                     self.cmake_flags, self.abi,
@@ -1060,7 +1060,7 @@ class NdkBuildDeviceTest(DeviceTest):
             yield result
 
     def run_ndk_build(self, out_dir, test_filters):
-        build_dir = os.path.join(out_dir, self.name)
+        build_dir = os.path.join(out_dir, 'device/ndk-build', self.name)
         build_result = _run_ndk_build_test(self.name, build_dir, self.test_dir,
                                            self.ndk_build_flags, self.abi,
                                            self.platform, self.toolchain)
@@ -1090,11 +1090,11 @@ class CMakeDeviceTest(DeviceTest):
 
     def run(self, out_dir, test_filters):
         print('Building device test with cmake: {}'.format(self.name))
-        for result in self.run_cmake_build(out_dir + '.cmake', test_filters):
+        for result in self.run_cmake_build(out_dir, test_filters):
             yield result
 
     def run_cmake_build(self, out_dir, test_filters):
-        build_dir = os.path.join(out_dir, self.name)
+        build_dir = os.path.join(out_dir, 'device/cmake', self.name)
         build_result = _run_cmake_build_test(self.name, build_dir,
                                              self.test_dir, self.cmake_flags,
                                              self.abi, self.platform,
