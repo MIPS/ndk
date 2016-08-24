@@ -15,12 +15,17 @@
 #
 """Defines WorkQueue for delegating asynchronous work to subprocesses."""
 import collections
+import logging
 import multiprocessing
 import os
 import Queue
 import signal
 import sys
 import traceback
+
+
+def logger():
+    return logging.getLogger(__name__)
 
 
 def worker_sigterm_handler(_signum, _frame):
@@ -62,15 +67,21 @@ def worker_main(task_queue, result_queue):
     signal.signal(signal.SIGTERM, worker_sigterm_handler)
     try:
         while True:
+            logger().debug('worker %d waiting for work', os.getpid())
             task = task_queue.get()
+            logger().debug('worker %d running task', os.getpid())
             result = task.run()
+            logger().debug('worker %d putting result', os.getpid())
             result_queue.put(result)
     except:  # pylint: disable=bare-except
+        logger().debug('worker %d raised exception', os.getpid())
         trace = ''.join(traceback.format_exception(*sys.exc_info()))
         result_queue.put(TaskError(trace))
     finally:
         # multiprocessing.Process.terminate() doesn't kill our descendents.
+        logger().debug('worker %d killing process group', os.getpid())
         os.kill(0, signal.SIGTERM)
+    logger().debug('worker %d exiting', os.getpid())
 
 
 class Task(object):
@@ -136,6 +147,7 @@ class WorkQueue(object):
     def terminate(self):
         """Terminates all worker processes."""
         for worker in self.workers:
+            logger().info('terminating %d', worker.pid)
             worker.terminate()
         self._flush()
 
@@ -155,6 +167,7 @@ class WorkQueue(object):
     def join(self):
         """Waits for all worker processes to exit."""
         for worker in self.workers:
+            logger().info('joining %d', worker.pid)
             worker.join()
         self.workers = []
 
