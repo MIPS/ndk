@@ -22,10 +22,13 @@ import distutils.spawn
 import os
 import re
 import shutil
+import signal
 import site
 import subprocess
 import sys
 import tempfile
+
+import ndk.debug
 
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
@@ -222,6 +225,9 @@ def print_aggregate_details(details, use_color):
 
 
 def main():
+    ndk.debug.register_debug_handler(signal.SIGUSR1)
+    ndk.debug.register_trace_handler(signal.SIGUSR2)
+
     args = parse_args()
 
     os.chdir(THIS_DIR)

@@ -31,11 +31,13 @@ import inspect
 import os
 import re
 import shutil
+import signal
 import site
 import sys
 import tempfile
 
 import build.lib.build_support
+import ndk.debug
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
 
@@ -117,6 +119,9 @@ class ArgParser(argparse.ArgumentParser):
 
 
 def main():
+    ndk.debug.register_debug_handler(signal.SIGUSR1)
+    ndk.debug.register_trace_handler(signal.SIGUSR2)
+
     orig_cwd = os.getcwd()
 
     args = ArgParser().parse_args()
