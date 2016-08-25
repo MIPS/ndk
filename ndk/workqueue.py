@@ -109,6 +109,9 @@ class Task(object):
 
 class WorkQueue(object):
     """A pool of processes for executing work asynchronously."""
+
+    join_timeout = 8  # Timeout for join before trying SIGKILL.
+
     def __init__(self, num_workers=multiprocessing.cpu_count()):
         """Creates a WorkQueue.
 
@@ -172,7 +175,12 @@ class WorkQueue(object):
         """Waits for all worker processes to exit."""
         for worker in self.workers:
             logger().info('joining %d', worker.pid)
-            worker.join()
+            worker.join(self.join_timeout)
+            if worker.is_alive():
+                logger().error(
+                    'worker %d will not die; sending SIGKILL', worker.pid)
+                os.killpg(worker.pid, signal.SIGKILL)
+                worker.join()
         self.workers = []
 
     def finished(self):
