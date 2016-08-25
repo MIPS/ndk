@@ -73,6 +73,8 @@ def worker_main(task_queue, result_queue):
             result = task.run()
             logger().debug('worker %d putting result', os.getpid())
             result_queue.put(result)
+    except SystemExit:
+        pass
     except:  # pylint: disable=bare-except
         logger().debug('worker %d raised exception', os.getpid())
         trace = ''.join(traceback.format_exception(*sys.exc_info()))
