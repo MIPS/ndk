@@ -79,8 +79,10 @@ def worker_main(task_queue, result_queue):
         result_queue.put(TaskError(trace))
     finally:
         # multiprocessing.Process.terminate() doesn't kill our descendents.
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
         logger().debug('worker %d killing process group', os.getpid())
         os.kill(0, signal.SIGTERM)
+        signal.signal(signal.SIGTERM, signal.SIG_DFL)
     logger().debug('worker %d exiting', os.getpid())
 
 
