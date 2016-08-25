@@ -172,7 +172,10 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
     ndk_build_flags = []
     cmake_flags = []
     if verbose_build:
-        logging.basicConfig(level=logging.INFO)
+        # Don't decrease our log level.
+        root_logger = logging.getLogger()
+        if root_logger.getEffectiveLevel() != logging.DEBUG:
+            root_logger.setLevel(logging.INFO)
         ndk_build_flags.append('V=1')
         cmake_flags.append('-DCMAKE_VERBOSE_MAKEFILE=ON')
 

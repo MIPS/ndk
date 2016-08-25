@@ -28,6 +28,7 @@ from __future__ import print_function
 import argparse
 import atexit
 import inspect
+import logging
 import os
 import re
 import shutil
@@ -106,6 +107,9 @@ class ArgParser(argparse.ArgumentParser):
             '--suite', default=None,
             choices=('awk', 'build', 'device'),
             help=('Run only the chosen test suite.'))
+        self.add_argument(
+            '-v', '--verbose', action='count', default=0,
+            help='Increase log level. Defaults to logging.WARNING.')
 
         self.add_argument(
             '--filter', help='Only run tests that match the given pattern.')
@@ -125,6 +129,12 @@ def main():
     orig_cwd = os.getcwd()
 
     args = ArgParser().parse_args()
+
+    log_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
+    verbosity = min(args.verbose, len(log_levels) - 1)
+    log_level = log_levels[verbosity]
+    logging.basicConfig(level=log_level)
+
     ndk_path = args.ndk
     min_platform = build.lib.build_support.minimum_platform_level(args.abi)
     if args.platform is not None and args.platform < min_platform:
