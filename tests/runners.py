@@ -172,9 +172,14 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
     ndk_build_flags = []
     cmake_flags = []
     if verbose_build:
-        logging.basicConfig(level=logging.INFO)
+        # Don't decrease our log level.
+        root_logger = logging.getLogger()
+        if root_logger.getEffectiveLevel() != logging.DEBUG:
+            root_logger.setLevel(logging.INFO)
         ndk_build_flags.append('V=1')
         cmake_flags.append('-DCMAKE_VERBOSE_MAKEFILE=ON')
+
+    force_pie = False
 
     # Do this early so we find any device issues now rather than after we've
     # run all the build tests.
@@ -187,6 +192,7 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
         # ndk-build defaults, so we need to inform the build that we need PIE
         # if we're running on a newer device.
         if device_api_level >= 21:
+            force_pie = True
             ndk_build_flags.append('APP_PIE=true')
             cmake_flags.append('-DANDROID_PIE=TRUE')
 
@@ -211,14 +217,19 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
 
     runner = tests.testlib.TestRunner(printer)
     if 'awk' in suites:
-        runner.add_suite('awk', 'awk', AwkTest)
+        awk_scanner = tests.testlib.AwkTestScanner()
+        runner.add_suite('awk', 'awk', awk_scanner)
     if 'build' in suites:
-        runner.add_suite('build', 'build', BuildTest, abi, build_api_level,
-                         toolchain, ndk_build_flags, cmake_flags)
+        build_scanner = tests.testlib.BuildTestScanner()
+        build_scanner.add_build_configuration(
+            abi, build_api_level, toolchain, force_pie, verbose_build)
+        runner.add_suite('build', 'build', build_scanner)
     if 'device' in suites:
-        runner.add_suite('device', 'device', DeviceTest, abi, build_api_level,
-                         device, device_api_level, toolchain, ndk_build_flags,
-                         cmake_flags, skip_run)
+        device_scanner = tests.testlib.DeviceTestScanner()
+        device_scanner.add_device_configuration(
+            abi, build_api_level, toolchain, force_pie, verbose_build, device,
+            device_api_level, skip_run)
+        runner.add_suite('device', 'device', device_scanner)
 
     test_filters = tests.filters.TestFilter.from_string(test_filter)
     results = runner.run(out_dir, test_filters)

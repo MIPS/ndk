@@ -15,16 +15,31 @@
 #
 """Defines WorkQueue for delegating asynchronous work to subprocesses."""
 import collections
+import logging
 import multiprocessing
 import os
+import Queue
 import signal
 import sys
 import traceback
 
 
+def logger():
+    return logging.getLogger(__name__)
+
+
 def worker_sigterm_handler(_signum, _frame):
     """Raises SystemExit so atexit/finally handlers can be executed."""
     sys.exit()
+
+
+def _flush_queue(queue):
+    """Flushes all pending items from a Queue."""
+    try:
+        while True:
+            queue.get_nowait()
+    except Queue.Empty:
+        pass
 
 
 class TaskError(Exception):
@@ -52,15 +67,25 @@ def worker_main(task_queue, result_queue):
     signal.signal(signal.SIGTERM, worker_sigterm_handler)
     try:
         while True:
+            logger().debug('worker %d waiting for work', os.getpid())
             task = task_queue.get()
+            logger().debug('worker %d running task', os.getpid())
             result = task.run()
+            logger().debug('worker %d putting result', os.getpid())
             result_queue.put(result)
+    except SystemExit:
+        pass
     except:  # pylint: disable=bare-except
+        logger().debug('worker %d raised exception', os.getpid())
         trace = ''.join(traceback.format_exception(*sys.exc_info()))
         result_queue.put(TaskError(trace))
     finally:
         # multiprocessing.Process.terminate() doesn't kill our descendents.
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        logger().debug('worker %d killing process group', os.getpid())
         os.kill(0, signal.SIGTERM)
+        signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    logger().debug('worker %d exiting', os.getpid())
 
 
 class Task(object):
@@ -84,6 +109,9 @@ class Task(object):
 
 class WorkQueue(object):
     """A pool of processes for executing work asynchronously."""
+
+    join_timeout = 8  # Timeout for join before trying SIGKILL.
+
     def __init__(self, num_workers=multiprocessing.cpu_count()):
         """Creates a WorkQueue.
 
@@ -126,12 +154,33 @@ class WorkQueue(object):
     def terminate(self):
         """Terminates all worker processes."""
         for worker in self.workers:
+            logger().info('terminating %d', worker.pid)
             worker.terminate()
+        self._flush()
+
+    def _flush(self):
+        """Flushes all pending tasks and results.
+
+        If there are still items pending in the queues when terminate is
+        called, the subsequent join will hang waiting for the queues to be
+        emptied.
+
+        We call _flush after all workers have been terminated to ensure that we
+        can exit cleanly.
+        """
+        _flush_queue(self.task_queue)
+        _flush_queue(self.result_queue)
 
     def join(self):
         """Waits for all worker processes to exit."""
         for worker in self.workers:
-            worker.join()
+            logger().info('joining %d', worker.pid)
+            worker.join(self.join_timeout)
+            if worker.is_alive():
+                logger().error(
+                    'worker %d will not die; sending SIGKILL', worker.pid)
+                os.killpg(worker.pid, signal.SIGKILL)
+                worker.join()
         self.workers = []
 
     def finished(self):
