@@ -521,7 +521,8 @@ def parse_args():
         '--arch', required=True,
         choices=('arm', 'arm64', 'mips', 'mips64', 'x86', 'x86_64'))
     parser.add_argument(
-        '--api', type=int, help='Target the given API version.')
+        '--api', type=int,
+        help='Target the given API version (example: "--api 24").')
     parser.add_argument(
         '--stl', choices=('gnustl', 'libc++', 'stlport'), default='gnustl',
         help='C++ STL to use.')
