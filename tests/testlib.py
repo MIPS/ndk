@@ -555,6 +555,11 @@ class TestConfig(object):
         @staticmethod
         def extra_cmake_flags():
             return []
+
+        @staticmethod
+        def extra_ndk_build_flags():
+            """Returns extra flags that should be passed to ndk-build."""
+            return []
         # pylint: enable=unused-argument
 
     def __init__(self, file_path):
@@ -582,6 +587,12 @@ class TestConfig(object):
             self.extra_cmake_flags = self.module.extra_cmake_flags
         except AttributeError:
             self.extra_cmake_flags = self.NullTestConfig.extra_cmake_flags
+
+        try:
+            self.extra_ndk_build_flags = self.module.extra_ndk_build_flags
+        except AttributeError:
+            ntc = self.NullTestConfig
+            self.extra_ndk_build_flags = ntc.extra_ndk_build_flags
 
     @classmethod
     def from_test_dir(cls, test_dir):
@@ -731,6 +742,7 @@ class BuildTest(Test):
         self.platform = platform
         self.toolchain = toolchain
         self.ndk_build_flags = ndk_build_flags
+        self.ndk_build_flags += self.get_extra_ndk_build_flags()
         self.cmake_flags = cmake_flags + self.get_extra_cmake_flags()
 
     def run(self, out_dir, _):
@@ -746,6 +758,9 @@ class BuildTest(Test):
 
     def get_extra_cmake_flags(self):
         return self.get_test_config().extra_cmake_flags()
+
+    def get_extra_ndk_build_flags(self):
+        return self.get_test_config().extra_ndk_build_flags()
 
 
 class PythonBuildTest(BuildTest):
@@ -1006,6 +1021,10 @@ class NdkBuildDeviceTest(DeviceTest):
             name, test_dir, abi, platform, device, device_api, toolchain,
             skip_run)
         self.ndk_build_flags = ndk_build_flags
+        self.ndk_build_flags += self.get_extra_ndk_build_flags()
+
+    def get_extra_ndk_build_flags(self):
+        return self.get_test_config().extra_ndk_build_flags()
 
     def get_device_subdir(self):
         return 'ndk-tests'
