@@ -225,8 +225,9 @@ def print_aggregate_details(details, use_color):
 
 
 def main():
-    ndk.debug.register_debug_handler(signal.SIGUSR1)
-    ndk.debug.register_trace_handler(signal.SIGUSR2)
+    if sys.platform != 'win32':
+        ndk.debug.register_debug_handler(signal.SIGUSR1)
+        ndk.debug.register_trace_handler(signal.SIGUSR2)
 
     args = parse_args()
 
