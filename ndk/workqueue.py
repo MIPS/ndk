@@ -107,7 +107,7 @@ class Task(object):
         return self.func(*self.args, **self.kwargs)
 
 
-class WorkQueue(object):
+class ProcessPoolWorkQueue(object):
     """A pool of processes for executing work asynchronously."""
 
     join_timeout = 8  # Timeout for join before trying SIGKILL.
@@ -121,6 +121,12 @@ class WorkQueue(object):
         Args:
             num_workers: Number of worker processes to spawn.
         """
+        if sys.platform == 'win32':
+            # TODO(danalbert): Port ProcessPoolWorkQueue to Windows.
+            # Our implementation of ProcessPoolWorkQueue depends on process
+            # groups, which are not supported on Windows.
+            raise NotImplementedError
+
         self.task_queue = multiprocessing.Queue()
         self.result_queue = multiprocessing.Queue()
         self.workers = []
@@ -242,3 +248,9 @@ class DummyWorkQueue(object):
     def finished(self):
         """Returns True if all tasks have completed execution."""
         return len(self.task_queue) == 0
+
+
+if sys.platform == 'win32':
+    WorkQueue = DummyWorkQueue
+else:
+    WorkQueue = ProcessPoolWorkQueue
