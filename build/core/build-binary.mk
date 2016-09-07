@@ -574,7 +574,8 @@ ar_objects := $(call host-path,$(LOCAL_OBJECTS))
 ifeq ($(LOCAL_SHORT_COMMANDS),true)
     $(call ndk_log,Building static library module '$(LOCAL_MODULE)' with linker list file)
     ar_list_file := $(LOCAL_OBJS_DIR)/archiver.list
-    $(call generate-list-file,$(ar_objects),$(ar_list_file))
+    $(call generate-list-file,\
+        $(call escape-backslashes,$(ar_objects)),$(ar_list_file))
     ar_objects   := @$(call host-path,$(ar_list_file))
     $(LOCAL_BUILT_MODULE): $(ar_list_file)
 endif
