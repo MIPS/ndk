@@ -17,6 +17,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import difflib
+import distutils.spawn
 import filecmp
 import glob
 import imp
@@ -684,9 +685,9 @@ def _run_cmake_build_test(test_name, build_dir, test_dir, cmake_flags, abi,
 
     # Skip if we don't have a working cmake executable, either from the
     # prebuilts, or from the SDK, or if a new enough version is installed.
-    rc, out = util.call_output(['cmake', '--version'], env=env)
-    if rc != 0:
+    if distutils.spawn.find_executable('cmake') is None:
         return Skipped(test_name, 'cmake executable not found')
+    out = subprocess.check_output(['cmake', '--version'], env=env)
     version_pattern = r'cmake version (\d+)\.(\d+)\.'
     version = [int(v) for v in re.match(version_pattern, out).groups()]
     if version < [3, 6]:
