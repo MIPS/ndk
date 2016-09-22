@@ -42,6 +42,19 @@ def cd(path):
         os.chdir(curdir)
 
 
+def _call_output_inner(cmd, *args, **kwargs):
+    """Does the real work of call_output.
+
+    This inner function does the real work and the outer function handles the
+    OS specific stuff (Windows needs to handle WindowsError, but that isn't
+    defined on non-Windows systems).
+    """
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, *args, **kwargs)
+    out, _ = proc.communicate()
+    return proc.returncode, out
+
+
 def call_output(cmd, *args, **kwargs):
     """Invoke the specified command and return exit code and output.
 
@@ -53,10 +66,10 @@ def call_output(cmd, *args, **kwargs):
 
     Returns: Tuple of (exit_code, output).
     """
-    try:
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT, *args, **kwargs)
-        out, _ = proc.communicate()
-        return proc.returncode, out
-    except WindowsError as error:
-        return error.winerror, error.strerror
+    if os.name == 'nt':
+        try:
+            return _call_output_inner(cmd, *args, **kwargs)
+        except WindowsError as error:  # pylint: disable=undefined-variable
+            return error.winerror, error.strerror
+    else:
+        return _call_output_inner(cmd, *args, **kwargs)
