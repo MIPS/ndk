@@ -27,6 +27,16 @@ import zipfile
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
 
+
+ALL_TOOLCHAINS = (
+    'arm-linux-androideabi',
+    'aarch64-linux-android',
+    'mips64el-linux-android',
+    'x86',
+    'x86_64',
+)
+
+
 ALL_TRIPLES = (
     'arm-linux-androideabi',
     'aarch64-linux-android',
