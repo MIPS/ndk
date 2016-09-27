@@ -21,7 +21,6 @@ separately.
 
 To add headers to the NDK, create an `ndk_headers` module in your Android.bp.
 Examples of this module type can be found in [bionic/libc/Android.bp].
-TODO(danalbert): Actually migrate libc so that's true.
 
 These module definitions are as follows:
 
@@ -48,7 +47,6 @@ ndk_headers {
 
 To add a library to the NDK, create an `ndk_library` module in your Android.bp.
 An example of this module type can be found in [bionic/libc/Android.bp].
-TODO(danalbert): Actually migrate libc so that's true.
 
 These module defintions are as follows:
 
@@ -63,7 +61,6 @@ ndk_library {
      A version script with some metadata that encodes version and arch
     // mappings so that only one script is needed instead of one per API/arch.
     // An example of this file can be found at [bionic/libc/libc.map.txt].
-    // TODO(danalbert): Actually migrate libc so that example is correct.
     symbol_file: "libfoo.map.txt",
 
     // The first API level a library was available. A library will be generated
