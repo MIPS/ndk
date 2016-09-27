@@ -16,6 +16,13 @@ Announcements
   become stable enough to be the default, as some parts of gnustl are still
   incompatible with Clang. It will likely be removed after that point.
 
+ndk-build
+---------
+
+ * Module builds will now fail if they have any missing dependencies. To revert
+   to the old behavior, set `APP_ALLOW_MISSING_DEPS=false`. See
+   https://github.com/android-ndk/ndk/issues/208.
+
 Known Issues
 ------------
 

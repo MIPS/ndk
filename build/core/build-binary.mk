@@ -642,6 +642,26 @@ shared_libs := $(call module-filter-shared-libraries,$(all_libs))
 static_libs := $(call module-filter-static-libraries,$(all_libs))
 whole_static_libs := $(call module-extract-whole-static-libs,$(LOCAL_MODULE),$(static_libs))
 static_libs := $(filter-out $(whole_static_libs),$(static_libs))
+all_defined_libs := $(shared_libs) $(static_libs) $(whole_static_libs)
+undefined_libs := $(filter-out $(all_defined_libs),$(all_libs))
+
+ifdef undefined_libs
+    $(call __ndk_warning,Module $(LOCAL_MODULE) depends on undefined modules: $(undefined_libs))
+
+    # https://github.com/android-ndk/ndk/issues/208
+    # ndk-build didn't used to fail the build for a missing dependency. This
+    # seems to have always been the behavior, so there's a good chance that
+    # there are builds out there that depend on this behavior (as of right now,
+    # anything using libc++ on ARM has this problem because of libunwind).
+    #
+    # By default we will abort in this situation because this is so completely
+    # broken. A user may define APP_ALLOW_MISSING_DEPS to "false" in their
+    # Application.mk or on the command line to revert to the old, broken
+    # behavior.
+    ifneq ($(APP_ALLOW_MISSING_DEPS),true)
+        $(call __ndk_error,Aborting (set APP_ALLOW_MISSING_DEPS=true to allow missing dependencies))
+    endif
+endif
 
 $(call -ndk-mod-debug,module $(LOCAL_MODULE) [$(LOCAL_BUILT_MODULE)])
 $(call -ndk-mod-debug,.  all_libs='$(all_libs)')
