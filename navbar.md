@@ -1,0 +1,5 @@
+* [Home](/README.md)
+* [Building](/README.md#Building-the-NDK)
+* [Testing](/docs/Testing.md)
+* [Platform APIs](/docs/PlatformApis.md)
+* [Toolchains](/docs/Toolchains.md)

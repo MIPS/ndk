@@ -11,24 +11,18 @@ The NDK allows Android application developers to include
 native code in their Android application packages, compiled as JNI shared
 libraries.
 
+[TOC]
+
 Other Resources
 ---------------
 
-This doc gives a high level overview of the NDK's build, packaging, and test
-process. For other use cases, or more in depth documentation, refer to the
-following sources:
-
  * User documentation is available on the [Android Developer website].
- * Adding a new NDK API or platform version? Check [Generating Sysroots].
- * Working on Clang or GCC? See [Toolchains.md].
  * Discussions related to the Android NDK happen on the [android-ndk Google
    Group].
  * File bugs against the NDK at https://github.com/android-ndk/ndk/issues.
 
 [Android Developer website]: https://developer.android.com/ndk/index.html
 [android-ndk Google Group]: http://groups.google.com/group/android-ndk
-[Generating Sysroots]: docs/GeneratingSysroots.md
-[Toolchains.md]: docs/Toolchains.md
 
 Building the NDK
 ================
@@ -138,8 +132,3 @@ tests does require the packaging step.
 
 If you need to re-run just the packaging step without going through a build,
 packaging is handled by `build/tools/package.py`.
-
-Testing
--------
-
-Testing is discussed in [Testing.md](docs/Testing.md).
