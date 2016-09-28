@@ -29,7 +29,6 @@ import tests.ndk
 import tests.testlib
 import tests.util
 
-from tests.testlib import AwkTest, BuildTest, DeviceTest
 
 
 def get_device_abis(device):
