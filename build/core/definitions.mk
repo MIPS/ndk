@@ -402,6 +402,8 @@ modules-LOCALS := \
     EXPORT_CPPFLAGS \
     EXPORT_ASMFLAGS \
     EXPORT_LDFLAGS \
+    EXPORT_SHARED_LIBRARIES \
+    EXPORT_STATIC_LIBRARIES \
     EXPORT_LDLIBS \
     EXPORT_C_INCLUDES \
     FILTER_ASM \
@@ -2108,7 +2110,7 @@ $(call ndk-stl-register,\
 $(call ndk-stl-register,\
     c++_static,\
     cxx-stl/llvm-libc++,\
-    c++_static libc++abi libunwind android_support,\
+    c++_static libc++abi android_support,\
     ,\
     -ldl\
     )
@@ -2118,7 +2120,7 @@ $(call ndk-stl-register,\
 $(call ndk-stl-register,\
     c++_shared,\
     cxx-stl/llvm-libc++,\
-    libandroid_support libunwind,\
+    libandroid_support,\
     c++_shared,\
     \
     )
