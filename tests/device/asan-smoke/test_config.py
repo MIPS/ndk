@@ -9,6 +9,10 @@ def build_unsupported(abi, platform, toolchain):
         return toolchain
     if not abi.startswith('armeabi') and not abi == 'x86':
         return abi
-    if platform < 19:
-        return platform
+    return None
+
+
+def run_unsupported(abi, device_api, toolchain, subtest):
+    if device_api < 19:
+        return device_api
     return None
