@@ -30,6 +30,9 @@ import tests.testlib
 import tests.util
 
 
+def logger():
+    return logging.getLogger(__name__)
+
 
 def get_device_abis(device):
     # 64-bit devices list their ABIs differently than 32-bit devices. Check all
@@ -60,22 +63,28 @@ def check_adb_works_or_die(device, abi):
 def can_use_asan(device, abi, api, toolchain):
     # ASAN is currently only supported for 32-bit ARM and x86...
     if not abi.startswith('armeabi') and not abi == 'x86':
+        logger().info('Cannot use ASAN: unsupported ABI (%s)', abi)
         return False
 
     # From non-Windows (asan_device_setup is a shell script)...
     if os.name == 'nt':
+        logger().info('Cannot use ASAN: Windows is not supported')
         return False
 
     # On KitKat and newer...
     if api < 19:
+        logger().info('Cannot use ASAN: device is too old '
+                      '(is android-%s, minimum android-19)', api)
         return False
 
     # When using clang...
     if toolchain != 'clang':
+        logger().info('Cannot use ASAN: GCC is not supprted')
         return False
 
     # On rooted devices.
     if int(device.get_prop('ro.debuggable')) == 0:
+        logger().info('Cannot use ASAN: device must be rooted')
         return False
 
     return True
