@@ -23,6 +23,12 @@ ndk-build
    to the old behavior, set `APP_ALLOW_MISSING_DEPS=false`. See
    https://github.com/android-ndk/ndk/issues/208.
 
+Clang/LLVM
+----------
+
+ * The x86 ASAN issues noted since r11 appear to have been emulator specific.
+   Up to date emulators no longer have this issue.
+
 Known Issues
 ------------
 
@@ -30,8 +36,6 @@ Known Issues
  * Standlone toolchains using libc++ and GCC do not work. This seems to be a bug
    in GCC. See the following commit message for more details:
    https://android-review.googlesource.com/#/c/247498
- * x86 ASAN still doesn't work. See discussion on
-   https://android-review.googlesource.com/#/c/186276/
  * Exception unwinding with `c++_shared` still does not work for ARM on
    Gingerbread or Ice Cream Sandwich.
  * Bionic headers and libraries for Marshmallow and N are not yet exposed
