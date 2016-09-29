@@ -20,6 +20,7 @@ issues. For these devices, verify that mstackrealign is used.
 """
 import os
 import subprocess
+import sys
 
 
 def run_test(abi=None, platform=None, toolchain=None, build_flags=None):
@@ -29,6 +30,8 @@ def run_test(abi=None, platform=None, toolchain=None, build_flags=None):
 
     ndk_dir = os.environ['NDK']
     ndk_build = os.path.join(ndk_dir, 'ndk-build')
+    if sys.platform == 'win32':
+        ndk_build += '.cmd'
     project_path = 'project'
     ndk_args = build_flags + [
         'APP_ABI=' + abi,
