@@ -266,6 +266,15 @@ def _fixup_expected_failure(result, config, bug):
         return result
 
 
+def _fixup_negative_test(result):
+    if isinstance(result, Failure):
+        return Success(result.test_name)
+    elif isinstance(result, Success):
+        return Failure(result.test_name, 'negative test case succeeded')
+    else:  # Skipped, UnexpectedSuccess, or ExpectedFailure.
+        return result
+
+
 def _run_test(suite, test, out_dir, test_filters):
     """Runs a given test according to the given filters.
 
@@ -286,8 +295,10 @@ def _run_test(suite, test, out_dir, test_filters):
         message = 'test unsupported for {}'.format(config)
         return suite, Skipped(test.name, message), []
 
-    config, bug = test.check_broken()
     result, additional_tests = test.run(out_dir, test_filters)
+    if test.is_negative_test():
+        result = _fixup_negative_test(result)
+    config, bug = test.check_broken()
     if config is not None:
         # We need to check change each pass/fail to either an
         # ExpectedFailure or an UnexpectedSuccess as necessary.
@@ -455,6 +466,9 @@ class AwkTest(Test):
     def check_unsupported(self):
         return None
 
+    def is_negative_test(self):
+        return False
+
     def run(self, out_dir, test_filters):
         # We need a subdirectory named for our test to handle the case where
         # multiple awk tests share names for test cases. If run simultaneously,
@@ -561,6 +575,29 @@ class TestConfig(object):
         def extra_ndk_build_flags():
             """Returns extra flags that should be passed to ndk-build."""
             return []
+
+        @staticmethod
+        def is_negative_test():
+            """Returns True if this test should pass if the build fails.
+
+            Note that this is different from build_broken. Use build_broken to
+            indicate a bug and use is_negative_test to indicate a test that
+            should fail if things are working.
+
+            Also note that check_broken and is_negative_test can be layered. If
+            a build is expected to fail, but doesn't for armeabi, the
+            test_config could contain:
+
+                def is_negative_test():
+                    return True
+
+
+                def build_broken(abi, api, toolchain):
+                    if abi == 'armeabi':
+                        return abi, bug_url
+                    return None, None
+            """
+            return False
         # pylint: enable=unused-argument
 
     def __init__(self, file_path):
@@ -594,6 +631,11 @@ class TestConfig(object):
         except AttributeError:
             ntc = self.NullTestConfig
             self.extra_ndk_build_flags = ntc.extra_ndk_build_flags
+
+        try:
+            self.is_negative_test = self.module.is_negative_test
+        except AttributeError:
+            self.is_negative_test = self.NullTestConfig.is_negative_test
 
     @classmethod
     def from_test_dir(cls, test_dir):
@@ -634,6 +676,18 @@ class DeviceTestConfig(TestConfig):
             self.run_unsupported = self.module.run_unsupported
         except AttributeError:
             self.run_unsupported = self.NullTestConfig.run_unsupported
+
+        try:
+            _ = self.module.is_negative_test
+            # If the build is expected to fail, then it should just be a build
+            # test since the test should never be run.
+            #
+            # If the run is expected to fail, just fix the test to pass for
+            # thatr case. Gtest death tests can handle the more complicated
+            # cases.
+            raise RuntimeError('is_negative_test is invalid for device tests')
+        except AttributeError:
+            pass
 
 
 def _run_build_sh_test(test_name, build_dir, test_dir, ndk_build_flags, abi,
@@ -756,6 +810,9 @@ class BuildTest(Test):
     def check_unsupported(self):
         return self.get_test_config().build_unsupported(
             self.abi, self.platform, self.toolchain)
+
+    def is_negative_test(self):
+        return self.get_test_config().is_negative_test()
 
     def get_extra_cmake_flags(self):
         return self.get_test_config().extra_cmake_flags()
@@ -948,6 +1005,9 @@ class DeviceTest(Test):
         return self.get_test_config().build_unsupported(
             self.abi, self.platform, self.toolchain)
 
+    def is_negative_test(self):
+        return False
+
     def run(self, out_dir, test_filters):
         raise NotImplementedError
 
@@ -1100,6 +1160,9 @@ class DeviceRunTest(Test):
                 self.device_api, self.build_api)
         return self.get_test_config().run_unsupported(
             self.abi, self.device_api, self.toolchain, self.case_name)
+
+    def is_negative_test(self):
+        return False
 
     def run(self, out_dir, test_filters):
         cmd = 'cd {} && LD_LIBRARY_PATH={} ./{} 2>&1'.format(
