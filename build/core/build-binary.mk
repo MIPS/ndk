@@ -226,6 +226,14 @@ ifneq (,$(filter true,$(NDK_APP_PIE) $(TARGET_PIE)))
   endif
 endif
 
+# http://b.android.com/222239
+# Older x86 devices had stack alignment issues.
+ifneq (,$(call lt,$(APP_PLATFORM_LEVEL),21))
+    ifeq ($(TARGET_ARCH_ABI),x86)
+        LOCAL_CFLAGS += -mstackrealign
+    endif
+endif
+
 #
 # The original Android build system allows you to use the .arm prefix
 # to a source file name to indicate that it should be defined in either
