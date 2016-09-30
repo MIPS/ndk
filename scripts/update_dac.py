@@ -18,35 +18,75 @@
 import argparse
 import logging
 import os.path
-import shutil
-import subprocess
 
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
 NDK_DIR = os.path.dirname(THIS_DIR)
 
 
+def logger():
+    """Get the module logger."""
+    return logging.getLogger(__name__)
+
+
 def check_call(cmd, *args, **kwargs):
-    logging.getLogger(__name__).info('COMMAND: %s', ' '.join(cmd))
+    """subprocess.check_call with logging."""
+    import subprocess
+    logger().info('check_call: %s', ' '.join(cmd))
     subprocess.check_call(cmd, *args, **kwargs)
 
 
+def copy2(src, dst):
+    """shutil.copy2 with logging."""
+    import shutil
+    logger().info('copy2: %s %s', src, dst)
+    shutil.copy2(src, dst)
+
+
+def rmtree(path):
+    """shutil.rmtree with logging."""
+    import shutil
+    logger().info('rmtree: %s', path)
+    shutil.rmtree(path)
+
+
+def makedirs(path):
+    """os.makedirs with logging."""
+    logger().info('makedirs: %s', path)
+    os.makedirs(path)
+
+
 def build_docs():
-    docs_dir = os.path.join(NDK_DIR, 'docs')
-    check_call(['make', '-C', docs_dir])
-    return os.path.join(docs_dir, 'html/user')
+    """Perform any necessary preprocessing steps.
+
+    At the moment all we need to do is rewrite "[TOC]" (gitiles spelling) to
+    "[[TOC]]" (devsite spelling).
+    """
+    docs_dir = os.path.join(NDK_DIR, 'docs/user')
+    out_dir = os.path.join(NDK_DIR, 'docs/out')
+    if os.path.exists(out_dir):
+        rmtree(out_dir)
+    makedirs(out_dir)
+    for doc in os.listdir(docs_dir):
+        path = os.path.join(docs_dir, doc)
+        with open(os.path.join(out_dir, doc), 'w') as out_file:
+            check_call(['sed', '-e', r's/\[TOC\]/[[TOC]]/', path],
+                       stdout=out_file)
+    return out_dir
 
 
 def copy_docs(docs_tree, docs_out):
-    dest_dir = os.path.join(docs_tree, 'frameworks/base/docs/html/ndk/guides')
+    """Copy the docs to the devsite directory."""
+    dest_dir = os.path.join(
+        docs_tree, 'googledata/devsite/site-android/en/ndk/guides')
 
-    for root, _dirs, files in os.walk(docs_out):
+    for root, _, files in os.walk(docs_out):
         for file_name in files:
-            shutil.copy2(os.path.join(root, file_name), dest_dir)
-            check_call(['git', '-C', dest_dir, 'add', file_name])
+            copy2(os.path.join(root, file_name), dest_dir)
 
 
 def parse_args():
+    """Parse command line arguments."""
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -57,6 +97,7 @@ def parse_args():
 
 
 def main():
+    """Program entry point."""
     logging.basicConfig(level=logging.INFO)
     args = parse_args()
     docs_out = build_docs()
