@@ -11,12 +11,10 @@ cross-compiler in order to add support to Android for it.
 A typical use case is invoking the configure script of an open-source library
 that expects a cross-compiler in the `CC` environment variable.
 
-<p class="note">
-<strong>Note:</strong> This page assumes significant understanding of compiling,
-linking, and low-level architecture. In addition, the techniques it describes
-are unnecessary for most use cases. In most cases, we recommend that you forego
-using a standalone toolchain, and instead stick to the NDK build system.
-</p>
+Note: This page assumes significant understanding of compiling, linking, and
+low-level architecture. In addition, the techniques it describes are unnecessary
+for most use cases. In most cases, we recommend that you forego using a
+standalone toolchain, and instead stick to the NDK build system.
 
 Selecting Your Toolchain
 ------------------------
@@ -250,11 +248,9 @@ with the proper library:
   copy `libgnustl_shared.so` to your device in order for your code to load
   properly. Table 6 shows where this file is for each toolchain type.
 
-  <p class="note">
-  <strong>Note:</strong> GNU libstdc++ is licensed under the GPLv3 license, with
-  a linking exception. If you cannot comply with its requirements, you cannot
-  redistribute the shared library in your project.
-  </p>
+  Note: GNU libstdc++ is licensed under the GPLv3 license, with a linking
+  exception. If you cannot comply with its requirements, you cannot redistribute
+  the shared library in your project.
 
 
 * Use `-lstlport_shared` to link against the shared library version of STLport.
@@ -273,13 +269,11 @@ with the proper library:
   | x86       | `$TOOLCHAIN/i686-linux-android/lib/`     |
   | x86\_64   | `$TOOLCHAIN/x86_64-linux-android/lib/`   |
 
-<p class="note">
-<strong>Note:</strong> If your project contains multiple shared libraries or
-executables, you must link against a shared-library STL implementation.
-Otherwise global state in these libraries will not be unique, which can result
-in unpredictable runtime behavior. This behavior may include crashes and
-failure to properly catch exceptions.
-</p>
+Note: If your project contains multiple shared libraries or executables, you
+must link against a shared-library STL implementation.  Otherwise global state
+in these libraries will not be unique, which can result in unpredictable runtime
+behavior. This behavior may include crashes and failure to properly catch
+exceptions.
 
 The reason the shared version of the libraries is not simply called
 `libstdc++.so` is that this name would conflict at runtime with the system's own
