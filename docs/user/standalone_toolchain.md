@@ -1,6 +1,8 @@
 Standalone Toolchains
 =====================
 
+[TOC]
+
 You can use the toolchains provided with the Android NDK independently or as
 plug-ins with an existing IDE. This flexibility can be useful if you already
 have your own build system, and only need the ability to invoke the
