@@ -93,9 +93,14 @@ must explicitly use `-lstlport_shared`. This requirement is similar to having to
 use `-lgnustl_shared` for GNU `libstdc++`.
 
 Similarly, you can specify `--stl=libc++` to copy the LLVM libc++ headers and
-libraries.  To link against the shared library, you must explicitly use
-`-lc++_shared`. As mentioned in [C++ Library Support](cpp-support.html), you
-will often need to pass `-latomic` when linking against libc++.
+libraries. Unlike gnustl and stlport, you do not need to explicitly pass
+`-lc++_shared` to use the shared library. The shared library will be used by
+default unless building a static executable. To force the use of the shared
+library, pass `-static-libstdc++` when linking. This behavior matches that of a
+normal host toolchain.
+
+As mentioned in [C++ Library Support](cpp-support.html), you will often need to
+pass `-latomic` when linking against libc++.
 
 You can make these settings directly, as in the following example:
 
@@ -117,8 +122,8 @@ Working with Clang
 Clang binaries are automatically included in standalone toolchains created with
 the new tool.
 
-Note that Clang binaries are copied along with the GCC ones, because they rely
-on the same assembler, linker, headers, libraries, and C++ STL implementation.
+Note: Clang binaries are copied along with the GCC ones, because they rely on
+the same assembler, linker, headers, libraries, and C++ STL implementation.
 
 This operation also installs two scripts, named `clang` and `clang++`, under
 `<install-dir>/bin`. These scripts invoke the real `clang` binary with the
@@ -153,8 +158,8 @@ working properly:
 * `-x c < /dev/null -dM -E` to dump predefined preprocessor definitions
 * `-save-temps` to compare `*.i` or `*.ii` preprocessed files.
 
-For more information about Clang, see http://clang.llvm.org/, especially the GCC
-compatibility section.
+For more information about Clang, see [Clang's website](http://clang.llvm.org/),
+especially the GCC compatibility section.
 
 ABI Compatibility
 -----------------
@@ -236,7 +241,8 @@ libc++, depending on what you specify for the `--stl=<name>` option described
 previously. To use this implementation of STL, you need to link your project
 with the proper library:
 
-* Use `-lstdc++` to link against the static library version of any
+* Use `-static-libstdc++` when using libc++ for the static library version, or
+  `-lstdc++` (implicit) to link against the static library version of any other
   implementation. Doing so ensures that all required C++ STL code is included
   into your final binary. This method is ideal if you are only generating a
   single shared library or executable.
@@ -245,18 +251,21 @@ with the proper library:
 
 * Alternatively, use `-lgnustl_shared` to link against the shared library
   version of GNU `libstdc++`. If you use this option, you must also make sure to
-  copy `libgnustl_shared.so` to your device in order for your code to load
+  package `libgnustl_shared.so` with your app in order for your code to load
   properly. Table 6 shows where this file is for each toolchain type.
 
   Note: GNU libstdc++ is licensed under the GPLv3 license, with a linking
   exception. If you cannot comply with its requirements, you cannot redistribute
   the shared library in your project.
 
-
 * Use `-lstlport_shared` to link against the shared library version of STLport.
-  When you do so, you need to make sure that you also copy
-  `libstlport_shared.so` to your device in order for your code to load properly.
+  When you do so, you need to make sure that you also package
+  `libstlport_shared.so` with your app in order for your code to load properly.
   Table 6 shows where this file is for each toolchain:
+
+* The shared library version of libc++ will be used by default. If you use this
+  option, `libc++_shared.so` must be packaged with your app or your code will
+  not load.  Table 6 shows where this file is for each architecture.
 
   **Table 3.** Specifiable `-march` values and their resulting targets.
 
@@ -278,4 +287,4 @@ exceptions.
 The reason the shared version of the libraries is not simply called
 `libstdc++.so` is that this name would conflict at runtime with the system's own
 minimal C++ runtime. For this reason, the build system enforces a new name for
-the GNU ELF library. The static library does not have this problem.
+the GNU library. The static library does not have this problem.
