@@ -95,7 +95,7 @@ use `-lgnustl_shared` for GNU `libstdc++`.
 Similarly, you can specify `--stl=libc++` to copy the LLVM libc++ headers and
 libraries. Unlike gnustl and stlport, you do not need to explicitly pass
 `-lc++_shared` to use the shared library. The shared library will be used by
-default unless building a static executable. To force the use of the shared
+default unless building a static executable. To force the use of the static
 library, pass `-static-libstdc++` when linking. This behavior matches that of a
 normal host toolchain.
 
