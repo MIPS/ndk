@@ -79,13 +79,15 @@ Note that the toolchain binaries do not depend on or contain host-specific
 paths. In other words, you can install them in any location or even move them if
 you need to.
 
-The `--arch` arugment is required, but the STL will default to gnustl and the
+The `--arch` argument is required, but the STL will default to gnustl and the
 API level will be set to the minimum supported level for the given architecture
 (currently 9 for 32-bit architectures and 21 for 64-bit architectures) if not
 explicitly stated.
 
 Unlike the old tool, Clang is always copied into the toolchain. Every standalone
-toolchain is useable for both Clang and GCC.
+toolchain is useable for both Clang and GCC. For more information about Clang,
+see [Clang's website](http://clang.llvm.org/), especially the GCC compatibility
+section.
 
 You may specify `--stl=stlport` to copy `libstlport` instead of the default
 `libgnustl`. If you do so, and you wish to link against the shared library, you
@@ -102,14 +104,6 @@ normal host toolchain.
 As mentioned in [C++ Library Support](cpp-support.html), you will often need to
 pass `-latomic` when linking against libc++.
 
-You can make these settings directly, as in the following example:
-
-```bash
-export PATH=/tmp/my-android-toolchain/bin:$PATH
-export CC=arm-linux-androideabi-gcc   # or export CC=clang
-export CXX=arm-linux-androideabi-g++  # or export CXX=clang++
-```
-
 Note that if you omit the `--install-dir` option, the tool creates a tarball in
 the current directory named `$TOOLCHAIN_NAME.tar.bz2`. The tarball can be placed
 in a different directory by using `--package-dir`.
@@ -125,8 +119,8 @@ the new tool.
 Note: Clang binaries are copied along with the GCC ones, because they rely on
 the same assembler, linker, headers, libraries, and C++ STL implementation.
 
-This operation also installs two scripts, named `clang` and `clang++`, under
-`<install-dir>/bin`. These scripts invoke the real `clang` binary with the
+This operation also installs two wrapper scripts, named `clang` and `clang++`,
+under `<install-dir>/bin`. These scripts invoke the `clang` binary with the
 correct target architecture flags. In other words, they should work without any
 modification, and you should be able to use them in your own builds by just
 setting the `CC` and `CXX` environment variables to point to them.
@@ -134,7 +128,7 @@ setting the `CC` and `CXX` environment variables to point to them.
 ### Clang targets with ARM
 
 When building for ARM, Clang changes the target based on the presence of the
-`-march=armv7-a` and/or `-mthumb` options:
+`-march=armv7-a` and/or `-mthumb` compiler flags:
 
 **Table 2.** Specifiable `-march` values and their resulting targets.
 
@@ -146,20 +140,14 @@ When building for ARM, Clang changes the target based on the presence of the
 
 You may also override with your own `-target` if you wish.
 
-The `-gcc-toolchain` option is unnecessary in a standalone toolchain because
-Clang locates `as` and `ld` in a predefined relative location.
-
 `clang` and `clang++` should be drop-in replacements for `gcc` and `g++` in a
-makefile. When in doubt, add the following options to verify that they are
-working properly:
+makefile. When in doubt, use the following options when invoking the compiler to
+verify that they are working properly:
 
 * `-v` to dump commands associated with compiler driver issues
 * `-###` to dump command line options, including implicitly predefined ones.
 * `-x c < /dev/null -dM -E` to dump predefined preprocessor definitions
 * `-save-temps` to compare `*.i` or `*.ii` preprocessed files.
-
-For more information about Clang, see [Clang's website](http://clang.llvm.org/),
-especially the GCC compatibility section.
 
 ABI Compatibility
 -----------------
@@ -168,11 +156,8 @@ By default, an ARM Clang standalone toolchain will target the armeabi-v7a ABI.
 GCC will target armeabi. Either can be controlled by passing the appropriate
 `-march` flag, and Clang can also be controlled with `-target`.
 
-To target armeabi-v7a with GCC, you must set the following flags:
-
-```
-CFLAGS= -march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16
-```
+To target armeabi-v7a with GCC, you must set the following flags when invoking
+the compiler: `-march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16`.
 
 The first flag targets the armv7 architecture. The second flag enables
 hardware-FPU instructions while ensuring that the system passes floating-point
@@ -182,23 +167,16 @@ We recommend using the `-mthumb` compiler flag to force the generation of
 16-bit Thumb-2 instructions (Thumb-1 for armeabi). If omitted, the toolchain
 will emit 32-bit ARM instructions.
 
-To use NEON instructions, you must change the `-mfpu` compiler flag:
-
-```
-CFLAGS= -march=armv7-a -mfloat-abi=softfp -mfpu=neon
-```
+To use NEON instructions, you must use the `-mfpu` compiler flag: `-mfpu=neon`.
 
 Note that this setting forces the use of `VFPv3-D32`, per the ARM specification.
 
 Also, make sure to provide the following two flags to the linker:
+`-march=armv7-a -Wl,--fix-cortex-a8`.
 
-```
-LDFLAGS= -march=armv7-a -Wl,--fix-cortex-a8
-```
-
-The first flag instructs the linker to pick `libgcc.a`, `libgcov.a`, and
-`crt*.o`, which are tailored for armv7-a. The 2nd flag is required as a
-workaround for a CPU bug in some Cortex-A8 implementations.
+The first flag instructs the linker to pick toolchain libraries which are
+tailored for armv7-a. The 2nd flag is required as a workaround for a CPU bug in
+some Cortex-A8 implementations.
 
 You don't have to use any specific compiler flag when targeting the other ABIs.
 
@@ -237,9 +215,9 @@ You do not need to do this when using the STLport or libc++ library.
 
 The standalone toolchain includes a copy of a C++ Standard Template Library
 implementation. This implementation is either for GNU libstdc++, STLport, or
-libc++, depending on what you specify for the `--stl=<name>` option described
-previously. To use this implementation of STL, you need to link your project
-with the proper library:
+libc++, depending on what you specify for the `--stl=<name>` option [described
+previously](#creating_the_toolchain). To use this implementation of STL, you
+need to link your project with the proper library:
 
 * Use `-static-libstdc++` when using libc++ for the static library version, or
   `-lstdc++` (implicit) to link against the static library version of any other
@@ -252,7 +230,7 @@ with the proper library:
 * Alternatively, use `-lgnustl_shared` to link against the shared library
   version of GNU `libstdc++`. If you use this option, you must also make sure to
   package `libgnustl_shared.so` with your app in order for your code to load
-  properly. Table 6 shows where this file is for each toolchain type.
+  properly. Table 3 shows where this file is for each toolchain type.
 
   Note: GNU libstdc++ is licensed under the GPLv3 license, with a linking
   exception. If you cannot comply with its requirements, you cannot redistribute
@@ -261,11 +239,11 @@ with the proper library:
 * Use `-lstlport_shared` to link against the shared library version of STLport.
   When you do so, you need to make sure that you also package
   `libstlport_shared.so` with your app in order for your code to load properly.
-  Table 6 shows where this file is for each toolchain:
+  Table 3 shows where this file is for each toolchain:
 
 * The shared library version of libc++ will be used by default. If you use this
   option, `libc++_shared.so` must be packaged with your app or your code will
-  not load.  Table 6 shows where this file is for each architecture.
+  not load.  Table 3 shows where this file is for each architecture.
 
   **Table 3.** Specifiable `-march` values and their resulting targets.
 
