@@ -14,8 +14,14 @@
 # limitations under the License.
 #
 import contextlib
+import logging
 import os
 import subprocess
+
+
+def logger():
+    """Returns the logger for this module."""
+    return logging.getLogger(__name__)
 
 
 def color_string(string, color):
@@ -49,6 +55,7 @@ def _call_output_inner(cmd, *args, **kwargs):
     OS specific stuff (Windows needs to handle WindowsError, but that isn't
     defined on non-Windows systems).
     """
+    logger().info('Popen: %s', ' '.join(cmd))
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, *args, **kwargs)
     out, _ = proc.communicate()
