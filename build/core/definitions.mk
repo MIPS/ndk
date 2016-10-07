@@ -378,6 +378,7 @@ modules-LOCALS := \
     MODULE_FILENAME \
     PATH \
     SRC_FILES \
+    HAS_CPP \
     CPP_EXTENSION \
     C_INCLUDES \
     CFLAGS \
@@ -809,7 +810,8 @@ module-get-c++-sources = \
 
 # Returns true if a module has C++ sources
 #
-module-has-c++-sources = $(strip $(call module-get-c++-sources,$1))
+module-has-c++-sources = $(strip $(call module-get-c++-sources,$1) \
+                                 $(filter true,$(__ndk_modules.$1.HAS_CPP)))
 
 
 # Add C++ dependencies to any module that has C++ sources.
