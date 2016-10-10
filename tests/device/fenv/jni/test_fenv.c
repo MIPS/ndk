@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+// For isnanf.
+#define _BSD_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
