@@ -29,13 +29,6 @@ def logger():
     return logging.getLogger(__name__)
 
 
-def check_call(cmd, *args, **kwargs):
-    """subprocess.check_call with logging."""
-    import subprocess
-    logger().info('check_call: %s', ' '.join(cmd))
-    subprocess.check_call(cmd, *args, **kwargs)
-
-
 def copy2(src, dst):
     """shutil.copy2 with logging."""
     import shutil
@@ -59,8 +52,8 @@ def makedirs(path):
 def build_docs():
     """Perform any necessary preprocessing steps.
 
-    At the moment all we need to do is rewrite "[TOC]" (gitiles spelling) to
-    "[[TOC]]" (devsite spelling).
+    * Rewrite "[TOC]" (gitiles spelling) to "[[TOC]]" (devsite spelling).
+    * Add devsite metadata for navigation support.
     """
     docs_dir = os.path.join(NDK_DIR, 'docs/user')
     out_dir = os.path.join(NDK_DIR, 'docs/out')
@@ -68,10 +61,18 @@ def build_docs():
         rmtree(out_dir)
     makedirs(out_dir)
     for doc in os.listdir(docs_dir):
-        path = os.path.join(docs_dir, doc)
         with open(os.path.join(out_dir, doc), 'w') as out_file:
-            check_call(['sed', '-e', r's/\[TOC\]/[[TOC]]/', path],
-                       stdout=out_file)
+            out_file.write(
+                'Project: /ndk/_project.yaml\n'
+                'Book: /ndk/guides/_book.yaml\n'
+                'Subcategory: guide\n'
+                '\n')
+
+            path = os.path.join(docs_dir, doc)
+            with open(path) as in_file:
+                contents = in_file.read()
+                contents = contents.replace('[TOC]', '[[TOC]]')
+                out_file.write(contents)
     return out_dir
 
 
