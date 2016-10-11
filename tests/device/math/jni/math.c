@@ -13,6 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+// C++ implies _GNU_SOURCE for clang++ and g++.
+#if !defined(__cplusplus)
+#define _GNU_SOURCE
+#endif
+
 #include <android/api-level.h>
 #include <features.h>
 #include <math.h>
