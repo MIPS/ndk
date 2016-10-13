@@ -722,6 +722,10 @@ module-get-direct-libs = $(strip \
 # -----------------------------------------------------------------------------
 module-get-all-dependencies = $(call -ndk-mod-get-closure,$1,module-get-depends)
 
+# Same as module-get-all-dependencies, but topologically sorted.
+module-get-all-dependencies-topo = \
+    $(call -ndk-mod-get-topological-depends,$1,module-get-all-dependencies)
+
 # -----------------------------------------------------------------------------
 # Compute the list of all static and shared libraries required to link a
 # given module.
