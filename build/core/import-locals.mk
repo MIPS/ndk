@@ -26,7 +26,7 @@ $(call assert-defined,LOCAL_MODULE)
 # and 'zoo'
 #
 
-all_depends := $(call module-get-all-dependencies,$(LOCAL_MODULE))
+all_depends := $(call module-get-all-dependencies-topo,$(LOCAL_MODULE))
 all_depends := $(filter-out $(LOCAL_MODULE),$(all_depends))
 
 imported_CFLAGS     := $(call module-get-listed-export,$(all_depends),CFLAGS)
