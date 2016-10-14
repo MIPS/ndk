@@ -69,21 +69,6 @@ ndk_library {
 }
 ```
 
-### Inform the build system
-
-The build system needs to know your library has been migrated to the new form so
-it can get the libraries from the out directory instead of prebuilts/ndk.
-Example CL: https://android-review.googlesource.com/#/c/251420/
-
-Note that if you're migraring an existing library you'll also need to remove the
-old prebuilt/ndk module. Here's an example of doing that for libc and libm:
-https://android-review.googlesource.com/#/c/251420/ (and also the CL for running
-the generator: https://android-review.googlesource.com/#/c/251441/).
-
-A full topic of migrating libc and libm from prebuilts/ndk to `ndk_library` and
-`ndk_headers` can be found here:
-https://android-review.googlesource.com/#/q/topic:ndk_library-libc-libm
-
 [bionic/libc/Android.bp]: https://android.googlesource.com/platform/bionic/+/master/libc/Android.bp
 
 For NDK Developers
