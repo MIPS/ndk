@@ -8,6 +8,54 @@ https://android.googlesource.com/platform/ndk/+/master/docs/PlatformApis.md.
 NDK. For the time being, the old method is still in use as well, and is covered
 by [Generating Sysroots](GeneratingSysroots.md).
 
+Implications of Adding a New Platform API
+-----------------------------------------
+
+Before adding a platform API to the NDK, there are some guarantees and
+restrictions that need to be considered.
+
+### ABI Compatibility
+
+The NDK ABI must be forward compatible. Apps that are in the Play Store must
+continue to function on new devices. This means that once something becomes NDK
+ABI, it must continue to be exposed and behavior must be preserved by the
+platform for the lifetime of the ABI (for all intents and purposes, forever).
+The NDK ABI includes but is not limited to:
+
+ * Exposed functions and global data.
+ * Layout and size of publicly visible data structures.
+ * Values of constants (such as enums).
+
+### Source Compatibility
+
+Source compatibility should be maintained, though exceptions have been made.
+When appropriate, source compatibility breaking features can be limited to only
+breaking when the user is targeting at least the API level that broke the change
+(e.g. `#if __ANDROID_API__ >= 24`), which ensures that any currently building
+app will continue building until the developer chooses to upgrade to a new
+platform level.
+
+Note that the definition of target API level in the NDK differs from the SDK.
+For the NDK, the target API level is the minimum supported API level for the
+app. If any non-ABI features are guarded by the target API level, they will only
+be available to apps with a minimum target that includes that API level.
+
+As a practical example of this, the NDK historically did not expose the `ALOG*`
+log macros, only the `__android_log_*` functions. If the macros were to be added
+but only exposed for API levels android-24 and newer, these helper macros that
+could otherwise be available to Gingerbread would only be usable by developers
+that chose to forfeit all Android users on devices older than android-24.
+
+### API Restrictions
+
+NDK APIs are C APIs only. This restriction may be lifted in the future, but at
+the moment Android's C++ ABI is not guaranteed to be stable. Note that this does
+not restrict the implementation of the API to C, only the interface that is
+exposed in the headers.
+
+NDK API headers can only depend on other NDK API headers. Platform headers from
+android-base, libcutils, libnativehelper, etc are not available to the NDK.
+
 For Platform Developers
 -----------------------
 
