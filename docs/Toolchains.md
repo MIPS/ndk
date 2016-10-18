@@ -70,7 +70,9 @@ libc++), so this is only going to be useful if you're debugging a test.
 ### Updating to a New Clang
 
 These steps need to be run after installing the new prebuilt from the build
-server to `prebuilts/clang` (see the Clang docs).
+server to `prebuilts/clang` (see the [Clang docs]).
+
+[Clang docs]: https://android.googlesource.com/platform/external/clang/+/dev/ToolchainPrebuilts.md
 
 ```bash
 # Edit ndk/build/tools/build-llvm.py and update the build number.
