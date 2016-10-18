@@ -87,18 +87,19 @@ Prerequisites
         ```
 
 * Additional Linux Dependencies (available from apt):
+    * asciidoctor
     * bison
+    * dos2unix
     * flex
     * libtool
     * mingw-w64
-    * zip
     * pbzip2 (optional, improves packaging times)
-    * texinfo
-    * asciidoctor
-    * ruby-pygments.rb
+    * python-lxml (used for Vulkan validation layer generation)
     * python-nose
     * python3 (used for Vulkan validation layer generation)
-    * python-lxml (used for Vulkan validation layer generation)
+    * ruby-pygments.rb
+    * texinfo
+    * zip
 * Mac OS X also requires Xcode.
 * Running tests requires that `adb` is in your `PATH`. This is provided as part
   of the [Android SDK].
