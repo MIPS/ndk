@@ -58,7 +58,8 @@ def main(args):
         host = 'windows-x86_64'
 
     if host == 'windows':
-        # We need to replace clang.exe with clang_32.exe. Copy clang into a
+        # We need to replace clang.exe with clang_32.exe and
+        # libwinpthread-1.dll with libwinpthread-1.dll.32. Copy clang into a
         # temporary directory for rearranging.
         build_path = os.path.join(args.out_dir, 'clang/windows')
         if os.path.exists(build_path):
@@ -69,6 +70,8 @@ def main(args):
                         install_path)
         os.rename(os.path.join(install_path, 'bin/clang_32.exe'),
                   os.path.join(install_path, 'bin/clang.exe'))
+        os.rename(os.path.join(install_path, 'bin/libwinpthread-1.dll.32'),
+                  os.path.join(install_path, 'bin/libwinpthread-1.dll'))
         # clang++.exe is not a symlink in the Windows package. Need to copy to
         # there as well.
         shutil.copy2(os.path.join(install_path, 'bin/clang.exe'),
