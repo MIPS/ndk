@@ -763,6 +763,10 @@ def build_simpleperf(out_dir, dist_dir, _args):
 
 def build_renderscript(out_dir, dist_dir, args):
     print('Building RenderScript...')
+    # Package Android.mk for RenderScript device prebuilts.
+    path = build_support.ndk_path('sources/android/renderscript')
+    build_support.make_package('renderscript', path, dist_dir)
+    # Package the entire RenderScript toolchain.
     invoke_build('build-renderscript.py', common_build_args(out_dir, dist_dir, args))
 
 

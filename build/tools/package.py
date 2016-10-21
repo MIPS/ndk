@@ -100,6 +100,7 @@ def get_all_packages(host, arches):
         ('ndk_helper', 'sources/android/ndk_helper'),
         ('python-packages', 'python-packages'),
         ('renderscript-{host}', 'toolchains/renderscript/prebuilt/{host}'),
+        ('renderscript', 'sources/android/renderscript'),
         ('shaderc', 'sources/third_party/shaderc'),
         ('simpleperf', 'simpleperf'),
         ('stlport', 'sources/cxx-stl/stlport'),
