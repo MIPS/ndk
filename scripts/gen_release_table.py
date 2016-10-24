@@ -86,6 +86,7 @@ def main():
     # Sort the artifacts by the platform name.
     artifacts = sorted(artifacts, key=operator.itemgetter(0))
 
+    print('For GitHub:')
     print('<table>')
     print('  <tr>')
     print('    <th>Platform</th>')
@@ -105,6 +106,23 @@ def main():
         print('    <td>{}</td>'.format(sha))
         print('  </tr>')
     print('</table>')
+    print()
+    print('For DAC:')
+    for host, package, size, sha in artifacts:
+        dac_host = {
+            'Mac OS X': 'mac64',
+            'Linux': 'linux64',
+            'Windows 64-bit': 'win64',
+            'Windows 32-bit': 'win32',
+        }[host]
+        print()
+        print('{{# {} #}}'.format(host))
+        print('{{% setvar ndk_{}_download %}}{}{{% endsetvar %}}'.format(
+            dac_host, package))
+        print('{{% setvar ndk_{}_bytes %}}{}{{% endsetvar %}}'.format(
+            dac_host, size))
+        print('{{% setvar ndk_{}_checksum %}}{}{{% endsetvar %}}'.format(
+            dac_host, sha))
 
 
 if __name__ == '__main__':
