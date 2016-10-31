@@ -46,7 +46,7 @@ def run_test(abi=None, platform=None, toolchain=None, build_flags=None):
         return proc.returncode == 0, out
 
     out_words = out.split(' ')
-    if abi == 'x86' and platform < 21:
+    if abi == 'x86':
         result = '-mstackrealign' in out_words
     else:
         result = '-mstackrealign' not in out_words
