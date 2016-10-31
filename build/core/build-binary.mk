@@ -227,11 +227,10 @@ ifneq (,$(filter true,$(NDK_APP_PIE) $(TARGET_PIE)))
 endif
 
 # http://b.android.com/222239
-# Older x86 devices had stack alignment issues.
-ifneq (,$(call lt,$(APP_PLATFORM_LEVEL),21))
-    ifeq ($(TARGET_ARCH_ABI),x86)
-        LOCAL_CFLAGS += -mstackrealign
-    endif
+# http://b.android.com/220159 (internal http://b/31809417)
+# x86 devices have stack alignment issues.
+ifeq ($(TARGET_ARCH_ABI),x86)
+    LOCAL_CFLAGS += -mstackrealign
 endif
 
 #

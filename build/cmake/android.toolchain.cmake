@@ -399,6 +399,12 @@ if(ANDROID_ABI STREQUAL mips AND ANDROID_TOOLCHAIN STREQUAL clang)
 	list(APPEND ANDROID_LINKER_FLAGS
 		"\"-L${ANDROID_TOOLCHAIN_ROOT}/lib/gcc/${ANDROID_TOOLCHAIN_NAME}/4.9.x/32/mips-r1\"")
 endif()
+if(ANDROID_ABI STREQUAL x86)
+	# http://b.android.com/222239
+	# http://b.android.com/220159 (internal http://b/31809417)
+	# x86 devices have stack alignment issues.
+	list(APPEND ANDROID_COMPILER_FLAGS -mstackrealign)
+endif()
 
 # STL specific flags.
 if(ANDROID_STL STREQUAL system)
