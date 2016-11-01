@@ -62,10 +62,13 @@ def main():
         'external/llvm/utils/lit/lit.py')
     libcxx_dir = os.path.join(args.ndk, 'sources/cxx-stl/llvm-libc++')
 
+    device_api_level = device.get_prop('ro.build.version.sdk')
+
     replacements = [
         ('ABI', args.abi),
         ('API', args.platform),
         ('ARCH', arch),
+        ('DEVICE_API', device_api_level),
         ('TOOLCHAIN', toolchain),
         ('TRIPLE', triple),
     ]
