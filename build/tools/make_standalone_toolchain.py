@@ -193,7 +193,8 @@ def copy_directory_contents(src, dst):
                 shutil.copy2(src_file, dst_dir)
 
 
-def make_clang_scripts(install_dir, target_arch, triple, windows):
+def make_clang_scripts(install_dir, target_arch, triple, api, windows,
+                       unified_headers):
     """Creates Clang wrapper scripts.
 
     The Clang in standalone toolchains historically was designed to be used as
@@ -235,6 +236,9 @@ def make_clang_scripts(install_dir, target_arch, triple, windows):
     target = '-'.join([arch, 'none', os_name, env])
     flags = '-target {}{} --sysroot `dirname $0`/../sysroot'.format(
         target, extra_flags)
+
+    if unified_headers:
+        flags += ' -D__ANDROID_API__={}'.format(api)
 
     clang_path = os.path.join(install_dir, 'bin/clang')
     with open(clang_path, 'w') as clang:
@@ -378,15 +382,36 @@ def copy_stlport_libs(src_dir, dst_dir, triple, abi):
                  os.path.join(dst_libdir, 'libstdc++.a'))
 
 
-def create_toolchain(install_path, arch, gcc_path, clang_path, sysroot_path,
-                     stl, host_tag):
+def create_toolchain(install_path, arch, api, gcc_path, clang_path,
+                     sysroot_path, stl, host_tag, unified_headers):
     """Create a standalone toolchain."""
     copy_directory_contents(gcc_path, install_path)
     copy_directory_contents(clang_path, install_path)
     triple = get_triple(arch)
     make_clang_scripts(
-        install_path, arch, triple, host_tag.startswith('windows'))
-    shutil.copytree(sysroot_path, os.path.join(install_path, 'sysroot'))
+        install_path, arch, triple, api, host_tag.startswith('windows'),
+        unified_headers)
+
+    if unified_headers:
+        unified_sysroot = os.path.join(NDK_DIR, 'sysroot')
+        install_sysroot = os.path.join(install_path, 'sysroot')
+        shutil.copytree(unified_sysroot, install_sysroot)
+
+        arch_headers = os.path.join(unified_sysroot, 'usr/include', triple)
+        copy_directory_contents(
+            arch_headers, os.path.join(install_sysroot, 'usr/include'))
+
+        lib_path = os.path.join(sysroot_path, 'usr/lib')
+        lib_install = os.path.join(install_sysroot, 'usr/lib')
+        if os.path.exists(lib_path):
+            shutil.copytree(lib_path, lib_install)
+
+        lib64_path = os.path.join(sysroot_path, 'usr/lib64')
+        lib64_install = os.path.join(install_sysroot, 'usr/lib64')
+        if os.path.exists(lib64_path):
+            shutil.copytree(lib64_path, lib64_install)
+    else:
+        shutil.copytree(sysroot_path, os.path.join(install_path, 'sysroot'))
 
     prebuilt_path = os.path.join(NDK_DIR, 'prebuilt', host_tag)
     copy_directory_contents(prebuilt_path, install_path)
@@ -532,6 +557,10 @@ def parse_args():
         help='C++ STL to use.')
 
     parser.add_argument(
+        '--unified-headers', action='store_true', default=False,
+        help='Use unified headers.')
+
+    parser.add_argument(
         '--force', action='store_true',
         help='Remove existing installation directory if it exists.')
     parser.add_argument(
@@ -595,8 +624,8 @@ def main():
         atexit.register(shutil.rmtree, tempdir)
         install_path = os.path.join(tempdir, triple)
 
-    create_toolchain(install_path, args.arch, gcc_path, clang_path,
-                     sysroot_path, args.stl, host_tag)
+    create_toolchain(install_path, args.arch, api, gcc_path, clang_path,
+                     sysroot_path, args.stl, host_tag, args.unified_headers)
 
     if args.install_dir is None:
         if host_tag.startswith('windows'):
