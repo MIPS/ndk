@@ -25,6 +25,7 @@ from __future__ import print_function
 import argparse
 import collections
 import inspect
+import itertools
 import multiprocessing
 import os
 import shutil
@@ -227,13 +228,26 @@ def test_ndk(out_dir, dist_dir, args):
     import tests.runners
     import tests.printers
 
+    configurations = itertools.product(
+        abis,
+        ['clang'],  # Toolchains to test. Don't bother with GCC.
+        [False, True],  # Force unified headers.
+    )
+
     details = {}
-    for abi in abis:
+    for abi, toolchain, force_unified_headers in configurations:
+        if force_unified_headers:
+            force_unified_headers_str = 'unified headers'
+        else:
+            force_unified_headers_str = 'legacy headers'
+
+        cfg = ' '.join([abi, toolchain, force_unified_headers_str])
         test_out_dir = os.path.join(out_dir, 'test', abi)
-        results[abi], details[abi] = tests.runners.run_single_configuration(
+        results[cfg], details[cfg] = tests.runners.run_single_configuration(
             test_dir, test_out_dir,
             tests.printers.StdoutPrinter(use_color=use_color),
-            abi, 'clang', skip_run=True)
+            abi, toolchain, skip_run=True,
+            force_unified_headers=force_unified_headers)
 
     all_pass = all(results.values())
     if not all_pass:
