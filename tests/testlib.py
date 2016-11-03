@@ -21,6 +21,7 @@ import distutils.spawn
 import filecmp
 import glob
 import imp
+import logging
 import multiprocessing
 import os
 import posixpath
@@ -35,6 +36,11 @@ import tests.ndk as ndk
 import tests.util as util
 
 # pylint: disable=no-self-use
+
+
+def logger():
+    """Return the logger for this module."""
+    return logging.getLogger(__name__)
 
 
 def _get_jobs_arg():
@@ -64,12 +70,14 @@ class TestScanner(object):
 
 
 class BuildConfiguration(object):
-    def __init__(self, abi, api, toolchain, force_pie, verbose):
+    def __init__(self, abi, api, toolchain, force_pie, verbose,
+                 force_unified_headers):
         self.abi = abi
         self.api = api
         self.toolchain = toolchain
         self.force_pie = force_pie
         self.verbose = verbose
+        self.force_unified_headers = force_unified_headers
 
     def __eq__(self, other):
         if self.abi != other.abi:
@@ -82,6 +90,8 @@ class BuildConfiguration(object):
             return False
         if self.verbose != other.verbose:
             return False
+        if self.force_unified_headers != other.force_unified_headers:
+            return False
         return True
 
     def get_extra_ndk_build_flags(self):
@@ -90,6 +100,8 @@ class BuildConfiguration(object):
             extra_flags.append('APP_PIE=true')
         if self.verbose:
             extra_flags.append('V=1')
+        if self.force_unified_headers:
+            extra_flags.append('APP_UNIFIED_HEADERS=true')
         return extra_flags
 
     def get_extra_cmake_flags(self):
@@ -98,14 +110,16 @@ class BuildConfiguration(object):
             extra_flags.append('-DANDROID_PIE=TRUE')
         if self.verbose:
             extra_flags.append('-DCMAKE_VERBOSE_MAKEFILE=ON')
+        if self.force_unified_headers:
+            logger().warning('cmake does not support unified headers')
         return extra_flags
 
 
 class DeviceConfiguration(BuildConfiguration):
-    def __init__(self, abi, api, toolchain, force_pie, verbose, device,
-                 device_api, skip_run):
+    def __init__(self, abi, api, toolchain, force_pie, verbose,
+                 force_unified_headers, device, device_api, skip_run):
         super(DeviceConfiguration, self).__init__(
-            abi, api, toolchain, force_pie, verbose)
+            abi, api, toolchain, force_pie, verbose, force_unified_headers)
         self.device = device
         self.device_api = device_api
         self.skip_run = skip_run
@@ -147,9 +161,10 @@ class BuildTestScanner(TestScanner):
     def __init__(self):
         self.build_configurations = set()
 
-    def add_build_configuration(self, abi, api, toolchain, force_pie, verbose):
+    def add_build_configuration(self, abi, api, toolchain, force_pie, verbose,
+                                force_unified_headers):
         self.build_configurations.add(BuildConfiguration(
-            abi, api, toolchain, force_pie, verbose))
+            abi, api, toolchain, force_pie, verbose, force_unified_headers))
 
     def find_tests(self, path, name):
         # If we have a build.sh, that takes precedence over the Android.mk.
@@ -211,10 +226,11 @@ class DeviceTestScanner(TestScanner):
         self.device_configurations = set()
 
     def add_device_configuration(self, abi, api, toolchain, force_pie, verbose,
-                                 device, device_api, skip_run):
+                                 force_unified_headers, device, device_api,
+                                 skip_run):
         self.device_configurations.add(DeviceConfiguration(
-            abi, api, toolchain, force_pie, verbose, device, device_api,
-            skip_run))
+            abi, api, toolchain, force_pie, verbose, force_unified_headers,
+            device, device_api, skip_run))
 
     def find_tests(self, path, name):
         # If we have a build.sh, that takes precedence over the Android.mk.

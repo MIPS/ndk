@@ -98,6 +98,10 @@ class ArgParser(argparse.ArgumentParser):
             help='Toolchain for building tests. Defaults to clang.')
 
         self.add_argument(
+            '--force-unified-headers', action='store_true',
+            help='Set `APP_UNIFIED_HEADERS=true` for all builds.')
+
+        self.add_argument(
             '--show-commands', action='store_true',
             help='Show build commands for each test.')
         self.add_argument(
@@ -173,7 +177,8 @@ def main():
     good, _ = tests.runners.run_single_configuration(
         ndk_path, out_dir, printer, args.abi, args.toolchain, args.platform,
         args.show_commands, suites=suites, test_filter=args.filter,
-        skip_run=args.skip_run)
+        skip_run=args.skip_run,
+        force_unified_headers=args.force_unified_headers)
     sys.exit(not good)
 
 

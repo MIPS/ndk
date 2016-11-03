@@ -129,7 +129,8 @@ class ResultStats(object):
 def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
                              build_api_level=None, verbose_build=False,
                              suites=None, test_filter=None,
-                             device_serial=None, skip_run=False):
+                             device_serial=None, skip_run=False,
+                             force_unified_headers=False):
     """Runs all the tests for the given configuration.
 
     Sets up the necessary build flags and environment, checks that the device
@@ -155,6 +156,7 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
             attached device.
         skip_run: Skip running the tests; just build. Useful for post-build
             steps if CI doesn't have the device available.
+        force_unified_headers: Set `APP_UNIFIED_HEADERS=true` for every build.
 
     Returns:
         Tuple of (result, details).
@@ -177,15 +179,11 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
 
     os.environ['NDK'] = ndk_path
 
-    ndk_build_flags = []
-    cmake_flags = []
     if verbose_build:
         # Don't decrease our log level.
         root_logger = logging.getLogger()
         if root_logger.getEffectiveLevel() != logging.DEBUG:
             root_logger.setLevel(logging.INFO)
-        ndk_build_flags.append('V=1')
-        cmake_flags.append('-DCMAKE_VERBOSE_MAKEFILE=ON')
 
     force_pie = False
 
@@ -201,8 +199,6 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
         # if we're running on a newer device.
         if device_api_level >= 21:
             force_pie = True
-            ndk_build_flags.append('APP_PIE=true')
-            cmake_flags.append('-DANDROID_PIE=TRUE')
 
         os.environ['ANDROID_SERIAL'] = device.serial
 
@@ -230,13 +226,14 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
     if 'build' in suites:
         build_scanner = tests.testlib.BuildTestScanner()
         build_scanner.add_build_configuration(
-            abi, build_api_level, toolchain, force_pie, verbose_build)
+            abi, build_api_level, toolchain, force_pie, verbose_build,
+            force_unified_headers)
         runner.add_suite('build', 'build', build_scanner)
     if 'device' in suites:
         device_scanner = tests.testlib.DeviceTestScanner()
         device_scanner.add_device_configuration(
-            abi, build_api_level, toolchain, force_pie, verbose_build, device,
-            device_api_level, skip_run)
+            abi, build_api_level, toolchain, force_pie, verbose_build,
+            force_unified_headers, device, device_api_level, skip_run)
         runner.add_suite('device', 'device', device_scanner)
 
     test_filters = tests.filters.TestFilter.from_string(test_filter)
@@ -248,7 +245,8 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
     return stats.global_stats['fail'] == 0, results
 
 
-def run_tests(ndk_path, device, abi, toolchain, out_dir, log_dir, test_filter):
+def run_tests(ndk_path, device, abi, toolchain, out_dir, log_dir, test_filter,
+              force_unified_headers):
     print('Running {} {} tests for {}... '.format(toolchain, abi, device),
           end='')
     sys.stdout.flush()
@@ -259,13 +257,14 @@ def run_tests(ndk_path, device, abi, toolchain, out_dir, log_dir, test_filter):
         printer = tests.printers.FilePrinter(log_file)
         good, details = run_single_configuration(
             ndk_path, out_dir, printer, abi, toolchain,
-            device_serial=device.serial, test_filter=test_filter)
+            device_serial=device.serial, test_filter=test_filter,
+            force_unified_headers=force_unified_headers)
         print('PASS' if good else 'FAIL')
         return good, details
 
 
 def run_for_fleet(ndk_path, fleet, out_dir, log_dir, test_filter,
-                  use_color=False):
+                  use_color=False, force_unified_headers=False):
     # Note that we are duplicating some testing here.
     #
     # * The awk tests only need to be run once because they do not vary by
@@ -291,7 +290,7 @@ def run_for_fleet(ndk_path, fleet, out_dir, log_dir, test_filter,
 
                 result, run_details = run_tests(
                     ndk_path, device, abi, toolchain, out_dir, log_dir,
-                    test_filter)
+                    test_filter, force_unified_headers)
                 pass_label = tests.util.maybe_color('PASS', 'green', use_color)
                 fail_label = tests.util.maybe_color('FAIL', 'red', use_color)
                 results.append('android-{} {} {}: {}'.format(

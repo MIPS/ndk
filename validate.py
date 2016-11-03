@@ -192,6 +192,9 @@ def parse_args():
     parser.add_argument(
         '--log-dir', type=os.path.realpath, default='test-logs',
         help='Directory to store test logs.')
+    parser.add_argument(
+        '--force-unified-headers', action='store_true',
+        help='Set `APP_UNIFIED_HEADERS=true` for all builds.')
 
     return parser.parse_args()
 
@@ -264,7 +267,8 @@ def main():
     try:
         import tests.runners
         good, details = tests.runners.run_for_fleet(
-            args.ndk, fleet, out_dir, args.log_dir, args.filter, use_color)
+            args.ndk, fleet, out_dir, args.log_dir, args.filter, use_color,
+            args.force_unified_headers)
     finally:
         shutil.rmtree(out_dir)
 
