@@ -53,6 +53,14 @@ Known Issues
 
  * This is not intended to be a comprehensive list of all outstanding bugs.
  * CMake and Gradle do not yet support unified headers.
+ * RenderScript tools are not present (not a regression from r11):
+   https://github.com/android-ndk/ndk/issues/7.
+
+Won't Fix
+---------
+
+These issues will not be fixed. They affect only GCC, which is deprecated.
+
  * Standlone toolchains using libc++ and GCC do not work. This seems to be a bug
    in GCC. See the following commit message for more details:
    https://android-review.googlesource.com/#/c/247498
@@ -60,5 +68,3 @@ Known Issues
    headers. They can be made to work by passing `-D__ANDROID_API__=21`
    (replacing 21 with the same API level you passed to
    `make_standalone_toolchain.py`) when compiling.
- * RenderScript tools are not present (not a regression from r11):
-   https://github.com/android-ndk/ndk/issues/7.
