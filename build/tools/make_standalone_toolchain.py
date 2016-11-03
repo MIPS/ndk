@@ -58,7 +58,7 @@ def check_ndk_or_die():
 
 def get_triple(arch):
     """Return the triple for the given architecture."""
-    """Use same GCC toolchain for both mips arches."""
+    # Use same GCC toolchain for both mips arches.
     return {
         'arm': 'arm-linux-androideabi',
         'arm64': 'aarch64-linux-android',
@@ -80,6 +80,7 @@ def get_abis(arch):
         'x86_64': ['x86_64'],
     }[arch]
 
+
 def get_dst_dir(arch):
     """Return directory for the given architecture."""
     return {
@@ -90,6 +91,7 @@ def get_dst_dir(arch):
         'x86': 'i686-linux-android',
         'x86_64': 'x86_64-linux-android',
     }[arch]
+
 
 def get_host_tag_or_die():
     """Return the host tag for this platform. Die if not supported."""
@@ -231,7 +233,8 @@ def make_clang_scripts(install_dir, target_arch, triple, windows):
         extra_flags += ' -L`dirname $0`/../' + mips_gcc_libpath
 
     target = '-'.join([arch, 'none', os_name, env])
-    flags = '-target {}{} --sysroot `dirname $0`/../sysroot'.format(target, extra_flags)
+    flags = '-target {}{} --sysroot `dirname $0`/../sysroot'.format(
+        target, extra_flags)
 
     clang_path = os.path.join(install_dir, 'bin/clang')
     with open(clang_path, 'w') as clang:
@@ -381,7 +384,8 @@ def create_toolchain(install_path, arch, gcc_path, clang_path, sysroot_path,
     copy_directory_contents(gcc_path, install_path)
     copy_directory_contents(clang_path, install_path)
     triple = get_triple(arch)
-    make_clang_scripts(install_path, arch, triple, host_tag.startswith('windows'))
+    make_clang_scripts(
+        install_path, arch, triple, host_tag.startswith('windows'))
     shutil.copytree(sysroot_path, os.path.join(install_path, 'sysroot'))
 
     prebuilt_path = os.path.join(NDK_DIR, 'prebuilt', host_tag)
