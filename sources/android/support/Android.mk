@@ -136,6 +136,10 @@ android_support_sources += \
 
 endif
 
+ifneq (,$(filter arm mips,$(TARGET_ARCH)))
+android_support_sources += src/fenv_$(TARGET_ARCH).c
+endif
+
 endif  # 64-/32-bit ABIs
 
 ifneq ($(LIBCXX_FORCE_REBUILD),true) # Using prebuilt
