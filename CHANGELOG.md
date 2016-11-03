@@ -52,7 +52,7 @@ Known Issues
 ------------
 
  * This is not intended to be a comprehensive list of all outstanding bugs.
- * CMake and Gradle do not yet support unified headers.
+ * Gradle does not yet support unified headers.
  * RenderScript tools are not present (not a regression from r11):
    https://github.com/android-ndk/ndk/issues/7.
 

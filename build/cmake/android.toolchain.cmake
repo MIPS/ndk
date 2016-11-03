@@ -200,6 +200,7 @@ if(ANDROID_ABI MATCHES "^armeabi(-v7a)?$")
 	set(ANDROID_SYSROOT_ABI arm)
 	set(ANDROID_TOOLCHAIN_NAME arm-linux-androideabi)
 	set(ANDROID_TOOLCHAIN_ROOT ${ANDROID_TOOLCHAIN_NAME})
+	set(ANDROID_HEADER_TRIPLE arm-linux-androideabi)
 	if(ANDROID_ABI STREQUAL armeabi)
 		set(CMAKE_SYSTEM_PROCESSOR armv5te)
 		set(ANDROID_LLVM_TRIPLE armv5te-none-linux-androideabi)
@@ -213,30 +214,35 @@ elseif(ANDROID_ABI STREQUAL arm64-v8a)
 	set(ANDROID_TOOLCHAIN_NAME aarch64-linux-android)
 	set(ANDROID_TOOLCHAIN_ROOT ${ANDROID_TOOLCHAIN_NAME})
 	set(ANDROID_LLVM_TRIPLE aarch64-none-linux-android)
+	set(ANDROID_HEADER_TRIPLE aarch64-linux-android)
 elseif(ANDROID_ABI STREQUAL x86)
 	set(ANDROID_SYSROOT_ABI x86)
 	set(CMAKE_SYSTEM_PROCESSOR i686)
 	set(ANDROID_TOOLCHAIN_NAME i686-linux-android)
 	set(ANDROID_TOOLCHAIN_ROOT ${ANDROID_ABI})
 	set(ANDROID_LLVM_TRIPLE i686-none-linux-android)
+	set(ANDROID_HEADER_TRIPLE i686-linux-android)
 elseif(ANDROID_ABI STREQUAL x86_64)
 	set(ANDROID_SYSROOT_ABI x86_64)
 	set(CMAKE_SYSTEM_PROCESSOR x86_64)
 	set(ANDROID_TOOLCHAIN_NAME x86_64-linux-android)
 	set(ANDROID_TOOLCHAIN_ROOT ${ANDROID_ABI})
 	set(ANDROID_LLVM_TRIPLE x86_64-none-linux-android)
+	set(ANDROID_HEADER_TRIPLE x86_64-linux-android)
 elseif(ANDROID_ABI STREQUAL mips)
 	set(ANDROID_SYSROOT_ABI mips)
 	set(CMAKE_SYSTEM_PROCESSOR mips)
 	set(ANDROID_TOOLCHAIN_NAME mips64el-linux-android)
 	set(ANDROID_TOOLCHAIN_ROOT ${ANDROID_TOOLCHAIN_NAME})
 	set(ANDROID_LLVM_TRIPLE mipsel-none-linux-android)
+	set(ANDROID_HEADER_TRIPLE mipsel-linux-android)
 elseif(ANDROID_ABI STREQUAL mips64)
 	set(ANDROID_SYSROOT_ABI mips64)
 	set(CMAKE_SYSTEM_PROCESSOR mips64)
 	set(ANDROID_TOOLCHAIN_NAME mips64el-linux-android)
 	set(ANDROID_TOOLCHAIN_ROOT ${ANDROID_TOOLCHAIN_NAME})
 	set(ANDROID_LLVM_TRIPLE mips64el-none-linux-android)
+	set(ANDROID_HEADER_TRIPLE mips64el-linux-android)
 else()
 	message(FATAL_ERROR "Invalid Android ABI: ${ANDROID_ABI}.")
 endif()
@@ -277,8 +283,32 @@ else()
 	message(FATAL_ERROR "Invalid Android STL: ${ANDROID_STL}.")
 endif()
 
+set(ANDROID_COMPILER_FLAGS)
+set(ANDROID_COMPILER_FLAGS_CXX)
+set(ANDROID_COMPILER_FLAGS_DEBUG)
+set(ANDROID_COMPILER_FLAGS_RELEASE)
+set(ANDROID_LINKER_FLAGS)
+set(ANDROID_LINKER_FLAGS_EXE)
+
 # Sysroot.
-set(CMAKE_SYSROOT "${ANDROID_NDK}/platforms/${ANDROID_PLATFORM}/arch-${ANDROID_SYSROOT_ABI}")
+if(NOT ANDROID_UNIFIED_HEADERS)
+	set(CMAKE_SYSROOT "${ANDROID_NDK}/platforms/${ANDROID_PLATFORM}/arch-${ANDROID_SYSROOT_ABI}")
+else()
+	set(CMAKE_SYSROOT "${ANDROID_NDK}/sysroot")
+	# The compiler driver doesn't check any arch specific include locations
+	# (though maybe we should add that). Architecture specific headers like asm/
+	# and machine/ are installed to an arch-$ARCH subdirectory of the sysroot.
+	list(APPEND ANDROID_COMPILER_FLAGS
+		"-isystem ${CMAKE_SYSROOT}/usr/include/${ANDROID_HEADER_TRIPLE}")
+	list(APPEND ANDROID_COMPILER_FLAGS
+		"-D__ANDROID_API__=${ANDROID_PLATFORM_LEVEL}")
+
+	# We need different sysroots for linking and compiling when using unified
+	# headers, but cmake doesn't support that. Pass the sysroot flag manually when
+	# linking.
+	list(APPEND ANDROID_LINKER_FLAGS
+		"--sysroot ${ANDROID_NDK}/platforms/${ANDROID_PLATFORM}/arch-${ANDROID_SYSROOT_ABI}")
+endif()
 
 # Toolchain.
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL Linux)
@@ -326,13 +356,6 @@ if(NOT IS_DIRECTORY "${ANDROID_NDK}/platforms/${ANDROID_PLATFORM}")
 elseif(NOT IS_DIRECTORY "${CMAKE_SYSROOT}")
 	message(FATAL_ERROR "Invalid Android sysroot: ${CMAKE_SYSROOT}.")
 endif()
-
-set(ANDROID_COMPILER_FLAGS)
-set(ANDROID_COMPILER_FLAGS_CXX)
-set(ANDROID_COMPILER_FLAGS_DEBUG)
-set(ANDROID_COMPILER_FLAGS_RELEASE)
-set(ANDROID_LINKER_FLAGS)
-set(ANDROID_LINKER_FLAGS_EXE)
 
 # Generic flags.
 list(APPEND ANDROID_COMPILER_FLAGS

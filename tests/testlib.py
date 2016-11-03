@@ -111,7 +111,7 @@ class BuildConfiguration(object):
         if self.verbose:
             extra_flags.append('-DCMAKE_VERBOSE_MAKEFILE=ON')
         if self.force_unified_headers:
-            logger().warning('cmake does not support unified headers')
+            extra_flags.append('-DANDROID_UNIFIED_HEADERS=ON')
         return extra_flags
 
 
