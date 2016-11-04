@@ -36,6 +36,10 @@ Known Issues
  * Standlone toolchains using libc++ and GCC do not work. This seems to be a bug
    in GCC. See the following commit message for more details:
    https://android-review.googlesource.com/#/c/247498
+ * Standalone toolchains using GCC do not work out of the box with unified
+   headers. They can be made to work by passing `-D__ANDROID_API__=21`
+   (replacing 21 with the same API level you passed to
+   `make_standalone_toolchain.py`) when compiling.
  * Bionic headers and libraries for Marshmallow and N are not yet exposed
    despite the presence of android-24. Those platforms are still the Lollipop
    headers and libraries (not a regression from r11).

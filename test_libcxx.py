@@ -33,6 +33,9 @@ def parse_args():
         '-p', '--platform', required=True, type=int,
         help='API level to build against.')
     parser.add_argument(
+        '--unified-headers', action='store_true', default=False,
+        help='Use NDK unified headers.')
+    parser.add_argument(
         '-t', '--timeout', default=300, type=int,
         help='Per-test timeout in seconds.')
 
@@ -101,6 +104,7 @@ def main():
 
     lit_args = [
         lit_path, '-sv', '--param=device_dir=' + device_dir,
+        '--param=unified_headers={}'.format(args.unified_headers),
         '--timeout={}'.format(args.timeout)
     ] + extra_args
     if not have_filter_args:
