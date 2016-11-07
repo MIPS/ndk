@@ -13,6 +13,4 @@ def build_unsupported(abi, platform, toolchain):
 def build_broken(abi, platform, toolchain):
     if toolchain == '4.9':
         return toolchain, 'http://b/31021045'
-    elif toolchain == 'clang' and abi == 'armeabi-v7a':
-        return toolchain, 'http://b/32255384'
     return None, None

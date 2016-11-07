@@ -588,9 +588,11 @@ def build_vulkan(out_dir, dist_dir, args):
             'files': [
                 'vk-generate.py',
                 'vk_helper.py',
-                'vk-layer-generate.py',
                 'generator.py',
-                'genvk.py',
+                'lvl_genvk.py',
+                'threading_generator.py',
+                'parameter_validation_generator.py',
+                'unique_objects_generator.py',
                 'reg.py',
                 'source_line_info.py',
                 'vulkan.py',
