@@ -371,107 +371,20 @@ get_default_compiler_for_arch()
     echo "$CC"
 }
 
-# $1: library name
-# $2: functions list
-# $3: variables list
-# $4: destination file
-# $5: compiler command
-# $6: version script (optional)
-gen_shared_lib ()
+# Copies the prebuilt shared library stubs into the NDK sysroot.
+# $1: Destination sysroot
+# $2: Architecture
+# $3: API level
+copy_shared_libraries ()
 {
-    local LIBRARY=$1
-    local FUNCS="$2"
-    local VARS="$3"
-    local DSTFILE="$4"
-    local CC="$5"
-    local VERSION_SCRIPT="$6"
+    local DEST=$DSTDIR/$1
+    local ARCH=$2
+    local API=$3
 
-    # Now generate a small C source file that contains similarly-named stubs
-    echo "/* Auto-generated file, do not edit */" > $TMPC
-    local func var
-    for func in $FUNCS; do
-        echo "void $func(void) {}" >> $TMPC
-    done
-    for var in $VARS; do
-        echo "int $var = 0;" >> $TMPC
-    done
-
-    # Build it with our cross-compiler. It will complain about conflicting
-    # types for built-in functions, so just shut it up.
-    COMMAND="$CC -Wl,-shared,-Bsymbolic -Wl,-soname,$LIBRARY -nostdlib -o $TMPO $TMPC -Wl,--exclude-libs,libgcc.a -w"
-    if [ -n "$VERSION_SCRIPT" ]; then
-      COMMAND="$COMMAND -Wl,--version-script=$VERSION_SCRIPT -Wl,--no-undefined-version"
-    fi
-    echo "## COMMAND: $COMMAND"
-    $COMMAND
-    if [ $? != 0 ] ; then
-        dump "ERROR: Can't generate shared library for: $LIBRARY"
-        dump "See the content of $TMPC for details."
-        exit 1
-    fi
-
-    # Copy to our destination now
-    local libdir=$(dirname "$DSTFILE")
-    mkdir -p "$libdir" && rm -f "$DSTFILE" && cp -f $TMPO "$DSTFILE"
-    if [ $? != 0 ] ; then
-        dump "ERROR: Can't copy shared library for: $LIBRARY"
-        dump "target location is: $DSTFILE"
-        exit 1
-    fi
-
-    if [ "$OPTION_DEBUG_LIBS" ]; then
-      cp $TMPC $DSTFILE.c
-      echo "$FUNCS" | tr ' ' '\n' > $DSTFILE.functions.txt
-      echo "$VARS" | tr ' ' '\n' > $DSTFILE.variables.txt
-    fi
-}
-
-# $1: Architecture
-# $2: symbol source directory (relative to $SRCDIR)
-# $3: destination directory for generated libs (relative to $DSTDIR)
-# $4: compiler flags (optional)
-gen_shared_libraries ()
-{
-    local ARCH=$1
-    local SYMDIR="$SRCDIR/$2"
-    local DSTDIR="$DSTDIR/$3"
-    local FLAGS="$4"
-    local CC funcs vars numfuncs numvars
-
-    # Let's locate the toolchain we're going to use
-    CC=$(get_default_compiler_for_arch $ARCH)" $FLAGS"
-    if [ $? != 0 ]; then
-        echo $CC
-        exit 1
-    fi
-
-    # In certain cases, the symbols directory doesn't exist,
-    # e.g. on x86 for PLATFORM < 9
-    if [ ! -d "$SYMDIR" ]; then
-        return
-    fi
-
-    # Let's list the libraries we're going to generate
-    LIBS=$( (cd $SYMDIR && 2>/dev/null ls *.functions.txt) | sort -u | sed -e 's!\.functions\.txt$!!g')
-
-    for LIB in $LIBS; do
-        funcs=$(cat "$SYMDIR/$LIB.functions.txt" 2>/dev/null)
-        vars=$(cat "$SYMDIR/$LIB.variables.txt" 2>/dev/null)
-        funcs=$(remove_unwanted_function_symbols $ARCH libgcc.a $funcs)
-        funcs=$(remove_unwanted_function_symbols $ARCH $LIB $funcs)
-        vars=$(remove_unwanted_variable_symbols $ARCH libgcc.a $vars)
-        vars=$(remove_unwanted_variable_symbols $ARCH $LIB $vars)
-        numfuncs=$(echo $funcs | wc -w)
-        numvars=$(echo $vars | wc -w)
-        version_script=""
-
-        if [ -f "$SYMDIR/$LIB.versions.txt" ]; then
-          version_script="$SYMDIR/$LIB.versions.txt"
-        fi
-        log "Generating $ARCH shared library for $LIB ($numfuncs functions + $numvars variables)"
-
-        gen_shared_lib $LIB "$funcs" "$vars" "$DSTDIR/$LIB" "$CC" "$version_script"
-    done
+    PLATFORM_PREBUILTS=$NDK_DIR/../prebuilts/ndk/platform
+    PREBUILT_SYSROOT=$PLATFORM_PREBUILTS/platforms/android-$API/arch-$ARCH
+    dump "Copying prebuilt sysroot $PREBUILT_SYSROOT/usr/* -> `pwd`/$DEST"
+    cp -r $PREBUILT_SYSROOT/usr/* $DEST
 }
 
 # $1: platform number
@@ -736,23 +649,7 @@ for ARCH in $ARCHS; do
                 ;;
         esac
 
-        # Generate shared libraries from symbol files
-        case "$ARCH" in
-            x86_64)
-                gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib "-m32"
-                gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib64 "-m64"
-                ;;
-            mips64)
-                gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib64 "-mabi=64 -mips64r6"
-                ;;
-            mips)
-                gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/lib "-mabi=32 -mips32"
-                gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/libr6 "-mabi=32 -mips32r6"
-                ;;
-            *)
-                gen_shared_libraries $ARCH $PLATFORM_SRC/arch-$ARCH/symbols $SYSROOT_DST/$LIBDIR
-                ;;
-        esac
+        copy_shared_libraries $SYSROOT_DST $ARCH $PLATFORM
         PREV_SYSROOT_DST=$SYSROOT_DST
     done
 done
