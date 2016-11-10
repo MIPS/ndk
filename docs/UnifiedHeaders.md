@@ -39,9 +39,6 @@ Known Issues
  * Standalone toolchains using GCC are not supported out of the box. To use GCC,
    pass `-D__ANDROID_API__=$API` when compiling.
 
- * CMake support has not been submitted yet (pending a solution for
-   `libandroid_support`).
-
 
 Using Unified Headers
 ---------------------
@@ -57,8 +54,6 @@ APP_UNIFIED_HEADERS := true
 ```
 
 ### CMake
-
-Note: The change to support unified headers in CMake has not been submitted yet.
 
 ```bash
 cmake -DANDROID_UNIFIED_HEADERS=ON ...
