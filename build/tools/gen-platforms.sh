@@ -300,48 +300,6 @@ symlink_src_directory ()
     symlink_src_directory_inner "$1" "$2" "$(reverse_path $1)"
 }
 
-# Remove unwanted symbols
-# $1: symbol file (one symbol per line)
-# $2+: Input symbol list
-# Out: Input symbol file, without any unwanted symbol listed by $1
-remove_unwanted_symbols_from ()
-{
-  local SYMBOL_FILE="$1"
-  shift
-  if [ -f "$SYMBOL_FILE" ]; then
-    echo "$@" | tr ' ' '\n' | grep -v -F -x -f $SYMBOL_FILE | tr '\n' ' '
-  else
-    echo "$@"
-  fi
-}
-
-# Remove unwanted symbols from a library's functions list.
-# $1: Architecture name
-# $2: Library name (e.g. libc.so)
-# $3+: Input symbol list
-# Out: Input symbol list without any unwanted symbols.
-remove_unwanted_function_symbols ()
-{
-  local ARCH LIBRARY SYMBOL_FILE
-  ARCH=$1
-  LIBRARY=$2
-  shift; shift
-  SYMBOL_FILE=$PROGDIR/unwanted-symbols/$ARCH/$LIBRARY.functions.txt
-  remove_unwanted_symbols_from $SYMBOL_FILE "$@"
-}
-
-# Same as remove_unwanted_functions_symbols, but for variable names.
-#
-remove_unwanted_variable_symbols ()
-{
-  local ARCH LIBRARY SYMBOL_FILE
-  ARCH=$1
-  LIBRARY=$2
-  shift; shift
-  SYMBOL_FILE=$PROGDIR/unwanted-symbols/$ARCH/$LIBRARY.variables.txt
-  remove_unwanted_symbols_from $SYMBOL_FILE "$@"
-}
-
 # $1: Architecture
 # Out: compiler command
 get_default_compiler_for_arch()
