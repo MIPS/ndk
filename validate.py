@@ -192,25 +192,20 @@ def parse_args():
     parser.add_argument(
         '--log-dir', type=os.path.realpath, default='test-logs',
         help='Directory to store test logs.')
-    parser.add_argument(
-        '--force-unified-headers', action='store_true',
-        help='Set `APP_UNIFIED_HEADERS=true` for all builds.')
 
     return parser.parse_args()
 
 
 def get_aggregate_results(details):
     tests = {}
-    for version, abis in details.iteritems():
-        for abi, toolchains in abis.iteritems():
-            for toolchain, results in toolchains.iteritems():
-                for suite, test_results in results.iteritems():
-                    for test in test_results:
-                        if test.failed():
-                            name = '.'.join([suite, test.test_name])
-                            if name not in tests:
-                                tests[name] = []
-                            tests[name].append((version, abi, toolchain, test))
+    for config, results in details.iteritems():
+        for suite, test_results in results.iteritems():
+            for test in test_results:
+                if test.failed():
+                    name = '.'.join([suite, test.test_name])
+                    if name not in tests:
+                        tests[name] = []
+                    tests[name].append((config, test))
     return tests
 
 
@@ -222,8 +217,8 @@ def print_aggregate_details(details, use_color):
         print('BEGIN TEST RESULT: ' + test_name)
         print('=' * 80)
 
-        for version, abi, toolchain, result in configs:
-            print('FAILED {} {} {}:'.format(toolchain, abi, version))
+        for config, result in configs:
+            print('FAILED {}:'.format(config))
             print(result.to_string(colored=use_color))
 
 
@@ -267,8 +262,7 @@ def main():
     try:
         import tests.runners
         good, details = tests.runners.run_for_fleet(
-            args.ndk, fleet, out_dir, args.log_dir, args.filter, use_color,
-            args.force_unified_headers)
+            args.ndk, fleet, out_dir, args.log_dir, args.filter, use_color)
     finally:
         shutil.rmtree(out_dir)
 
