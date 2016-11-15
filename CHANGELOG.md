@@ -11,7 +11,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 Announcements
 -------------
 
- * The platform headers have been synchronized with the Android platfomr. This
+ * The platform headers have been synchronized with the Android platform. This
    means that the headers are now up to date, accurate, and header only bug
    fixes will affect all API levels. Prior to this, the M and N headers were
    actually the L headers, all the headers did not actually match the platform
