@@ -636,7 +636,7 @@ NDK_TOOLCHAIN_VERSION := $(strip $(NDK_TOOLCHAIN_VERSION))
 
 # Default to Clang.
 ifeq ($(NDK_TOOLCHAIN_VERSION),)
-    NDK_TOOLCHAIN_VERSION := clang
+    override NDK_TOOLCHAIN_VERSION := clang
 endif
 
 $(call ndk_log, This NDK supports the following target architectures and ABIS:)
