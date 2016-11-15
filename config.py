@@ -1,4 +1,4 @@
-major = 14
+major = 15
 hotfix = 0
 hotfix_str = chr(ord('a') + hotfix) if hotfix else ''
 beta = 0
