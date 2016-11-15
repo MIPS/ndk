@@ -735,7 +735,7 @@ def _run_ndk_build_test(test_name, build_dir, test_dir, ndk_build_flags, abi,
         ]
         if platform is not None:
             args.append('APP_PLATFORM=android-{}'.format(platform))
-        rc, out = ndk.build(ndk_build_flags + args)
+        rc, out = ndk.build(args + ndk_build_flags)
         if rc == 0:
             return Success(test_name)
         else:
