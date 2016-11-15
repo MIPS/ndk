@@ -9,9 +9,10 @@ filed.
 Target API Set Higher Than Device API
 -------------------------------------
 
-The target API level in the NDK has a very different meaning than it does in
-Java. The NDK target API level is your app's **minimum** supported API level. In
-ndk-build, this is your `APP_PLATFORM` setting.
+The target API level in the NDK has a very different meaning than
+`targetSdkVersion` does in Java. The NDK target API level is your app's
+**minimum** supported API level. In ndk-build, this is your `APP_PLATFORM`
+setting.
 
 Since references to functions are (typically) resolved when a library is
 loaded rather than when they are first called, you cannot reference APIs that
@@ -72,14 +73,14 @@ Using prebuilt libraries (third-party libraries, typically) in your application
 requires a bit of extra care. In general, the following rules need to be
 followed:
 
-* Your minimum API level is the maximum of all API levels targeted by all
-  libraries.
+* The resulting app's minimum API level is the maximum of all API levels
+  targeted by all libraries.
 
   If your target API level is android-9, but you're using a prebuilt library
-  that was built against android-16, your minimum API level is android-16.
-  Failure to adhere to this will be visible at build time if the prebuilt
-  library is static, but may not appear until run time for prebuilt shared
-  libraries.
+  that was built against android-16, the resulting app's minimum API level is
+  android-16.  Failure to adhere to this will be visible at build time if the
+  prebuilt library is static, but may not appear until run time for prebuilt
+  shared libraries.
 
 * All libraries should be generated with the same NDK version.
 
@@ -99,5 +100,5 @@ followed:
 
   https://developer.android.com/ndk/guides/cpp-support.html#sr
 
-  As with mismatches STLs, the problems caused by this can be avoided if great
+  As with mismatched STLs, the problems caused by this can be avoided if great
   care is taken, but it's better to just avoid the problem.
