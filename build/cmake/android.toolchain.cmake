@@ -365,9 +365,6 @@ list(APPEND ANDROID_COMPILER_FLAGS
 	-funwind-tables
 	-fstack-protector-strong
 	-no-canonical-prefixes)
-list(APPEND ANDROID_COMPILER_FLAGS_CXX
-	-fno-exceptions
-	-fno-rtti)
 list(APPEND ANDROID_LINKER_FLAGS
 	-Wl,--build-id
 	-Wl,--warn-shared-textrel

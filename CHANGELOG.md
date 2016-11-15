@@ -42,6 +42,13 @@ ndk-build
    to the old behavior, set `APP_ALLOW_MISSING_DEPS=false`. See
    https://github.com/android-ndk/ndk/issues/208.
 
+CMake
+-----
+
+ * RTTI and exceptions are now on by default. This was done for improved
+   compatibility with existing CMake projects. See
+   https://github.com/android-ndk/ndk/issues/212.
+
 Clang/LLVM
 ----------
 
