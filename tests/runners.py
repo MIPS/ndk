@@ -245,10 +245,15 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
     return stats.global_stats['fail'] == 0, results
 
 
+def get_headers_text(unified_headers):
+    return 'unified' if unified_headers else 'legacy'
+
+
 def run_tests(ndk_path, device, abi, toolchain, out_dir, log_dir, test_filter,
               force_unified_headers):
-    print('Running {} {} tests for {}... '.format(toolchain, abi, device),
-          end='')
+    print('Running {} {} tests with {} headers for {}... '.format(
+        toolchain, abi, get_headers_text(force_unified_headers), device),
+        end='')
     sys.stdout.flush()
 
     toolchain_name = 'gcc' if toolchain == '4.9' else toolchain
@@ -264,7 +269,7 @@ def run_tests(ndk_path, device, abi, toolchain, out_dir, log_dir, test_filter,
 
 
 def run_for_fleet(ndk_path, fleet, out_dir, log_dir, test_filter,
-                  use_color=False, force_unified_headers=False):
+                  use_color=False):
     # Note that we are duplicating some testing here.
     #
     # * The awk tests only need to be run once because they do not vary by
@@ -275,30 +280,34 @@ def run_for_fleet(ndk_path, fleet, out_dir, log_dir, test_filter,
     results = []
     details = {}
     good = True
+    configurations = []
     for version in fleet.get_versions():
-        details[version] = {}
         for abi in fleet.get_abis(version):
-            details[version][abi] = {}
             device = fleet.get_device(version, abi)
             for toolchain in ('clang', '4.9'):
-                if device is None:
-                    results.append('android-{} {} {}: {}'.format(
-                        version, abi, toolchain, 'SKIP'))
-                    continue
+                for unified_headers in (False, True):
+                    if device is None:
+                        results.append('android-{} {} {}: {}'.format(
+                            version, abi, toolchain, 'SKIP'))
+                        continue
+                    configurations.append(
+                        (version, abi, toolchain, unified_headers, device))
 
-                details[version][abi][toolchain] = None
+    for version, abi, toolchain, unified_headers, device in configurations:
+        config_name = 'android-{} {} {} {}-headers'.format(
+            version, abi, toolchain, get_headers_text(unified_headers))
+        details[config_name] = None
 
-                result, run_details = run_tests(
-                    ndk_path, device, abi, toolchain, out_dir, log_dir,
-                    test_filter, force_unified_headers)
-                pass_label = tests.util.maybe_color('PASS', 'green', use_color)
-                fail_label = tests.util.maybe_color('FAIL', 'red', use_color)
-                results.append('android-{} {} {}: {}'.format(
-                    version, abi, toolchain,
-                    pass_label if result else fail_label))
-                details[version][abi][toolchain] = run_details
-                if not result:
-                    good = False
+        result, run_details = run_tests(
+            ndk_path, device, abi, toolchain, out_dir, log_dir,
+            test_filter, unified_headers)
+        pass_label = tests.util.maybe_color('PASS', 'green', use_color)
+        fail_label = tests.util.maybe_color('FAIL', 'red', use_color)
+        results.append('{}: {}'.format(
+            config_name, pass_label if result else fail_label))
+        details[config_name] = run_details
+        if not result:
+            good = False
 
     print('\n'.join(results))
     return good, details
