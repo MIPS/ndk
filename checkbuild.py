@@ -571,9 +571,38 @@ def build_gtest(_, dist_dir, __):
     build_support.make_package('gtest', path, dist_dir)
 
 
-def build_sysroot(_out_dir, dist_dir, _args):
-    path = build_support.android_path('prebuilts/ndk/platform/sysroot')
-    build_support.make_package('sysroot', path, dist_dir)
+def build_sysroot(_out_dir, dist_dir, args):
+    temp_dir = tempfile.mkdtemp()
+    try:
+        path = build_support.android_path('prebuilts/ndk/platform/sysroot')
+        install_path = os.path.join(temp_dir, 'sysroot')
+        shutil.copytree(path, install_path)
+        if args.system != 'linux':
+            # linux/netfilter has some headers with names that differ only by
+            # case, which can't be extracted to a case-insensitive filesystem,
+            # which are the defaults for Darwin and Windows :(
+            #
+            # There isn't really a good way to decide which of these to keep
+            # and which to remove. The capitalized versions expose different
+            # APIs, but we can't keep both. So far no one has filed bugs about
+            # needing either API, so let's just dedup them consistently and we
+            # can change that if we hear otherwise.
+            remove_paths = [
+                'usr/include/linux/netfilter_ipv4/ipt_ECN.h',
+                'usr/include/linux/netfilter_ipv4/ipt_TTL.h',
+                'usr/include/linux/netfilter_ipv6/ip6t_HL.h',
+                'usr/include/linux/netfilter/xt_CONNMARK.h',
+                'usr/include/linux/netfilter/xt_DSCP.h',
+                'usr/include/linux/netfilter/xt_MARK.h',
+                'usr/include/linux/netfilter/xt_RATEEST.h',
+                'usr/include/linux/netfilter/xt_TCPMSS.h',
+            ]
+            for remove_path in remove_paths:
+                os.remove(os.path.join(install_path, remove_path))
+
+        build_support.make_package('sysroot', install_path, dist_dir)
+    finally:
+        shutil.rmtree(temp_dir)
 
 
 def build_vulkan(out_dir, dist_dir, args):
