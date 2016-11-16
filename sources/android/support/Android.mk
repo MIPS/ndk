@@ -13,6 +13,7 @@ else
 # 32-bit ABIs
 
 android_support_sources := \
+    src/_Exit.cpp \
     src/locale/duplocale.c \
     src/locale/freelocale.c \
     src/locale/localeconv.c \
