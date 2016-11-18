@@ -49,6 +49,13 @@ CMake
    compatibility with existing CMake projects. See
    https://github.com/android-ndk/ndk/issues/212.
 
+libc++
+------
+
+ * libc++abi has been updated and now has a fallback implementation of
+   `__cxa_thread_atexit_impl`. Non-global `thread_local` variables with
+   non-trivial destructors are now supported.
+
 Clang/LLVM
 ----------
 
