@@ -8,8 +8,12 @@ def build_unsupported(abi, _platform, toolchain):
     if toolchain == 'clang' and abi.startswith('mips'):
         return '{} {}'.format(toolchain, abi)
 
+    return None
+
+
+def build_broken(_abi, _platform, _toolchain):
     # We only support LTO from Linux.
     if platform.system() != 'Linux':
-        return platform.system()
-
-    return None
+        bug = 'https://github.com/android-ndk/ndk/issues/108'
+        return platform.system(), bug
+    return None, None
