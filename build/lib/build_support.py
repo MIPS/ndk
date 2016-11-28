@@ -31,6 +31,7 @@ THIS_DIR = os.path.realpath(os.path.dirname(__file__))
 ALL_TOOLCHAINS = (
     'arm-linux-androideabi',
     'aarch64-linux-android',
+    'mipsel-linux-android',
     'mips64el-linux-android',
     'x86',
     'x86_64',
@@ -101,16 +102,9 @@ class Timer(object):
     def __exit__(self, _exc_type, _exc_value, _traceback):
         self.finish()
 
-# TODO: Make the x86 toolchain names just be the triple.
+
 def arch_to_toolchain(arch):
-    return {
-        'arm': 'arm-linux-androideabi',
-        'arm64': 'aarch64-linux-android',
-        'mips': 'mips64el-linux-android',
-        'mips64': 'mips64el-linux-android',
-        'x86': 'x86',
-        'x86_64': 'x86_64',
-    }[arch]
+    return dict(zip(ALL_ARCHITECTURES, ALL_TOOLCHAINS))[arch]
 
 
 def arch_to_triple(arch):
@@ -118,13 +112,7 @@ def arch_to_triple(arch):
 
 
 def toolchain_to_arch(toolchain):
-    return {
-        'arm-linux-androideabi': 'arm',
-        'aarch64-linux-android': 'arm64',
-        'mips64el-linux-android': 'mips64',
-        'x86': 'x86',
-        'x86_64': 'x86_64',
-    }[toolchain]
+    return dict(zip(ALL_TOOLCHAINS, ALL_ARCHITECTURES))[toolchain]
 
 
 def arch_to_abis(arch):
