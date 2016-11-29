@@ -932,6 +932,14 @@ def main():
     print('Testing: {}'.format(test_timer.duration))
     print('Total: {}'.format(total_timer.duration))
 
+    try:
+        # notify-send sends a desktop notification on Ubuntu.
+        subject = 'NDK Build {}!'.format('Passed' if good else 'Failed')
+        body = 'Build finished in {}'.format(total_timer.duration)
+        subprocess.call(['notify-send', subject, body])
+    except OSError:
+        pass
+
     sys.exit(not good)
 
 
