@@ -11,9 +11,15 @@ def build_unsupported(abi, _platform, toolchain):
     return None
 
 
-def build_broken(_abi, _platform, _toolchain):
-    # We only support LTO from Linux.
-    if platform.system() != 'Linux':
-        bug = 'https://github.com/android-ndk/ndk/issues/108'
+def build_broken(_abi, _platform, toolchain):
+    # We don't support LTO on Windows.
+    if platform.system() == 'Windows':
+        bug = 'https://github.com/android-ndk/ndk/issues/251'
         return platform.system(), bug
+
+    # Clang's LTO doesn't seem to work on static libraries.
+    if toolchain == 'clang':
+        bug = 'https://github.com/android-ndk/ndk/issues/108'
+        return toolchain, bug
+
     return None, None

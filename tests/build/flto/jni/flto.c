@@ -1,4 +1,7 @@
+extern void bar();
+
 int foo() {
+    bar();
     return 0;
 }
 
