@@ -17,7 +17,6 @@
 """Packages the platform's GCC for the NDK."""
 import os
 import site
-import subprocess
 import sys
 
 site.addsitedir(os.path.join(os.path.dirname(__file__), '../lib'))
@@ -50,13 +49,9 @@ def package_gcc(package_dir, host_tag, toolchain, version):
     toolchain_name = toolchain + '-' + version
     prebuilt_path = get_gcc_prebuilt_path(host_tag)
 
-    package_name = 'gcc-{}-{}.zip'.format(toolchain, host_tag)
-    package_path = os.path.join(package_dir, package_name)
-    if os.path.exists(package_path):
-        os.unlink(package_path)
-    os.chdir(prebuilt_path)
-    subprocess.check_call(
-        ['zip', '-9qr', package_path, toolchain_name])
+    package_name = 'gcc-{}-{}'.format(toolchain, host_tag)
+    built_path = os.path.join(prebuilt_path, toolchain_name)
+    build_support.make_package(package_name, built_path, package_dir)
 
 
 def main(args):
@@ -66,7 +61,8 @@ def main(args):
     if args.arch is not None:
         arches = [args.arch]
 
-    toolchains = sorted(set([build_support.arch_to_toolchain(arch) for arch in arches]))
+    toolchains = sorted(
+        set([build_support.arch_to_toolchain(arch) for arch in arches]))
     host_tag = build_support.host_to_tag(args.host)
     for toolchain in toolchains:
         package_gcc(args.dist_dir, host_tag, toolchain, GCC_VERSION)
