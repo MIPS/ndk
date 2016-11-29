@@ -98,15 +98,9 @@ def main(args):
 
         prebuilt_path = build_path
 
-    package_name = 'llvm-{}.zip'.format(host)
-    package_path = os.path.join(package_dir, package_name)
-    if os.path.exists(package_path):
-        os.unlink(package_path)
-    os.chdir(prebuilt_path)
-    args = ['zip', '-9qr', package_path, LLVM_VERSION]
-    if not host.startswith('windows'):
-        args.append('--symlinks')
-    subprocess.check_call(args)
+    package_name = 'llvm-{}'.format(host)
+    built_path = os.path.join(prebuilt_path, LLVM_VERSION)
+    build_support.make_package(package_name, built_path, package_dir)
 
 if __name__ == '__main__':
     build_support.run(main)
