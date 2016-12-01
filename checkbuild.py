@@ -36,9 +36,9 @@ import tempfile
 import textwrap
 import traceback
 
-import config
 import build.lib.build_support as build_support
 import ndk.notify
+import ndk.paths
 import ndk.workqueue
 
 
@@ -213,7 +213,7 @@ def test_ndk(out_dir, dist_dir, args):
     # The packaging step extracts all the modules to a known directory for
     # packaging. This directory is not cleaned up after packaging, so we can
     # reuse that for testing.
-    test_dir = os.path.join(out_dir, 'android-ndk-{}'.format(config.release))
+    test_dir = ndk.paths.get_install_path(out_dir)
 
     test_env = dict(os.environ)
     test_env['NDK'] = test_dir
