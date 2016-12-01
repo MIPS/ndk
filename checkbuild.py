@@ -38,6 +38,7 @@ import traceback
 
 import config
 import build.lib.build_support as build_support
+import ndk.notify
 import ndk.workqueue
 
 
@@ -932,13 +933,9 @@ def main():
     print('Testing: {}'.format(test_timer.duration))
     print('Total: {}'.format(total_timer.duration))
 
-    try:
-        # notify-send sends a desktop notification on Ubuntu.
-        subject = 'NDK Build {}!'.format('Passed' if good else 'Failed')
-        body = 'Build finished in {}'.format(total_timer.duration)
-        subprocess.call(['notify-send', subject, body])
-    except OSError:
-        pass
+    subject = 'NDK Build {}!'.format('Passed' if good else 'Failed')
+    body = 'Build finished in {}'.format(total_timer.duration)
+    ndk.notify.toast(subject, body)
 
     sys.exit(not good)
 

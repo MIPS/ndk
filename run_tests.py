@@ -39,6 +39,7 @@ import tempfile
 
 import build.lib.build_support
 import ndk.debug
+import ndk.notify
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
 
@@ -179,6 +180,10 @@ def main():
         args.show_commands, suites=suites, test_filter=args.filter,
         skip_run=args.skip_run,
         force_unified_headers=args.force_unified_headers)
+
+    subject = 'NDK Testing {}!'.format('Passed' if good else 'Failed')
+    ndk.notify.toast(subject)
+
     sys.exit(not good)
 
 

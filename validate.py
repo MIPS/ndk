@@ -29,6 +29,7 @@ import sys
 import tempfile
 
 import ndk.debug
+import ndk.notify
 
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
@@ -267,6 +268,9 @@ def main():
         shutil.rmtree(out_dir)
 
     print_aggregate_details(details, use_color)
+
+    subject = 'NDK Testing {}!'.format('Passed' if good else 'Failed')
+    ndk.notify.toast(subject)
 
     sys.exit(not good)
 
