@@ -30,11 +30,12 @@ building instructions).
 From the NDK source directory (not the extracted package):
 
 ```bash
-$ python run_tests.py --abi $ABI_TO_TEST path/to/built/ndk
+$ python run_tests.py --abi $ABI_TO_TEST
 ```
 
-In the case of a local build, the path to the built NDK will be
-`out/android-ndk-$RELEASE` unless you've overridden `OUT_DIR`.
+If you're testing a downloading NDK, the path to the NDK to test may optionally
+be passed to `run-tests.py`. Otherwise the path will be assumed to be the
+install location in the out directory.
 
 The default toolchain for testing is Clang. To run the tests with GCC, use the
 option `--toolchain 4.9`.
@@ -60,11 +61,12 @@ To use this script, connect any devices and launch any emulators you need for
 testing (make sure ADB has authorization to control them), then run:
 
 ```bash
-$ python validate.py path/to/built/ndk
+$ python validate.py
 ```
 
-In the case of a local build, the path to the built NDK will be
-`out/android-ndk-$RELEASE` unless you've overridden `OUT_DIR`.
+If you're testing a downloading NDK, the path to the NDK to test may optionally
+be passed to `run-tests.py`. Otherwise the path will be assumed to be the
+install location in the out directory.
 
 By default, test logs will be placed in $PWD/test-logs. This can be controlled
 with the `--log-dir` flag.
@@ -130,7 +132,7 @@ The libc++ tests are not currently integrated into the main NDK tests. To run
 the libc++ tests:
 
 ```bash
-$ ./test_libcxx.py --abi $ABI --platform $API_LEVEL path/to/ndk
+$ ./test_libcxx.py --abi $ABI --platform $API_LEVEL
 ```
 
 Note that these tests are far from failure free. In general, most of these test

@@ -21,6 +21,7 @@ import site
 import subprocess
 
 import build.lib.build_support
+import ndk.paths
 
 
 def parse_args():
@@ -40,7 +41,7 @@ def parse_args():
         help='Per-test timeout in seconds.')
 
     parser.add_argument(
-        'ndk', metavar='NDK', type=os.path.realpath,
+        'ndk', metavar='NDK', type=os.path.realpath, nargs='?',
         help='Path to NDK under test.')
 
     return parser.parse_known_args()
@@ -48,6 +49,9 @@ def parse_args():
 
 def main():
     args, extra_args = parse_args()
+
+    if args.ndk is None:
+        args.ndk = ndk.paths.get_install_path()
 
     # We need to do this here rather than at the top because we load the module
     # from a path that is given on the command line. We load it from the NDK

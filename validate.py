@@ -30,6 +30,7 @@ import tempfile
 
 import ndk.debug
 import ndk.notify
+import ndk.paths
 
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
@@ -187,7 +188,8 @@ def find_devices():
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        'ndk', metavar='NDK', type=os.path.realpath, help='NDK to validate.')
+        'ndk', metavar='NDK', type=os.path.realpath, nargs='?',
+        help='NDK to validate. Defaults to ../out/android-ndk-$RELEASE.')
     parser.add_argument(
         '--filter', help='Only run tests that match the given pattern.')
     parser.add_argument(
@@ -231,6 +233,9 @@ def main():
     args = parse_args()
 
     os.chdir(THIS_DIR)
+
+    if args.ndk is None:
+        args.ndk = ndk.paths.get_install_path()
 
     # We need to do this here rather than at the top because we load the module
     # from a path that is given on the command line. We load it from the NDK

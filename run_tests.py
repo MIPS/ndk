@@ -40,6 +40,7 @@ import tempfile
 import build.lib.build_support
 import ndk.debug
 import ndk.notify
+import ndk.paths
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
 
@@ -84,7 +85,7 @@ class ArgParser(argparse.ArgumentParser):
             description=inspect.getdoc(sys.modules[__name__]))
 
         self.add_argument(
-            'ndk', metavar='NDK', type=os.path.realpath,
+            'ndk', metavar='NDK', type=os.path.realpath, nargs='?',
             help='Path to NDK under test.')
 
         self.add_argument(
@@ -142,6 +143,9 @@ def main():
     logging.basicConfig(level=log_level)
 
     ndk_path = args.ndk
+    if ndk_path is None:
+        ndk_path = ndk.paths.get_install_path()
+
     min_platform = build.lib.build_support.minimum_platform_level(args.abi)
     if args.platform is not None and args.platform < min_platform:
         sys.exit('Unsupported platform version {} for {}. Minimum supported '
