@@ -52,7 +52,7 @@ def main(args):
     elif host == 'linux':
         host = 'linux-x86_64'
     elif host == 'windows':
-        host = 'windows-x86_64'
+        host = 'windows'
     elif host == 'windows64':
         host = 'windows-x86_64'
 
