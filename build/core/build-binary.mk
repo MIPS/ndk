@@ -424,12 +424,14 @@ ifneq ($(LOCAL_RENDERSCRIPT_INCLUDES_OVERRIDE),)
     LOCAL_RENDERSCRIPT_INCLUDES := $(LOCAL_RENDERSCRIPT_INCLUDES_OVERRIDE)
 else
     LOCAL_RENDERSCRIPT_INCLUDES := \
+        $(RENDERSCRIPT_PLATFORM_HEADER)/scriptc \
         $(RENDERSCRIPT_TOOLCHAIN_HEADER) \
         $(LOCAL_RENDERSCRIPT_INCLUDES)
 endif
 
+# Only enable the compatibility path when LOCAL_RENDERSCRIPT_COMPATIBILITY is defined.
 RS_COMPAT :=
-ifneq ($(call module-is-shared-library,$(LOCAL_MODULE)),)
+ifeq ($(LOCAL_RENDERSCRIPT_COMPATIBILITY),true)
     RS_COMPAT := true
 endif
 
@@ -496,6 +498,14 @@ endif
 
 # Build the sources to object files
 #
+
+# Include RenderScript headers if rs files are found.
+ifneq ($(filter $(all_rs_patterns),$(LOCAL_SRC_FILES)),)
+    LOCAL_C_INCLUDES += \
+        $(RENDERSCRIPT_PLATFORM_HEADER) \
+        $(RENDERSCRIPT_PLATFORM_HEADER)/cpp \
+        $(TARGET_OBJS)/$(LOCAL_MODULE)
+endif
 
 $(foreach src,$(filter %.c,$(LOCAL_SRC_FILES)), $(call compile-c-source,$(src),$(call get-object-name,$(src))))
 $(foreach src,$(filter %.S %.s,$(LOCAL_SRC_FILES)), $(call compile-s-source,$(src),$(call get-object-name,$(src))))

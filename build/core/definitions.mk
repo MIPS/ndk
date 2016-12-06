@@ -1510,10 +1510,12 @@ $$(_OBJ): PRIVATE_RS_BCC    := $$(_RS_BCC)
 $$(_OBJ): PRIVATE_CXX       := $$(_CXX)
 $$(_OBJ): PRIVATE_RS_FLAGS  := $$(_RS_FLAGS)
 $$(_OBJ): PRIVATE_CPPFLAGS  := $$(_CPP_FLAGS)
+$$(_OBJ): PRIVATE_LD        := $$(TARGET_LD)
 $$(_OBJ): PRIVATE_LDFLAGS   := $$(_LD_FLAGS)
-$$(_OBJ): PRIVATE_OUT       := $$(NDK_APP_DST_DIR)
+$$(_OBJ): PRIVATE_OUT       := $$(TARGET_OUT)
 $$(_OBJ): PRIVATE_RS_TRIPLE := $$(RS_TRIPLE)
 $$(_OBJ): PRIVATE_COMPAT    := $$(_COMPAT)
+$$(_OBJ): PRIVATE_LIB_PATH  := $$(RENDERSCRIPT_TOOLCHAIN_PREBUILT_ROOT)/platform/$(TARGET_ARCH)
 
 ifeq ($$(LOCAL_SHORT_COMMANDS),true)
 _OPTIONS_LISTFILE := $$(_OBJ).cflags
@@ -1522,17 +1524,27 @@ $$(_OBJ): PRIVATE_CPPFLAGS := @$$(call host-path,$$(_OPTIONS_LISTFILE))
 $$(_OBJ): $$(_OPTIONS_LISTFILE)
 endif
 
+# x86_64 & mips64 has both lib/ and lib64/, use lib64 for 64bit RenderScript compilation.
+ifneq ($(filter x86_64 mips64,$(TARGET_ARCH_ABI)),)
+$$(_OBJ): PRIVATE_SYS_PATH := $$(call host-path,$(SYSROOT_LINK)/usr/lib64)
+else
+$$(_OBJ): PRIVATE_SYS_PATH := $$(call host-path,$(SYSROOT_LINK)/usr/lib)
+endif
+
 # llvm-rc-cc.exe has problem accepting input *.rs with path. To workaround:
 # cd ($dir $(_SRC)) ; llvm-rs-cc $(notdir $(_SRC)) -o ...full-path...
 #
 ifeq ($$(_COMPAT),true)
+	# In COMPAT mode, use LD instead of CXX to bypass the gradle check for their book-keeping of native libs.
+	# And this is what we do with SDK.
+	# TODO: We could use CXX after gradle can correctly handle librs.*.so.
 $$(_OBJ): $$(_RS_SRC) $$(LOCAL_MAKEFILE) $$(NDK_APP_APPLICATION_MK) $$(NDK_DEPENDENCIES_CONVERTER)
 	$$(call host-echo-build-step,$$(PRIVATE_ABI),$$(PRIVATE_TEXT)) "$$(PRIVATE_MODULE) <= $$(notdir $$(PRIVATE_RS_SRC))"
 	$$(hide) \
 	cd $$(call host-path,$$(dir $$(PRIVATE_RS_SRC))) && $$(PRIVATE_RS_CC) -o $$(call host-path,$$(abspath $$(dir $$(PRIVATE_OBJ))))/ -d $$(abspath $$(call host-path,$$(dir $$(PRIVATE_OBJ)))) -MD -reflect-c++ -target-api $(strip $(subst android-,,$(APP_PLATFORM))) $$(PRIVATE_RS_FLAGS) $$(notdir $$(PRIVATE_RS_SRC))
 	$$(hide) \
-	$$(PRIVATE_RS_BCC) -O3 -o $$(call host-path,$$(PRIVATE_BC_OBJ)) -fPIC -shared -rt-path $$(call host-path,$(SYSROOT_LINK)/usr/lib/rs/libclcore.bc) -mtriple $$(PRIVATE_RS_TRIPLE) $$(call host-path,$$(PRIVATE_BC_SRC)) && \
-	$$(PRIVATE_CXX) -shared -Wl,-soname,librs.$$(PRIVATE_BC_SO) -nostdlib $$(call host-path,$$(PRIVATE_BC_OBJ)) $$(call host-path,$(SYSROOT_LINK)/usr/lib/rs/libcompiler_rt.a) -o $$(call host-path,$$(PRIVATE_OUT)/librs.$$(PRIVATE_BC_SO)) -L $$(call host-path,$(SYSROOT_LINK)/usr/lib) -L $$(call host-path,$(SYSROOT_LINK)/usr/lib/rs) $$(PRIVATE_LDFLAGS) -lRSSupport -lm -lc && \
+	$$(PRIVATE_RS_BCC) -O3 -o $$(call host-path,$$(PRIVATE_BC_OBJ)) -fPIC -shared -rt-path $$(PRIVATE_LIB_PATH)/librsrt.bc -mtriple $$(PRIVATE_RS_TRIPLE) $$(call host-path,$$(PRIVATE_BC_SRC)) && \
+	$$(PRIVATE_LD) -shared -Bsymbolic -z noexecstack -z relro -z now -nostdlib $$(call host-path,$$(PRIVATE_BC_OBJ)) $$(PRIVATE_LIB_PATH)/libcompiler_rt.a -o $$(call host-path,$$(PRIVATE_OUT)/librs.$$(PRIVATE_BC_SO)) -L $$(PRIVATE_SYS_PATH) -L $$(PRIVATE_LIB_PATH) -lRSSupport -lm -lc && \
 	$$(PRIVATE_CXX) -MMD -MP -MF $$(call convert-deps,$$(PRIVATE_DEPS)) $$(PRIVATE_CPPFLAGS) $$(call host-path,$$(PRIVATE_CPP_SRC)) -o $$(call host-path,$$(PRIVATE_OBJ)) \
 	$$(call cmd-convert-deps,$$(PRIVATE_DEPS))
 else
