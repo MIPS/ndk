@@ -27,13 +27,22 @@ import shutil
 import subprocess
 import time
 import traceback
+import xml.etree.ElementTree
 
 import build.lib.build_support
+import ndk.abis
 import ndk.workqueue as wq
-import tests.ndk as ndk
+import tests.ndk as ndkbuild
 import tests.util as util
 
 # pylint: disable=no-self-use
+
+
+ALL_SUITES = (
+    'build',
+    'device',
+    'libc++',
+)
 
 
 def logger():
@@ -235,6 +244,27 @@ class DeviceTestScanner(TestScanner):
         tests = []
         for config in self.device_configurations:
             tests.append(CMakeDeviceTest(name, path, config))
+        return tests
+
+
+class LibcxxTestScanner(TestScanner):
+    def __init__(self):
+        self.device_configurations = set()
+
+    def add_device_configuration(self, abi, api, toolchain, force_pie,
+                                 verbose, force_unified_headers, device,
+                                 device_api, skip_run):
+        self.device_configurations.add(DeviceConfiguration(
+            abi, api, toolchain, force_pie, verbose, force_unified_headers,
+            device, device_api, skip_run))
+
+    def find_tests(self, path, name):
+        tests = []
+        for config in self.device_configurations:
+            tests.append(LibcxxTest(
+                name, path, config.abi, config.api, config.toolchain,
+                config.force_unified_headers, config.device, config.device_api,
+                config.skip_run))
         return tests
 
 
@@ -664,7 +694,7 @@ def _run_ndk_build_test(test_name, build_dir, test_dir, ndk_build_flags, abi,
         ]
         if platform is not None:
             args.append('APP_PLATFORM=android-{}'.format(platform))
-        rc, out = ndk.build(args + ndk_build_flags)
+        rc, out = ndkbuild.build(args + ndk_build_flags)
         if rc == 0:
             return Success(test_name)
         else:
@@ -1222,3 +1252,194 @@ class DeviceRunTest(Test):
             return Success(self.name), []
         else:
             return Failure(self.name, out), []
+
+
+def get_xunit_reports(xunit_file, abi, api, toolchain, device_api, skip_run):
+    tree = xml.etree.ElementTree.parse(xunit_file)
+    root = tree.getroot()
+    cases = root.findall('.//testcase')
+
+    reports = []
+    for test_case in cases:
+        test_dir = test_case.get('classname')
+        if test_dir.startswith('libc++.'):
+            test_dir = test_dir[len('libc++.'):]
+
+        name = '/'.join([test_dir, test_case.get('name')])
+
+        failure_nodes = test_case.findall('failure')
+        if len(failure_nodes) == 0:
+            reports.append(XunitSuccess(
+                name, test_dir, abi, api, toolchain, device_api, skip_run))
+            continue
+
+        if len(failure_nodes) != 1:
+            msg = ('Could not parse XUnit output: test case does not have a '
+                   'unique failure node: {}'.format(name))
+            raise RuntimeError(msg)
+
+        failure_node = failure_nodes[0]
+        failure_text = failure_node.text
+        reports.append(XunitFailure(
+            name, test_dir, failure_text, abi, api, toolchain, device_api,
+            skip_run))
+    return reports
+
+
+class LibcxxTest(Test):
+    def __init__(self, name, test_dir, abi, api, toolchain, unified_headers,
+                 device, device_api, skip_run):
+        super(LibcxxTest, self).__init__(name, test_dir)
+
+        if api is None:
+            api = ndk.abis.min_api_for_abi(abi)
+
+        self.abi = abi
+        self.api = api
+        self.toolchain = toolchain
+        self.unified_headers = unified_headers
+        self.device = device
+        self.device_api = device_api
+        self.skip_run = skip_run
+
+    def run(self, out_dir, test_filters):
+        xunit_output = os.path.join(out_dir, 'xunit.xml')
+        cmd = [
+            'python', '../test_libcxx.py',
+            '--abi', self.abi,
+            '--platform', str(self.api),
+
+            # We don't want the progress bar since we're already printing our
+            # own output, so we need --show-all so we get *some* output,
+            # otherwise it would just be quiet for several minutes and it
+            # wouldn't be clear if something had hung.
+            '--no-progress-bar',
+            '--show-all',
+
+            '--xunit-xml-output=' + xunit_output,
+
+            '--timeout=600',
+        ]
+
+        if self.unified_headers:
+            cmd.append('--unified-headers')
+
+        if self.skip_run:
+            cmd.append('--param=build_only=True')
+
+        # Ignore the exit code. We do most XFAIL processing outside the test
+        # runner so expected failures in the test runner will still cause a
+        # non-zero exit status. This "test" only fails if we encounter a Python
+        # exception. Exceptions raised from our code are already caught by the
+        # test runner. If that happens in test_libcxx.py or in LIT, the xunit
+        # output will not be valid and we'll fail get_xunit_reports and raise
+        # an exception anyway.
+        subprocess.call(cmd)
+
+        # We create a bunch of fake tests that report the status of each
+        # individual test in the xunit report.
+        test_reports = get_xunit_reports(
+            xunit_output, self.abi, self.api, self.toolchain, self.device_api,
+            self.skip_run)
+
+        return Success(self.name), test_reports
+
+    def check_broken(self):
+        # Actual results are reported individually by pulling them out of the
+        # xunit output. This just reports the status of the overall test run,
+        # which should be passing.
+        return None, None
+
+    def check_unsupported(self):
+        return None
+
+    def is_negative_test(self):
+        return False
+
+
+class LibcxxTestConfig(DeviceTestConfig):
+    """Specialization of test_config.py for libc++.
+
+    The libc++ tests have multiple tests in a single directory, so we need to
+    pass the test name for build_broken too.
+    """
+    class NullTestConfig(TestConfig.NullTestConfig):
+        # pylint: disable=unused-argument,arguments-differ
+        @staticmethod
+        def build_unsupported(abi, api, toolchain, name):
+            return None
+
+        @staticmethod
+        def build_broken(abi, api, toolchain, name):
+            return None, None
+
+        @staticmethod
+        def run_unsupported(abi, device_api, toolchain, name):
+            return None
+
+        @staticmethod
+        def run_broken(abi, device_api, toolchain, name):
+            return None, None
+        # pylint: enable=unused-argument,arguments-differ
+
+
+class XunitResult(Test):
+    """Fake tests so we can show a result for each libc++ test.
+
+    We create these by parsing the xunit XML output from the libc++ test
+    runner. For each result, we create an XunitResult "test" that simply
+    returns a result for the xunit status.
+
+    We don't have an ExpectedFailure form of the XunitResult because that is
+    already handled for us by the libc++ test runner.
+    """
+    def __init__(self, name, test_dir, abi, api, toolchain, device_api,
+                 skip_run):
+        super(XunitResult, self).__init__(name, test_dir)
+        self.abi = abi
+        self.api = api
+        self.toolchain = toolchain
+        self.device_api = device_api
+        self.skip_run = skip_run
+
+    def run(self, _out_dir, _test_filters):
+        raise NotImplementedError
+
+    def get_test_config(self):
+        test_config_dir = build.lib.build_support.ndk_path(
+            'tests/libc++/test', self.test_dir)
+        return LibcxxTestConfig.from_test_dir(test_config_dir)
+
+    def check_broken(self):
+        name = os.path.splitext(os.path.basename(self.name))[0]
+        config, bug = self.get_test_config().build_broken(
+            self.abi, self.api, self.toolchain, name)
+        if config is not None:
+            return config, bug
+
+        if not self.skip_run:
+            return self.get_test_config().run_broken(
+                self.abi, self.device_api, self.toolchain, name)
+        return None, None
+
+    def check_unsupported(self):
+        return None
+
+    def is_negative_test(self):
+        return False
+
+
+class XunitSuccess(XunitResult):
+    def run(self, _out_dir, _test_filters):
+        return Success(self.name), []
+
+
+class XunitFailure(XunitResult):
+    def __init__(self, name, test_dir, text, abi, api, toolchain, device_api,
+                 skip_run):
+        super(XunitFailure, self).__init__(
+            name, test_dir, abi, api, toolchain, device_api, skip_run)
+        self.text = text
+
+    def run(self, _out_dir, _test_filters):
+        return Failure(self.name, self.text), []
