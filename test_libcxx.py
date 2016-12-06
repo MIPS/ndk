@@ -41,8 +41,7 @@ def parse_args():
         help='Per-test timeout in seconds.')
 
     parser.add_argument(
-        'ndk', metavar='NDK', type=os.path.realpath, nargs='?',
-        help='Path to NDK under test.')
+        '--ndk', type=os.path.realpath, help='Path to NDK under test.')
 
     return parser.parse_known_args()
 
