@@ -92,7 +92,7 @@ https://android-review.googlesource.com/c/239934/
    ARM64   | `aarch64-linux-android`
    MIPS    | `mipsel-linux-android`
    MIPS64  | `mips64el-linux-android`
-   x86     | `i386-linux-android`
+   x86     | `i686-linux-android`
    x86\_64 | `x86_64-linux-android`
 
    This is needed for architecture specific headers such as those in `asm/` and
