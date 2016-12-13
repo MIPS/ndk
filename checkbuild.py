@@ -838,8 +838,17 @@ def main():
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
     # Set ANDROID_BUILD_TOP.
-    if 'ANDROID_BUILD_TOP' not in os.environ:
-        os.environ['ANDROID_BUILD_TOP'] = os.path.realpath('..')
+    if 'ANDROID_BUILD_TOP' in os.environ:
+        sys.exit(textwrap.dedent("""\
+            Error: ANDROID_BUILD_TOP is already set in your environment.
+
+            This typically means you are running in a shell that has lunched a
+            target in a platform build. The platform environment interferes
+            with the NDK build environment, so the build cannot continue.
+
+            Launch a new shell before building the NDK."""))
+
+    os.environ['ANDROID_BUILD_TOP'] = os.path.realpath('..')
 
     out_dir = build_support.get_out_dir()
     dist_dir = build_support.get_dist_dir(out_dir)
