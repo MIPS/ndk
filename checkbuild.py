@@ -61,7 +61,8 @@ ALL_MODULES = {
     'ndk_helper',
     'platforms',
     'python-packages',
-    'renderscript',
+    'renderscript-libs',
+    'renderscript-toolchain',
     'shader_tools',
     'simpleperf',
     'stlport',
@@ -763,12 +764,16 @@ def build_simpleperf(out_dir, dist_dir, _args):
     build_support.make_package('simpleperf', install_dir, dist_dir)
 
 
-def build_renderscript(out_dir, dist_dir, args):
-    print('Building RenderScript...')
+def build_renderscript_libs(_out_dir, dist_dir, _args):
     # Package Android.mk for RenderScript device prebuilts.
+    print('Building RenderScript libs...')
     path = build_support.ndk_path('sources/android/renderscript')
     build_support.make_package('renderscript', path, dist_dir)
+
+
+def build_renderscript_toolchain(out_dir, dist_dir, args):
     # Package the entire RenderScript toolchain.
+    print('Building RenderScript toolchain...')
     invoke_build(
         'build-renderscript.py', common_build_args(out_dir, dist_dir, args))
 
@@ -818,7 +823,7 @@ def main():
             'host-tools',
             'ndk-build',
             'python-packages',
-            'renderscript',
+            'renderscript-toolchain',
             'shader_tools',
             'simpleperf',
         }
@@ -885,7 +890,8 @@ def main():
         ('ndk_helper', build_ndk_helper),
         ('platforms', build_platforms),
         ('python-packages', build_python_packages),
-        ('renderscript', build_renderscript),
+        ('renderscript-libs', build_renderscript_libs),
+        ('renderscript-toolchain', build_renderscript_toolchain),
         ('shader_tools', build_shader_tools),
         ('simpleperf', build_simpleperf),
         ('stlport', build_stlport),
