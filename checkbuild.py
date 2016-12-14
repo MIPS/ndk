@@ -451,6 +451,8 @@ def build_stlport(out_dir, dist_dir, args):
 def build_platforms(out_dir, dist_dir, args):
     print('Building platforms...')
     build_args = common_build_args(out_dir, dist_dir, args)
+    if args.build_number is not None:
+        build_args.append('--build-number={}'.format(args.build_number))
     invoke_build('build-platforms.py', build_args)
 
 
