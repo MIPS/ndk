@@ -26,6 +26,7 @@ import argparse
 import collections
 import inspect
 import itertools
+import logging
 import multiprocessing
 import os
 import shutil
@@ -789,6 +790,8 @@ def launch_build(build_name, build_func, out_dir, dist_dir, args, log_dir):
 
 
 def main():
+    logging.basicConfig()
+
     total_timer = build_support.Timer()
     total_timer.start()
 
