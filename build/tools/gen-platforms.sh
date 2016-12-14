@@ -62,6 +62,7 @@ DSTDIR="$TMPDIR"
 ARCHS="$DEFAULT_ARCHS"
 PLATFORMS=`extract_platforms_from "$SRCDIR"`
 NDK_DIR=$ANDROID_NDK_ROOT
+NDK_BUILD_NUMBER=0
 
 OPTION_HELP=no
 OPTION_PLATFORMS=
@@ -95,6 +96,9 @@ for opt do
     ;;
   --ndk-dir=*)
     NDK_DIR=$optarg
+    ;;
+  --build-number=*)
+    NDK_BUILD_NUMBER=$optarg
     ;;
   --platform=*)
     OPTION_PLATFORM=$optarg
@@ -138,16 +142,17 @@ if [ $OPTION_HELP = "yes" ] ; then
     echo ""
     echo "options:"
     echo ""
-    echo "  --help                Print this message"
-    echo "  --verbose             Enable verbose messages"
-    echo "  --src-dir=<path>      Source directory for development platform files [$SRCDIR]"
-    echo "  --dst-dir=<path>      Destination directory [$DSTDIR]"
-    echo "  --ndk-dir=<path>      Use toolchains from this NDK directory [$NDK_DIR]"
-    echo "  --platform=<list>     List of API levels [$PLATFORMS]"
-    echo "  --arch=<list>         List of CPU architectures [$ARCHS]"
-    echo "  --fast-copy           Don't create symlinks, copy files instead"
-    echo "  --package-dir=<path>  Package platforms archive in specific path."
-    echo "  --debug-libs          Also generate C source file for generated libraries."
+    echo "  --help                    Print this message"
+    echo "  --verbose                 Enable verbose messages"
+    echo "  --src-dir=<path>          Source directory for development platform files [$SRCDIR]"
+    echo "  --dst-dir=<path>          Destination directory [$DSTDIR]"
+    echo "  --ndk-dir=<path>          Use toolchains from this NDK directory [$NDK_DIR]"
+    echo "  --platform=<list>         List of API levels [$PLATFORMS]"
+    echo "  --arch=<list>             List of CPU architectures [$ARCHS]"
+    echo "  --fast-copy               Don't create symlinks, copy files instead"
+    echo "  --package-dir=<path>      Package platforms archive in specific path."
+    echo "  --debug-libs              Also generate C source file for generated libraries."
+    echo "  --build-number=<number>   NDK build number."
     exit 0
 fi
 
@@ -373,10 +378,18 @@ gen_crt_objects ()
         exit 1
     fi
 
+    # Substitute the "%NDK_VERSION%" and "%NDK_BUILD_NUMBER%" literal with the real version
+    # and build number according to the configuration.
+    NDK_VERSION=`python $NDK_DIR/config.py`
+    NDK_RESERVED_SIZE=64
     CRTBRAND_S=$DST_DIR/crtbrand.s
+    CRTBRAND_C=$DST_DIR/crtbrand.c
     log "Generating platform $API crtbrand assembly code: $CRTBRAND_S"
-    (cd "$COMMON_SRC_DIR" && mkdir -p `dirname $CRTBRAND_S` && $CC -DPLATFORM_SDK_VERSION=$API -fpic -S -o - crtbrand.c | \
+    (cd "$COMMON_SRC_DIR" && cat crtbrand.c | sed -e 's/%NDK_VERSION%/'"$NDK_VERSION"'/' | \
+        sed -e 's/%NDK_BUILD_NUMBER%/'"$NDK_BUILD_NUMBER"'/' > "$CRTBRAND_C")
+    (cd "$COMMON_SRC_DIR" && mkdir -p `dirname $CRTBRAND_S` && $CC -DPLATFORM_SDK_VERSION=$API -fpic -S -o - "$CRTBRAND_C" | \
         sed -e '/\.note\.ABI-tag/s/progbits/note/' > "$CRTBRAND_S")
+
     if [ $? != 0 ]; then
         dump "ERROR: Could not generate $CRTBRAND_S from $COMMON_SRC_DIR/crtbrand.c"
         exit 1
