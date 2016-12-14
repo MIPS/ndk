@@ -160,7 +160,7 @@ class ProcessPoolWorkQueue(object):
     def terminate(self):
         """Terminates all worker processes."""
         for worker in self.workers:
-            logger().info('terminating %d', worker.pid)
+            logger().debug('terminating %d', worker.pid)
             worker.terminate()
         self._flush()
 
@@ -180,7 +180,7 @@ class ProcessPoolWorkQueue(object):
     def join(self):
         """Waits for all worker processes to exit."""
         for worker in self.workers:
-            logger().info('joining %d', worker.pid)
+            logger().debug('joining %d', worker.pid)
             worker.join(self.join_timeout)
             if worker.is_alive():
                 logger().error(
