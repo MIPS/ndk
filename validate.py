@@ -62,7 +62,7 @@ class DeviceFleet(object):
                 'armeabi-v7a': None,
                 'x86': None,
             },
-            23: {
+            25: {
                 'armeabi': None,
                 'armeabi-v7a': None,
                 'arm64-v8a': None,
