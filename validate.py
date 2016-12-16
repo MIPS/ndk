@@ -53,15 +53,18 @@ class Device(object):
 class DeviceFleet(object):
     def __init__(self):
         self.devices = {
-            10: {
+            # Earliest supported target.
+            15: {
                 'armeabi': None,
                 'armeabi-v7a': None,
             },
+            # Earliest supported target with any real number of users.
             16: {
                 'armeabi': None,
                 'armeabi-v7a': None,
                 'x86': None,
             },
+            # Latest target.
             25: {
                 'armeabi': None,
                 'armeabi-v7a': None,
