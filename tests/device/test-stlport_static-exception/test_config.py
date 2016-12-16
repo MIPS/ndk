@@ -10,7 +10,7 @@ def run_broken(abi, device_api, toolchain, subtest):
     if subtest in legacy_broken:
         return toolchain, 'http://b/24541258'
 
-    if subtest == 'badalloc1' and device_api >= 23:
+    if subtest == 'badalloc1' and device_api == 23:
         return device_api, 'http://b/26002885'
 
     if subtest == 'filter1' and device_api >= 21 and toolchain == '4.9':

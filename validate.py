@@ -62,7 +62,7 @@ class DeviceFleet(object):
                 'armeabi-v7a': None,
                 'x86': None,
             },
-            23: {
+            25: {
                 'armeabi': None,
                 'armeabi-v7a': None,
                 'arm64-v8a': None,
@@ -80,6 +80,10 @@ class DeviceFleet(object):
         for abi, current_device in same_version.iteritems():
             # This device can't fulfill this ABI.
             if abi not in device.abis:
+                continue
+
+            # Never houdini.
+            if abi.startswith('armeabi') and 'x86' in device.abis:
                 continue
 
             # Anything is better than nothing.
