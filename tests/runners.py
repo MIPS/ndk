@@ -87,6 +87,12 @@ def can_use_asan(device, abi, api, toolchain):
         logger().info('Cannot use ASAN: device must be rooted')
         return False
 
+    # Fugu's system image doesn't have enough space left for even the ASAN
+    # library.
+    if device.get_prop('ro.product.name') == 'fugu':
+        logger().info('Cannot use ASAN: system partition full')
+        return False
+
     return True
 
 
