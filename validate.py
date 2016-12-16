@@ -82,6 +82,10 @@ class DeviceFleet(object):
             if abi not in device.abis:
                 continue
 
+            # Never houdini.
+            if abi.startswith('armeabi') and 'x86' in device.abis:
+                continue
+
             # Anything is better than nothing.
             if current_device is None:
                 self.devices[device.version][abi] = device
