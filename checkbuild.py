@@ -482,6 +482,7 @@ def build_libshaderc(_, dist_dir, __):
             'dest_dir': 'shaderc/third_party/spirv-tools',
             'files': [
                 'utils/generate_grammar_tables.py',
+                'utils/generate_registry_tables.py',
                 'utils/update_build_version.py',
                 'CHANGES',
             ],
