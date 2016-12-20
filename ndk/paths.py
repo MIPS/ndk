@@ -14,7 +14,9 @@
 # limitations under the License.
 #
 """Helper functions for NDK build and test paths."""
+import contextlib
 import os
+import shutil
 
 import build.lib.build_support as build_support
 import config
@@ -41,3 +43,35 @@ def get_install_path(out_dir=None):
         out_dir = build_support.get_out_dir()
     release_name = 'android-ndk-{}'.format(config.release)
     return os.path.join(out_dir, release_name)
+
+
+@contextlib.contextmanager
+def temp_dir_in_out(dirname, out_dir=None):
+    """Creates a well named temporary directory within the out directory.
+
+    If the directory exists on context entry, RuntimeError will be raised. The
+    directory is removed on context exit.
+
+    Args:
+        dirname: Name of the temporary directory.
+        out_dir: Optional base out directory. Inferred from $OUT_DIR if not
+                 supplied. If None and $OUT_DIR is not set, will use ../out
+                 relative to the NDK git project.
+
+    Returns:
+        Absolute path to the created directory.
+
+    Raises:
+        RuntimeError: The requested directory already exists.
+    """
+    if out_dir is None:
+        out_dir = build_support.get_out_dir()
+    path = os.path.join(out_dir, dirname)
+    if os.path.exists(path):
+        raise RuntimeError('Directory already exists: ' + path)
+
+    os.makedirs(path)
+    abspath = os.path.abspath(path)
+    yield abspath
+
+    shutil.rmtree(abspath)

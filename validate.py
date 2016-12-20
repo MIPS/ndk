@@ -26,7 +26,6 @@ import signal
 import site
 import subprocess
 import sys
-import tempfile
 
 import ndk.debug
 import ndk.notify
@@ -271,13 +270,10 @@ def main():
     os.makedirs(args.log_dir)
 
     use_color = sys.stdin.isatty() and os.name != 'nt'
-    out_dir = tempfile.mkdtemp()
-    try:
+    with ndk.paths.temp_dir_in_out('validate-out') as out_dir:
         import tests.runners
         good, details = tests.runners.run_for_fleet(
             args.ndk, fleet, out_dir, args.log_dir, args.filter, use_color)
-    finally:
-        shutil.rmtree(out_dir)
 
     print_aggregate_details(details, use_color)
 
