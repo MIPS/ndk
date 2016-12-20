@@ -52,5 +52,13 @@ def run_test(abi=None, platform=None, toolchain=None, build_flags=None):
     if proc.returncode != 0:
         return proc.returncode == 0, out
 
-    result = 'clang' not in out
+    result = False
+    for line in out.splitlines():
+        words = line.split()
+        if '-o' not in words:
+            continue
+
+        compiler = os.path.basename(words[0])
+        result = not compiler.endswith('clang++')
+        break
     return result, out
