@@ -24,6 +24,7 @@ from __future__ import print_function
 
 import argparse
 import collections
+import distutils.spawn
 import inspect
 import itertools
 import logging
@@ -37,6 +38,7 @@ import tempfile
 import textwrap
 import traceback
 
+import config
 import build.lib.build_support as build_support
 import ndk.builds
 import ndk.notify
@@ -46,17 +48,65 @@ import ndk.workqueue
 from ndk.builds import common_build_args, invoke_build, invoke_external_build
 
 
-def package_ndk(out_dir, dist_dir, args):
-    package_args = common_build_args(out_dir, dist_dir, args)
-    package_args.append(dist_dir)
+def _make_tar_package(package_path, base_dir, path):
+    """Creates a tarball package for distribution.
 
-    if args.build_number is not None:
-        package_args.append('--build-number={}'.format(args.build_number))
+    Args:
+        package_path (string): Path (without extention) to the output archive.
+        base_dir (string): Path to the directory from which to perform the
+                           packaging (identical to tar's -C).
+        path (string): Path to the directory to package.
+    """
+    has_pbzip2 = distutils.spawn.find_executable('pbzip2') is not None
+    if has_pbzip2:
+        compress_arg = '--use-compress-prog=pbzip2'
+    else:
+        compress_arg = '-j'
 
-    if args.arch is not None:
-        package_args.append('--arch={}'.format(args.arch))
+    cmd = ['tar', compress_arg, '-cf',
+           package_path + '.tar.bz2', '-C', base_dir, path]
+    subprocess.check_call(cmd)
 
-    invoke_build('package.py', package_args)
+
+def _make_zip_package(package_path, base_dir, path):
+    """Creates a zip package for distribution.
+
+    Args:
+        package_path (string): Path (without extention) to the output archive.
+        base_dir (string): Path to the directory from which to perform the
+                           packaging (identical to tar's -C).
+        path (string): Path to the directory to package.
+    """
+    cwd = os.getcwd()
+    package_path = os.path.realpath(package_path)
+    os.chdir(base_dir)
+    try:
+        subprocess.check_call(['zip', '-9qr', package_path + '.zip', path])
+    finally:
+        os.chdir(cwd)
+
+
+def package_ndk(ndk_dir, dist_dir, host_tag, build_number):
+    """Packages the built NDK for distribution.
+
+    Args:
+        ndk_dir (string): Path to the built NDK.
+        dist_dir (string): Path to place the built package in.
+        host_tag (string): Host tag to use in the package name,
+        build_number (printable): Build number to use in the package name. Will
+                                  be 'dev' if the argument evaluates to False.
+    """
+    if not build_number:
+        build_number = 'dev'
+    package_name = 'android-ndk-{}-{}'.format(build_number, host_tag)
+    package_path = os.path.join(dist_dir, package_name)
+
+    base_dir = os.path.dirname(ndk_dir)
+    files = os.path.basename(ndk_dir)
+    if host_tag.startswith('windows'):
+        _make_zip_package(package_path, base_dir, files)
+    else:
+        _make_tar_package(package_path, base_dir, files)
 
 
 def group_by_test(details):
@@ -206,22 +256,26 @@ def _install_file(src_file, dst_file):
 
 class Clang(ndk.builds.InvokeBuildModule):
     name = 'clang'
+    path = 'toolchains/llvm/prebuilt/{host}'
     script = 'build-llvm.py'
 
 
 class Gcc(ndk.builds.InvokeBuildModule):
     name = 'gcc'
+    path = 'toolchains/{toolchain}-4.9/prebuilt/{host}'
     script = 'build-gcc.py'
     arch_specific = True
 
 
 class ShaderTools(ndk.builds.InvokeBuildModule):
     name = 'shader-tools'
+    path = 'shader-tools/{host}'
     script = 'build-shader-tools.py'
 
 
 class HostTools(ndk.builds.Module):
     name = 'host-tools'
+    path = 'prebuilt/{host}'
 
     def build(self, out_dir, dist_dir, args):
         build_args = common_build_args(out_dir, dist_dir, args)
@@ -314,35 +368,55 @@ def package_host_tools(out_dir, dist_dir, host):
 
 class GdbServer(ndk.builds.InvokeBuildModule):
     name = 'gdbserver'
+    path = 'prebuilt/android-{arch}/gdbserver'
     script = 'build-gdbserver.py'
     arch_specific = True
 
 
 class Gnustl(ndk.builds.InvokeExternalBuildModule):
     name = 'gnustl'
+    path = 'sources/cxx-stl/gnu-libstdc++/4.9'
     script = 'ndk/sources/cxx-stl/gnu-libstdc++/build.py'
     arch_specific = True
+
+    def install(self, out_dir, dist_dir, args):
+        super(Gnustl, self).install(out_dir, dist_dir, args)
+
+        # NDK r10 had most of gnustl installed to gnu-libstdc++/4.9, but the
+        # Android.mk was one directory up from that. To remain compatible, we
+        # extract the gnustl package to sources/cxx-stl/gnu-libstdc++/4.9. As
+        # such, the Android.mk ends up in the 4.9 directory. We need to pull it
+        # up a directory.
+        install_base = ndk.paths.get_install_path(out_dir)
+        new_dir = os.path.dirname(self.path)
+        os.rename(
+            os.path.join(install_base, self.path, 'Android.mk'),
+            os.path.join(install_base, new_dir, 'Android.mk'))
 
 
 class Libcxx(ndk.builds.InvokeExternalBuildModule):
     name = 'libc++'
+    path = 'sources/cxx-stl/llvm-libc++'
     script = 'ndk/sources/cxx-stl/llvm-libc++/build.py'
     arch_specific = True
 
 
 class Stlport(ndk.builds.InvokeExternalBuildModule):
     name = 'stlport'
+    path = 'sources/cxx-stl/stlport'
     script = 'ndk/sources/cxx-stl/stlport/build.py'
     arch_specific = True
 
 
 class Platforms(ndk.builds.InvokeBuildModule):
     name = 'platforms'
+    path = 'platforms'
     script = 'build-platforms.py'
 
 
 class LibShaderc(ndk.builds.Module):
     name = 'libshaderc'
+    path = 'sources/third_party/shaderc'
 
     def build(self, _build_dir, dist_dir, _args):
         shaderc_root_dir = build_support.android_path('external/shaderc')
@@ -446,26 +520,31 @@ class LibShaderc(ndk.builds.Module):
 
 class CpuFeatures(ndk.builds.PackageModule):
     name = 'cpufeatures'
+    path = 'sources/android/cpufeatures'
     src = build_support.ndk_path('sources/android/cpufeatures')
 
 
 class NativeAppGlue(ndk.builds.PackageModule):
     name = 'native_app_glue'
+    path = 'sources/android/native_app_glue'
     src = build_support.ndk_path('sources/android/native_app_glue')
 
 
 class NdkHelper(ndk.builds.PackageModule):
     name = 'ndk_helper'
+    path = 'sources/android/ndk_helper'
     src = build_support.ndk_path('sources/android/ndk_helper')
 
 
 class Gtest(ndk.builds.PackageModule):
     name = 'gtest'
+    path = 'sources/third_party/googletest'
     src = build_support.ndk_path('sources/third_party/googletest')
 
 
 class Sysroot(ndk.builds.Module):
     name = 'sysroot'
+    path = 'sysroot'
 
     def build(self, _out_dir, dist_dir, args):
         temp_dir = tempfile.mkdtemp()
@@ -503,6 +582,7 @@ class Sysroot(ndk.builds.Module):
 
 class Vulkan(ndk.builds.Module):
     name = 'vulkan'
+    path = 'sources/third_party/vulkan'
 
     def build(self, out_dir, dist_dir, args):
         print('Constructing Vulkan validation layer source...')
@@ -603,12 +683,14 @@ class Vulkan(ndk.builds.Module):
 
 class NdkBuild(ndk.builds.PackageModule):
     name = 'ndk-build'
+    path = 'build'
     src = build_support.ndk_path('build')
 
 
 # TODO(danalbert): Why isn't this just PackageModule?
 class PythonPackages(ndk.builds.Module):
     name = 'python-packages'
+    path = 'python-packages'
 
     def build(self, _build_dir, dist_dir, _args):
         # Stage the files in a temporary directory to make things easier.
@@ -625,26 +707,31 @@ class PythonPackages(ndk.builds.Module):
 
 class Gabixx(ndk.builds.PackageModule):
     name = 'gabi++'
+    path = 'sources/cxx-stl/gabi++'
     src = build_support.ndk_path('sources/cxx-stl/gabi++')
 
 
 class SystemStl(ndk.builds.PackageModule):
     name = 'system-stl'
+    path = 'sources/cxx-stl/system'
     src = build_support.ndk_path('sources/cxx-stl/system')
 
 
 class LibAndroidSupport(ndk.builds.PackageModule):
     name = 'libandroid_support'
+    path = 'sources/android/support'
     src = build_support.ndk_path('sources/android/support')
 
 
 class Libcxxabi(ndk.builds.PackageModule):
     name = 'libc++abi'
+    path = 'sources/cxx-stl/llvm-libc++abi'
     src = build_support.android_path('external/libcxxabi')
 
 
 class SimplePerf(ndk.builds.Module):
     name = 'simpleperf'
+    path = 'simpleperf'
 
     def build(self, out_dir, dist_dir, _args):
         print('Building simpleperf...')
@@ -667,12 +754,105 @@ class SimplePerf(ndk.builds.Module):
 
 class RenderscriptLibs(ndk.builds.PackageModule):
     name = 'renderscript-libs'
+    path = 'sources/android/renderscript'
     src = build_support.ndk_path('sources/android/renderscript')
 
 
 class RenderscriptToolchain(ndk.builds.InvokeBuildModule):
     name = 'renderscript-toolchain'
+    path = 'toolchains/renderscript/prebuilt/{host}'
     script = 'build-renderscript.py'
+
+
+class Changelog(ndk.builds.FileModule):
+    name = 'changelog'
+    path = 'CHANGELOG.md'
+    src = build_support.ndk_path('CHANGELOG.md')
+
+    def validate_notice(self, _install_base):
+        # No license needed for the changelog.
+        pass
+
+
+class NdkGdbShortcut(ndk.builds.ScriptShortcutModule):
+    name = 'ndk-gdb-shortcut'
+    path = 'ndk-gdb'
+    script = 'prebuilt/{host}/bin/ndk-gdb'
+    windows_ext = '.cmd'
+
+
+class NdkWhichShortcut(ndk.builds.ScriptShortcutModule):
+    name = 'ndk-which-shortcut'
+    path = 'ndk-which'
+    script = 'prebuilt/{host}/bin/ndk-which'
+    windows_ext = ''  # There isn't really a Windows ndk-which.
+
+
+class NdkDependsShortcut(ndk.builds.ScriptShortcutModule):
+    name = 'ndk-depends-shortcut'
+    path = 'ndk-depends'
+    script = 'prebuilt/{host}/bin/ndk-depends'
+    windows_ext = '.exe'
+
+
+class NdkStackShortcut(ndk.builds.ScriptShortcutModule):
+    name = 'ndk-stack-shortcut'
+    path = 'ndk-stack'
+    script = 'prebuilt/{host}/bin/ndk-stack'
+    windows_ext = '.exe'
+
+
+class NdkBuildShortcut(ndk.builds.ScriptShortcutModule):
+    name = 'ndk-build-shortcut'
+    path = 'ndk-build'
+    script = 'build/ndk-build'
+    windows_ext = '.cmd'
+
+
+CANARY_TEXT = textwrap.dedent("""\
+    This is a canary build of the Android NDK. It's updated almost every day.
+
+    Canary builds are designed for early adopters and can be prone to breakage.
+    Sometimes they can break completely. To aid development and testing, this
+    distribution can be installed side-by-side with your existing, stable NDK
+    release.
+    """)
+
+
+class CanaryReadme(ndk.builds.Module):
+    name = 'canary-readme'
+    path = 'README.canary'
+
+    def build(self, _out_dir, _dist_dir, _args):
+        pass
+
+    def install(self, out_dir, _dist_dir, _args):
+        if config.canary:
+            extract_dir = ndk.paths.get_install_path(out_dir)
+            canary_path = os.path.join(extract_dir, self.path)
+            with open(canary_path, 'w') as canary_file:
+                canary_file.write(CANARY_TEXT)
+
+
+class SourceProperties(ndk.builds.Module):
+    name = 'source.properties'
+    path = 'source.properties'
+
+    def build(self, _out_dir, _dist_dir, _args):
+        pass
+
+    def install(self, out_dir, _dist_dir, args):
+        install_dir = ndk.paths.get_install_path(out_dir)
+        path = os.path.join(install_dir, self.path)
+        with open(path, 'w') as source_properties:
+            version = '{}.{}.{}'.format(
+                config.major, config.hotfix, args.build_number)
+            if config.beta > 0:
+                version += '-beta{}'.format(config.beta)
+            source_properties.writelines([
+                'Pkg.Desc = Android NDK\n',
+                'Pkg.Revision = {}\n'.format(version)
+            ])
 
 
 def launch_build(module, out_dir, dist_dir, args, log_dir):
@@ -695,6 +875,8 @@ def launch_build(module, out_dir, dist_dir, args, log_dir):
 
 
 ALL_MODULES = [
+    CanaryReadme(),
+    Changelog(),
     Clang(),
     CpuFeatures(),
     Gabixx(),
@@ -709,13 +891,19 @@ ALL_MODULES = [
     Libcxxabi(),
     NativeAppGlue(),
     NdkBuild(),
+    NdkBuildShortcut(),
+    NdkDependsShortcut(),
+    NdkGdbShortcut(),
     NdkHelper(),
+    NdkStackShortcut(),
+    NdkWhichShortcut(),
     Platforms(),
     PythonPackages(),
     RenderscriptLibs(),
     RenderscriptToolchain(),
     ShaderTools(),
     SimplePerf(),
+    SourceProperties(),
     Stlport(),
     Sysroot(),
     SystemStl(),
@@ -803,10 +991,10 @@ def main():
     if args.module is None:
         modules = set(get_all_module_names())
     else:
-        modules = {args.module}
+        modules = [args.module]
 
     if args.host_only:
-        modules = {
+        modules = [
             'clang',
             'gcc',
             'host-tools',
@@ -815,10 +1003,10 @@ def main():
             'renderscript-toolchain',
             'shader-tools',
             'simpleperf',
-        }
+        ]
 
     required_package_modules = set(get_all_module_names())
-    have_required_modules = required_package_modules <= modules
+    have_required_modules = required_package_modules <= set(modules)
     if (args.package and have_required_modules) or args.force_package:
         do_package = True
     else:
@@ -904,10 +1092,20 @@ def main():
             workqueue.terminate()
             workqueue.join()
 
+    ndk_dir = ndk.paths.get_install_path(out_dir)
+    install_timer = build_support.Timer()
+    with install_timer:
+        if do_package:
+            if not os.path.exists(ndk_dir):
+                os.makedirs(ndk_dir)
+            for module in ALL_MODULES:
+                module.install(out_dir, dist_dir, args)
+
     package_timer = build_support.Timer()
     with package_timer:
         if do_package:
-            package_ndk(out_dir, dist_dir, args)
+            host_tag = build_support.host_to_tag(args.system)
+            package_ndk(ndk_dir, dist_dir, host_tag, args.build_number)
 
     good = True
     test_timer = build_support.Timer()
@@ -920,6 +1118,7 @@ def main():
 
     print('Finished {}'.format('successfully' if good else 'unsuccessfully'))
     print('Build: {}'.format(build_timer.duration))
+    print('Install: {}'.format(install_timer.duration))
     print('Packaging: {}'.format(package_timer.duration))
     print('Testing: {}'.format(test_timer.duration))
     print('Total: {}'.format(total_timer.duration))

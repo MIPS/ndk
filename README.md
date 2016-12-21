@@ -131,5 +131,4 @@ By default, `checkbuild.py` will also package the NDK and run basic tests. To
 skip the packaging step, use the `--no-package` flag. Note that running the
 tests does require the packaging step.
 
-If you need to re-run just the packaging step without going through a build,
-packaging is handled by `build/tools/package.py`.
+TODO(danalbert): Make package only easy.
