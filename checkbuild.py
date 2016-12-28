@@ -216,7 +216,7 @@ class Gcc(ndk.builds.InvokeBuildModule):
 
 
 class ShaderTools(ndk.builds.InvokeBuildModule):
-    name = 'shader_tools'
+    name = 'shader-tools'
     script = 'build-shader-tools.py'
 
 
@@ -439,7 +439,7 @@ class LibShaderc(ndk.builds.Module):
                     os.path.join(shaderc_shaderc_dir,
                                  'third_party',
                                  'LICENSE.glslang')])
-            build_support.make_package('shaderc', shaderc_path, dist_dir)
+            build_support.make_package('libshaderc', shaderc_path, dist_dir)
         finally:
             shutil.rmtree(temp_dir)
 
@@ -812,7 +812,7 @@ def main():
             'ndk-build',
             'python-packages',
             'renderscript-toolchain',
-            'shader_tools',
+            'shader-tools',
             'simpleperf',
         }
 

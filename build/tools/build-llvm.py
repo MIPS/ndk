@@ -98,7 +98,7 @@ def main(args):
 
         prebuilt_path = build_path
 
-    package_name = 'llvm-{}'.format(host)
+    package_name = 'clang-{}'.format(host)
     built_path = os.path.join(prebuilt_path, LLVM_VERSION)
     build_support.make_package(package_name, built_path, package_dir)
 

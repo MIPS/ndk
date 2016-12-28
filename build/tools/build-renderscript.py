@@ -56,7 +56,7 @@ def main(args):
     elif host == 'windows64':
         host = 'windows-x86_64'
 
-    package_name = 'renderscript-{}'.format(host)
+    package_name = 'renderscript-toolchain-{}'.format(host)
     built_path = os.path.join(prebuilt_path, RS_VERSION)
     build_support.make_package(package_name, built_path, package_dir)
 
