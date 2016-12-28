@@ -98,6 +98,7 @@ def get_all_packages(host, arches):
         ('native_app_glue', 'sources/android/native_app_glue'),
         ('ndk-build', 'build'),
         ('ndk_helper', 'sources/android/ndk_helper'),
+        ('platforms', 'platforms'),
         ('python-packages', 'python-packages'),
         ('renderscript-{host}', 'toolchains/renderscript/prebuilt/{host}'),
         ('renderscript', 'sources/android/renderscript'),
@@ -108,20 +109,6 @@ def get_all_packages(host, arches):
         ('system-stl', 'sources/cxx-stl/system'),
         ('vulkan', 'sources/third_party/vulkan'),
     ]
-
-    platforms_path = 'development/ndk/platforms'
-    for platform_dir in os.listdir(build_support.android_path(platforms_path)):
-        if not platform_dir.startswith('android-'):
-            continue
-        _, platform_str = platform_dir.split('-')
-
-        # Anything before Ginger Bread is unsupported, so don't ship them.
-        if int(platform_str) < 9:
-            continue
-
-        package_name = 'platform-' + platform_str
-        install_path = 'platforms/android-' + platform_str
-        packages.append((package_name, install_path))
 
     expanded = []
     for package, extract_path in packages:

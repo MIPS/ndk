@@ -631,26 +631,23 @@ if [ "$PACKAGE_DIR" ]; then
         find "$DSTDIR/platforms" | sort -f | uniq -di | xargs rm
     fi
 
-    for PLATFORM in $PLATFORMS; do
-        PLATFORM_NAME="android-$PLATFORM"
-        make_repo_prop "$DSTDIR/platforms/$PLATFORM_NAME"
+    make_repo_prop "$DSTDIR/platforms"
 
-        NOTICE="$DSTDIR/platforms/$PLATFORM_NAME/NOTICE"
-        cat "$ANDROID_BUILD_TOP/bionic/libc/NOTICE" >> $NOTICE
-        echo >> $NOTICE
-        cat "$ANDROID_BUILD_TOP/bionic/libm/NOTICE" >> $NOTICE
-        echo >> $NOTICE
-        cat "$ANDROID_BUILD_TOP/bionic/libdl/NOTICE" >> $NOTICE
-        echo >> $NOTICE
-        cat "$ANDROID_BUILD_TOP/bionic/libstdc++/NOTICE" >> $NOTICE
+    NOTICE="$DSTDIR/platforms/NOTICE"
+    cat "$ANDROID_BUILD_TOP/bionic/libc/NOTICE" >> $NOTICE
+    echo >> $NOTICE
+    cat "$ANDROID_BUILD_TOP/bionic/libm/NOTICE" >> $NOTICE
+    echo >> $NOTICE
+    cat "$ANDROID_BUILD_TOP/bionic/libdl/NOTICE" >> $NOTICE
+    echo >> $NOTICE
+    cat "$ANDROID_BUILD_TOP/bionic/libstdc++/NOTICE" >> $NOTICE
 
-        mkdir -p "$PACKAGE_DIR"
-        fail_panic "Could not create package directory: $PACKAGE_DIR"
-        ARCHIVE=platform-$PLATFORM.zip
-        dump "Packaging $ARCHIVE"
-        pack_archive "$PACKAGE_DIR/$ARCHIVE" "$DSTDIR/platforms" "$PLATFORM_NAME"
-        fail_panic "Could not package platform-$PLATFORM"
-    done
+    mkdir -p "$PACKAGE_DIR"
+    fail_panic "Could not create package directory: $PACKAGE_DIR"
+    ARCHIVE=platforms.zip
+    dump "Packaging $ARCHIVE"
+    pack_archive "$PACKAGE_DIR/$ARCHIVE" "$DSTDIR" "platforms"
+    fail_panic "Could not package platforms"
 fi
 
 log "Done !"
