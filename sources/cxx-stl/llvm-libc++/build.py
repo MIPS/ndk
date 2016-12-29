@@ -122,7 +122,7 @@ def main(args):
         shared_libs.append('-lc++_shared')
         make_linker_script(os.path.join(install_dir, 'libc++.so'), shared_libs)
 
-    build_support.make_package('libcxx', libcxx_path, args.dist_dir)
+    build_support.make_package('libc++', libcxx_path, args.dist_dir)
 
 
 if __name__ == '__main__':

@@ -387,48 +387,46 @@ done
 
 # If needed, package files into tarballs
 if [ -n "$PACKAGE_DIR" ] ; then
-    for VERSION in $GCC_VERSION_LIST; do
-        FILES="$GNUSTL_DIR/Android.mk $GNUSTL_DIR/include"
-        for ABI in $ABIS; do
-            if [ ! -d "$NDK_DIR/$GNUSTL_SUBDIR/libs/$ABI" ]; then
-                continue
-            fi
-            case "$ABI" in
-                x86_64)
-                    MULTILIB="include/32/bits include/x32/bits
-                              lib/libsupc++.a lib/libgnustl_static.a lib/libgnustl_shared.so
-                              libx32/libsupc++.a libx32/libgnustl_static.a libx32/libgnustl_shared.so
-                              lib64/libsupc++.a lib64/libgnustl_static.a lib64/libgnustl_shared.so"
-                    ;;
-                mips64)
-                    MULTILIB="lib64/libsupc++.a lib64/libgnustl_static.a lib64/libgnustl_shared.so"
-                    ;;
-                mips|mips32r6)
-                    MULTILIB="include/mips-r6/bits
-                              lib/libsupc++.a lib/libgnustl_static.a lib/libgnustl_shared.so
-                              libr6/libsupc++.a libr6/libgnustl_static.a libr6/libgnustl_shared.so"
-                    ;;
-                *)
-                    MULTILIB=
-                    ;;
-            esac
-            for LIB in include/bits $MULTILIB libsupc++.a libgnustl_static.a libgnustl_shared.so; do
-                FILES="$FILES $GNUSTL_DIR/libs/$ABI/$LIB"
-            done
+    FILES="$GNUSTL_DIR/Android.mk $GNUSTL_DIR/include"
+    for ABI in $ABIS; do
+        if [ ! -d "$NDK_DIR/$GNUSTL_SUBDIR/libs/$ABI" ]; then
+            continue
+        fi
+        case "$ABI" in
+            x86_64)
+                MULTILIB="include/32/bits include/x32/bits
+                          lib/libsupc++.a lib/libgnustl_static.a lib/libgnustl_shared.so
+                          libx32/libsupc++.a libx32/libgnustl_static.a libx32/libgnustl_shared.so
+                          lib64/libsupc++.a lib64/libgnustl_static.a lib64/libgnustl_shared.so"
+                ;;
+            mips64)
+                MULTILIB="lib64/libsupc++.a lib64/libgnustl_static.a lib64/libgnustl_shared.so"
+                ;;
+            mips|mips32r6)
+                MULTILIB="include/mips-r6/bits
+                          lib/libsupc++.a lib/libgnustl_static.a lib/libgnustl_shared.so
+                          libr6/libsupc++.a libr6/libgnustl_static.a libr6/libgnustl_shared.so"
+                ;;
+            *)
+                MULTILIB=
+                ;;
+        esac
+        for LIB in include/bits $MULTILIB libsupc++.a libgnustl_static.a libgnustl_shared.so; do
+            FILES="$FILES $GNUSTL_DIR/libs/$ABI/$LIB"
         done
-
-        make_repo_prop "$NDK_DIR/$STL_DIR/$GNUSTL_DIR"
-        FILES="$FILES $GNUSTL_DIR/repo.prop"
-
-        cp "$ANDROID_BUILD_TOP/toolchain/gcc/gcc-4.9/COPYING" \
-           "$NDK_DIR/$STL_DIR/$GNUSTL_DIR/NOTICE"
-        FILES="$FILES $GNUSTL_DIR/NOTICE"
-
-        PACKAGE="$PACKAGE_DIR/gnustl-${VERSION}.zip"
-        dump "Packaging: $PACKAGE"
-        pack_archive "$PACKAGE" "$NDK_DIR/$STL_DIR" "$FILES"
-        fail_panic "Could not package GNU libstdc++ binaries!"
     done
+
+    make_repo_prop "$NDK_DIR/$STL_DIR/$GNUSTL_DIR"
+    FILES="$FILES $GNUSTL_DIR/repo.prop"
+
+    cp "$ANDROID_BUILD_TOP/toolchain/gcc/gcc-4.9/COPYING" \
+       "$NDK_DIR/$STL_DIR/$GNUSTL_DIR/NOTICE"
+    FILES="$FILES $GNUSTL_DIR/NOTICE"
+
+    PACKAGE="$PACKAGE_DIR/gnustl.zip"
+    dump "Packaging: $PACKAGE"
+    pack_archive "$PACKAGE" "$NDK_DIR/$STL_DIR" "$FILES"
+    fail_panic "Could not package GNU libstdc++ binaries!"
 fi
 
 if [ -z "$OPTION_BUILD_DIR" ]; then

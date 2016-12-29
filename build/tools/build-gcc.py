@@ -49,7 +49,7 @@ def package_gcc(package_dir, host_tag, toolchain, version):
     toolchain_name = toolchain + '-' + version
     prebuilt_path = get_gcc_prebuilt_path(host_tag)
 
-    package_name = 'gcc-{}-{}'.format(toolchain, host_tag)
+    package_name = 'gcc-{}-{}'.format(host_tag, toolchain)
     built_path = os.path.join(prebuilt_path, toolchain_name)
     build_support.make_package(package_name, built_path, package_dir)
 
