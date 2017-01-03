@@ -130,7 +130,7 @@ def check_packages(path, packages):
         top_level_files = []
         with zipfile.ZipFile(package_path, 'r') as zip_file:
             for f in zip_file.namelist():
-                components = os.path.split(f)
+                components = f.split(os.sep)
                 if len(components) == 2:
                     top_level_files.append(components[1])
 
