@@ -65,6 +65,9 @@ cmake -DANDROID_UNIFIED_HEADERS=ON ...
 $NDK/build/tools/make_standalone_toolchain.py --unified-headers ...
 ```
 
+For general standalone toolchain documentation, see
+https://developer.android.com/ndk/guides/standalone_toolchain.html
+
 ### Gradle
 
 TBD
