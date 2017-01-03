@@ -547,7 +547,8 @@ class Vulkan(ndk.builds.Module):
             "linux",
             "windows")
 
-        vulkan_path = os.path.join(out_dir, 'vulkan/src')
+        base_vulkan_path = os.path.join(out_dir, 'vulkan')
+        vulkan_path = os.path.join(base_vulkan_path, 'src')
         for properties in copies:
             source_dir = properties['source_dir']
             dest_dir = os.path.join(out_dir, properties['dest_dir'])
@@ -578,7 +579,7 @@ class Vulkan(ndk.builds.Module):
         print('Copying finished')
 
         build_support.merge_license_files(
-            os.path.join(vulkan_path, 'NOTICE'),
+            os.path.join(base_vulkan_path, 'NOTICE'),
             [os.path.join(vulkan_root_dir, 'LICENSE.txt')])
 
         build_cmd = [
