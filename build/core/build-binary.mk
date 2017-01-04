@@ -224,8 +224,16 @@ endif
 ifneq (,$(filter true,$(NDK_APP_PIE) $(TARGET_PIE)))
   ifeq ($(call module-get-class,$(LOCAL_MODULE)),EXECUTABLE)
     ifeq (,$(filter -static,$(TARGET_LDFLAGS) $(LOCAL_LDFLAGS) $(NDK_APP_LDFLAGS)))
-      LOCAL_CFLAGS += -fPIE
-      LOCAL_LDFLAGS += -fPIE -pie
+      # x86 and x86_64 use large model pic, whereas everything else uses small
+      # model. In the past we've always used -fPIE, but the LLVMgold plugin (for
+      # LTO) complains if the models are mismatched.
+      ifneq (,$(filter x86 x86_64,$(TARGET_ARCH_ABI)))
+        LOCAL_CFLAGS += -fPIE
+        LOCAL_LDFLAGS += -fPIE -pie
+      else
+        LOCAL_CFLAGS += -fpie
+        LOCAL_LDFLAGS += -fpie -pie
+      endif
     endif
   endif
 endif
@@ -608,8 +616,14 @@ ifeq (true,$(thin_archive))
     ar_flags := $(ar_flags)T
 endif
 
+ifeq (clang,$(NDK_TOOLCHAIN_VERSION))
+    ifneq ($(HOST_OS),windows)
+        ar_flags += --plugin $(TARGET_AR_PLUGIN)
+    endif
+endif
+
 $(LOCAL_BUILT_MODULE): PRIVATE_ABI := $(TARGET_ARCH_ABI)
-$(LOCAL_BUILT_MODULE): PRIVATE_AR := $(TARGET_AR) $(ar_flags)
+$(LOCAL_BUILT_MODULE): PRIVATE_AR := $(TARGET_AR) $(ar_flags) $(TARGET_AR_FLAGS)
 $(LOCAL_BUILT_MODULE): PRIVATE_AR_OBJECTS := $(ar_objects)
 $(LOCAL_BUILT_MODULE): PRIVATE_BUILD_STATIC_LIB := $(cmd-build-static-library)
 
