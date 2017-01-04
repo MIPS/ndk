@@ -1095,10 +1095,10 @@ def main():
     ndk_dir = ndk.paths.get_install_path(out_dir)
     install_timer = build_support.Timer()
     with install_timer:
-        if do_package:
-            if not os.path.exists(ndk_dir):
-                os.makedirs(ndk_dir)
-            for module in ALL_MODULES:
+        if not os.path.exists(ndk_dir):
+            os.makedirs(ndk_dir)
+        for module in ALL_MODULES:
+            if module.name in modules:
                 module.install(out_dir, dist_dir, args)
 
     package_timer = build_support.Timer()
