@@ -17,7 +17,7 @@
 """Builds the user documentation and copies it into a DAC tree."""
 import argparse
 import logging
-import os.path
+import os
 
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
@@ -47,6 +47,13 @@ def makedirs(path):
     """os.makedirs with logging."""
     logger().info('makedirs: %s', path)
     os.makedirs(path)
+
+
+def call(cmd, *args, **kwargs):
+    """subprocess.call with logging."""
+    import subprocess
+    logger().info('call: %s', ' '.join(cmd))
+    subprocess.call(cmd, *args, **kwargs)
 
 
 def build_docs():
@@ -81,8 +88,20 @@ def copy_docs(docs_tree, docs_out):
     dest_dir = os.path.join(
         docs_tree, 'googledata/devsite/site-android/en/ndk/guides')
 
+    cwd = os.getcwd()
     for root, _, files in os.walk(docs_out):
         for file_name in files:
+            dest_path = os.path.join(dest_dir, file_name)
+            if os.path.exists(dest_path):
+                # `g4 edit` doesn't work unless it's actually in the citc
+                # client.
+                os.chdir(dest_dir)
+                try:
+                    # Might fail if the file is new (will only happen if the
+                    # script is re-run), but that's not a problem.
+                    call(['g4', 'edit', file_name])
+                finally:
+                    os.chdir(cwd)
             copy2(os.path.join(root, file_name), dest_dir)
 
 
