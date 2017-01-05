@@ -260,11 +260,42 @@ class Clang(ndk.builds.InvokeBuildModule):
     script = 'build-llvm.py'
 
 
-class Gcc(ndk.builds.InvokeBuildModule):
+def get_gcc_prebuilt_path(host):
+    rel_prebuilt_path = 'prebuilts/ndk/current/toolchains/{}'.format(host)
+    prebuilt_path = build_support.android_path(rel_prebuilt_path)
+    if not os.path.isdir(prebuilt_path):
+        raise RuntimeError(
+            'Could not find prebuilt GCC at {}'.format(prebuilt_path))
+    return prebuilt_path
+
+
+class Gcc(ndk.builds.Module):
     name = 'gcc'
     path = 'toolchains/{toolchain}-4.9/prebuilt/{host}'
-    script = 'build-gcc.py'
-    arch_specific = True
+
+    def build(self, _build_dir, _dist_dir, _args):
+        pass
+
+    def install(self, out_dir, _dist_dir, args):
+        arches = build_support.ALL_ARCHITECTURES
+        if args.arch is not None:
+            arches = [args.arch]
+
+        for arch in arches:
+            self.install_arch(out_dir, args.system, arch)
+
+    def install_arch(self, out_dir, host, arch):
+        version = '4.9'
+        toolchain = build_support.arch_to_toolchain(arch)
+        host_tag = build_support.host_to_tag(host)
+
+        install_path = self.get_install_path(out_dir, host, arch)
+
+        toolchain_name = toolchain + '-' + version
+        prebuilt_path = get_gcc_prebuilt_path(host_tag)
+        toolchain_path = os.path.join(prebuilt_path, toolchain_name)
+
+        ndk.builds.install_directory(toolchain_path, install_path)
 
 
 class ShaderTools(ndk.builds.InvokeBuildModule):
