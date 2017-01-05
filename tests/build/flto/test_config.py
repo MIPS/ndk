@@ -17,9 +17,4 @@ def build_broken(_abi, _platform, toolchain):
         bug = 'https://github.com/android-ndk/ndk/issues/251'
         return platform.system(), bug
 
-    # Clang's LTO doesn't seem to work on static libraries.
-    if toolchain == 'clang':
-        bug = 'https://github.com/android-ndk/ndk/issues/108'
-        return toolchain, bug
-
     return None, None
