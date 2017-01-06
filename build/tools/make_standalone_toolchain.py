@@ -585,9 +585,7 @@ def main():
     args = parse_args()
 
     if args.verbose is None:
-        # Integer comparisons against None are not supported in python3. Short
-        # circuit the checks below here.
-        pass
+        logging.basicConfig(level=logging.WARNING)
     elif args.verbose == 1:
         logging.basicConfig(level=logging.INFO)
     elif args.verbose >= 2:
@@ -599,6 +597,9 @@ def main():
     min_api = 9 if lp32 else 21
     api = args.api
     if api is None:
+        logger().warning(
+            'Defaulting to target API %d (minimum supported target for %s)',
+            min_api, args.arch)
         api = min_api
     elif api < min_api:
         sys.exit('{} is less than minimum platform for {} ({})'.format(
