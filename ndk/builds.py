@@ -69,6 +69,20 @@ class Module(object):
 
             self.validate_notice(install_path)
 
+    def get_install_paths(self, build_dir, host, arches):
+        install_subdirs = ndk.packaging.expand_paths(self.path, host, arches)
+        install_base = ndk.paths.get_install_path(build_dir)
+        return [os.path.join(install_base, d) for d in install_subdirs]
+
+    def get_install_path(self, build_dir, host, arch):
+        install_subdirs = self.get_install_paths(build_dir, host, [arch])
+
+        if len(install_subdirs) != 1:
+            raise RuntimeError(
+                'non-unique install path for single arch: ' + self.path)
+
+        return install_subdirs[0]
+
     def validate_notice(self, install_path):
         license_file = os.path.join(install_path, 'NOTICE')
         if not os.path.exists(license_file):
@@ -85,10 +99,32 @@ class Module(object):
 class PackageModule(Module):
     src = None
 
-    def build(self, build_dir, dist_dir, args):
-        print('Packaging {} as {}'.format(
-            self.src, os.path.join(dist_dir, self.name + '.zip')))
-        build.lib.build_support.make_package(self.name, self.src, dist_dir)
+    def validate(self):
+        super(PackageModule, self).validate()
+
+        if ndk.packaging.package_varies_by(self.path, 'abi'):
+            raise self.validate_error(
+                'PackageModule cannot vary by abi')
+        if ndk.packaging.package_varies_by(self.path, 'arch'):
+            raise self.validate_error(
+                'PackageModule cannot vary by arch')
+        if ndk.packaging.package_varies_by(self.path, 'toolchain'):
+            raise self.validate_error(
+                'PackageModule cannot vary by toolchain')
+        if ndk.packaging.package_varies_by(self.path, 'triple'):
+            raise self.validate_error(
+                'PackageModule cannot vary by triple')
+
+    def build(self, _build_dir, _dist_dir, _args):
+        pass
+
+    def install(self, build_dir, _dist_dir, args):
+        install_paths = self.get_install_paths(
+            build_dir, args.system, build.lib.build_support.ALL_ARCHITECTURES)
+        assert len(install_paths) == 1
+        install_path = install_paths[0]
+        print 'Installing {} to {}'.format(self.src, install_path)
+        install_directory(self.src, install_path)
 
 
 class InvokeExternalBuildModule(Module):
@@ -225,3 +261,11 @@ def common_build_args(out_dir, dist_dir, args):
     build_args = ['--dist-dir={}'.format(dist_dir)]
     build_args.append('--host={}'.format(args.system))
     return build_args
+
+
+def install_directory(src, dst):
+    if os.path.exists(dst):
+        shutil.rmtree(dst)
+    ignore_patterns = shutil.ignore_patterns(
+        '*.pyc', '*.pyo', '*.swp', '*.git*')
+    shutil.copytree(src, dst, ignore=ignore_patterns)
