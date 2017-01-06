@@ -297,6 +297,28 @@ class Gcc(ndk.builds.Module):
 
         ndk.builds.install_directory(toolchain_path, install_path)
 
+        if not host.startswith('windows'):
+            so = '.so'
+            if host == 'darwin':
+                so = '.dylib'
+
+            clang_libs = build_support.android_path(
+                'prebuilts/ndk/current/toolchains', host_tag, 'llvm/lib64')
+            llvmgold = os.path.join(clang_libs, 'LLVMgold.so')
+            libcxx = os.path.join(clang_libs, 'libc++' + so)
+            libllvm = os.path.join(clang_libs, 'libLLVM' + so)
+
+            bfd_plugins = os.path.join(install_path, 'lib/bfd-plugins')
+            os.makedirs(bfd_plugins)
+            shutil.copy2(llvmgold, bfd_plugins)
+
+            # The rpath on LLVMgold.so is ../lib64, so we have to install to
+            # lib/lib64 to have it be in the right place :(
+            lib_dir = os.path.join(install_path, 'lib/lib64')
+            os.makedirs(lib_dir)
+            shutil.copy2(libcxx, lib_dir)
+            shutil.copy2(libllvm, lib_dir)
+
 
 class ShaderTools(ndk.builds.InvokeBuildModule):
     name = 'shader-tools'

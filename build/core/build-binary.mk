@@ -616,12 +616,6 @@ ifeq (true,$(thin_archive))
     ar_flags := $(ar_flags)T
 endif
 
-ifeq (clang,$(NDK_TOOLCHAIN_VERSION))
-    ifneq ($(HOST_OS),windows)
-        ar_flags += --plugin $(TARGET_AR_PLUGIN)
-    endif
-endif
-
 $(LOCAL_BUILT_MODULE): PRIVATE_ABI := $(TARGET_ARCH_ABI)
 $(LOCAL_BUILT_MODULE): PRIVATE_AR := $(TARGET_AR) $(ar_flags) $(TARGET_AR_FLAGS)
 $(LOCAL_BUILT_MODULE): PRIVATE_AR_OBJECTS := $(ar_objects)
