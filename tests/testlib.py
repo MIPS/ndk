@@ -94,6 +94,18 @@ class BuildConfiguration(object):
             return False
         return True
 
+    def __str__(self):
+        pie_option = 'default-pie'
+        if self.force_pie:
+            pie_option = 'force-pie'
+
+        headers_option = 'legacy-headers'
+        if self.force_unified_headers:
+            headers_option = 'unified-headers'
+
+        return '{}-{}-{}-{}-{}'.format(
+            self.abi, self.api, self.toolchain, pie_option, headers_option)
+
     def get_extra_ndk_build_flags(self):
         extra_flags = []
         if self.force_pie:
@@ -191,33 +203,25 @@ class BuildTestScanner(TestScanner):
     def make_build_sh_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
-            tests.append(ShellBuildTest(
-                name, path, config.abi, config.api, config.toolchain,
-                config.get_extra_ndk_build_flags()))
+            tests.append(ShellBuildTest(name, path, config))
         return tests
 
     def make_test_py_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
-            tests.append(PythonBuildTest(
-                name, path, config.abi, config.api, config.toolchain,
-                config.get_extra_ndk_build_flags()))
+            tests.append(PythonBuildTest(name, path, config))
         return tests
 
     def make_ndk_build_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
-            tests.append(NdkBuildTest(
-                name, path, config.abi, config.api, config.toolchain,
-                config.get_extra_ndk_build_flags()))
+            tests.append(NdkBuildTest(name, path, config))
         return tests
 
     def make_cmake_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
-            tests.append(CMakeBuildTest(
-                name, path, config.abi, config.api, config.toolchain,
-                config.get_extra_cmake_flags()))
+            tests.append(CMakeBuildTest(name, path, config))
         return tests
 
 
@@ -247,19 +251,13 @@ class DeviceTestScanner(TestScanner):
     def make_ndk_build_tests(self, path, name):
         tests = []
         for config in self.device_configurations:
-            tests.append(NdkBuildDeviceTest(
-                name, path, config.abi, config.api, config.toolchain,
-                config.get_extra_ndk_build_flags(), config.device,
-                config.device_api, config.skip_run))
+            tests.append(NdkBuildDeviceTest(name, path, config))
         return tests
 
     def make_cmake_tests(self, path, name):
         tests = []
         for config in self.device_configurations:
-            tests.append(CMakeDeviceTest(
-                name, path, config.abi, config.api, config.toolchain,
-                config.get_extra_cmake_flags(), config.device,
-                config.device_api, config.skip_run))
+            tests.append(CMakeDeviceTest(name, path, config))
         return tests
 
 
@@ -797,24 +795,43 @@ def _run_cmake_build_test(test_name, build_dir, test_dir, cmake_flags, abi,
 
 
 class BuildTest(Test):
-    def __init__(self, name, test_dir, abi, platform, toolchain,
-                 ndk_build_flags=None, cmake_flags=None):
+    def __init__(self, name, test_dir, config):
         super(BuildTest, self).__init__(name, test_dir)
 
-        if ndk_build_flags is None:
-            ndk_build_flags = []
-        if cmake_flags is None:
-            cmake_flags = []
+        self.config = config
 
-        if platform is None:
+        if self.api is None:
             raise ValueError
 
-        self.abi = abi
-        self.platform = platform
-        self.toolchain = toolchain
-        self.ndk_build_flags = ndk_build_flags
-        self.ndk_build_flags += self.get_extra_ndk_build_flags()
-        self.cmake_flags = cmake_flags + self.get_extra_cmake_flags()
+    @property
+    def abi(self):
+        return self.config.abi
+
+    @property
+    def api(self):
+        return self.config.api
+
+    @property
+    def platform(self):
+        return self.api
+
+    @property
+    def toolchain(self):
+        return self.config.toolchain
+
+    @property
+    def ndk_build_flags(self):
+        flags = self.config.get_extra_ndk_build_flags()
+        if flags is None:
+            flags = []
+        return flags + self.get_extra_ndk_build_flags()
+
+    @property
+    def cmake_flags(self):
+        flags = self.config.get_extra_cmake_flags()
+        if flags is None:
+            flags = []
+        return flags + self.get_extra_cmake_flags()
 
     def run(self, out_dir, _):
         raise NotImplementedError
@@ -851,16 +868,21 @@ class PythonBuildTest(BuildTest):
     ndk_build_flags: Additional build flags that should be passed to ndk-build
                      if invoked as a list of strings.
     """
-    def __init__(self, name, test_dir, abi, platform, toolchain,
-                 ndk_build_flags):
-        if platform is None:
-            platform = build.lib.build_support.minimum_platform_level(abi)
-        super(PythonBuildTest, self).__init__(
-            name, test_dir, abi, platform, toolchain,
-            ndk_build_flags=ndk_build_flags)
+    def __init__(self, name, test_dir, config):
+        api = config.api
+        if api is None:
+            api = build.lib.build_support.minimum_platform_level(config.abi)
+        config = BuildConfiguration(
+            config.abi, api, config.toolchain, config.force_pie,
+            config.verbose, config.force_unified_headers)
+        super(PythonBuildTest, self).__init__(name, test_dir, config)
+
+    def get_build_dir(self, out_dir):
+        return os.path.join(
+            out_dir, 'build/test.py', str(self.config), self.name)
 
     def run(self, out_dir, _):
-        build_dir = os.path.join(out_dir, 'build/tests.py', self.name)
+        build_dir = self.get_build_dir(out_dir)
         print('Building test: {}'.format(self.name))
         _prep_build_dir(self.test_dir, build_dir)
         with util.cd(build_dir):
@@ -875,15 +897,21 @@ class PythonBuildTest(BuildTest):
 
 
 class ShellBuildTest(BuildTest):
-    def __init__(self, name, test_dir, abi, platform, toolchain,
-                 ndk_build_flags):
-        if platform is None:
-            platform = build.lib.build_support.minimum_platform_level(abi)
-        super(ShellBuildTest, self).__init__(
-            name, test_dir, abi, platform, toolchain, ndk_build_flags)
+    def __init__(self, name, test_dir, config):
+        api = config.api
+        if api is None:
+            api = build.lib.build_support.minimum_platform_level(config.abi)
+        config = BuildConfiguration(
+            config.abi, api, config.toolchain, config.force_pie,
+            config.verbose, config.force_unified_headers)
+        super(ShellBuildTest, self).__init__(name, test_dir, config)
+
+    def get_build_dir(self, out_dir):
+        return os.path.join(
+            out_dir, 'build/build.sh', str(self.config), self.name)
 
     def run(self, out_dir, _):
-        build_dir = os.path.join(out_dir, 'build/build.sh', self.name)
+        build_dir = self.get_build_dir(out_dir)
         print('Building test: {}'.format(self.name))
         if os.name == 'nt':
             reason = 'build.sh tests are not supported on Windows'
@@ -954,14 +982,19 @@ def _get_or_infer_app_platform(platform_from_user, test_dir, abi):
 
 
 class NdkBuildTest(BuildTest):
-    def __init__(self, name, test_dir, abi, platform, toolchain,
-                 ndk_build_flags):
-        platform = _get_or_infer_app_platform(platform, test_dir, abi)
-        super(NdkBuildTest, self).__init__(
-            name, test_dir, abi, platform, toolchain, ndk_build_flags)
+    def __init__(self, name, test_dir, config):
+        api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
+        config = BuildConfiguration(
+            config.abi, api, config.toolchain, config.force_pie,
+            config.verbose, config.force_unified_headers)
+        super(NdkBuildTest, self).__init__(name, test_dir, config)
+
+    def get_build_dir(self, out_dir):
+        return os.path.join(
+            out_dir, 'build/ndk-build', str(self.config), self.name)
 
     def run(self, out_dir, _):
-        build_dir = os.path.join(out_dir, 'build/ndk-build', self.name)
+        build_dir = self.get_build_dir(out_dir)
         print('Building test: {}'.format(self.name))
         result = _run_ndk_build_test(
             self.name, build_dir, self.test_dir, self.ndk_build_flags,
@@ -970,13 +1003,19 @@ class NdkBuildTest(BuildTest):
 
 
 class CMakeBuildTest(BuildTest):
-    def __init__(self, name, test_dir, abi, platform, toolchain, cmake_flags):
-        platform = _get_or_infer_app_platform(platform, test_dir, abi)
-        super(CMakeBuildTest, self).__init__(
-            name, test_dir, abi, platform, toolchain, cmake_flags=cmake_flags)
+    def __init__(self, name, test_dir, config):
+        api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
+        config = BuildConfiguration(
+            config.abi, api, config.toolchain, config.force_pie,
+            config.verbose, config.force_unified_headers)
+        super(CMakeBuildTest, self).__init__(name, test_dir, config)
+
+    def get_build_dir(self, out_dir):
+        return os.path.join(
+            out_dir, 'build/cmake', str(self.config), self.name)
 
     def run(self, out_dir, _):
-        build_dir = os.path.join(out_dir, 'build/cmake', self.name)
+        build_dir = self.get_build_dir(out_dir)
         print('Building test: {}'.format(self.name))
         result = _run_cmake_build_test(
             self.name, build_dir, self.test_dir, self.cmake_flags, self.abi,
@@ -1000,18 +1039,43 @@ def is_text_busy(out):
 
 
 class DeviceTest(Test):
-    def __init__(self, name, test_dir, abi, platform, device, device_platform,
-                 toolchain, skip_run):
+    def __init__(self, name, test_dir, config):
         super(DeviceTest, self).__init__(name, test_dir)
 
-        platform = _get_or_infer_app_platform(platform, test_dir, abi)
+        api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
+        config = DeviceConfiguration(
+            config.abi, api, config.toolchain, config.force_pie,
+            config.verbose, config.force_unified_headers, config.device,
+            config.device_api, config.skip_run)
+        self.config = config
 
-        self.abi = abi
-        self.platform = platform
-        self.device = device
-        self.device_platform = device_platform
-        self.toolchain = toolchain
-        self.skip_run = skip_run
+    @property
+    def abi(self):
+        return self.config.abi
+
+    @property
+    def api(self):
+        return self.config.api
+
+    @property
+    def platform(self):
+        return self.api
+
+    @property
+    def toolchain(self):
+        return self.config.toolchain
+
+    @property
+    def device(self):
+        return self.config.device
+
+    @property
+    def device_api(self):
+        return self.config.device_api
+
+    @property
+    def skip_run(self):
+        return self.config.skip_run
 
     def check_broken(self):
         return self.get_test_config().build_broken(
@@ -1083,32 +1147,36 @@ class DeviceTest(Test):
         additional_tests = []
         for exe in executables:
             name = _make_subtest_name(self.name, exe)
-            additional_tests.append(
-                DeviceRunTest(
-                    name, self.test_dir, exe, self.get_device_dir(), self.abi,
-                    self.platform, self.device_platform, self.toolchain,
-                    self.device))
+            run_test = DeviceRunTest(
+                name, self.test_dir, exe, self.get_device_dir(), self.config)
+            additional_tests.append(run_test)
         return additional_tests
 
 
 class NdkBuildDeviceTest(DeviceTest):
-    def __init__(self, name, test_dir, abi, platform, toolchain,
-                 ndk_build_flags, device, device_api, skip_run):
-        super(NdkBuildDeviceTest, self).__init__(
-            name, test_dir, abi, platform, device, device_api, toolchain,
-            skip_run)
-        self.ndk_build_flags = ndk_build_flags
-        self.ndk_build_flags += self.get_extra_ndk_build_flags()
+    def __init__(self, name, test_dir, config):
+        super(NdkBuildDeviceTest, self).__init__(name, test_dir, config)
 
     def get_extra_ndk_build_flags(self):
         return self.get_test_config().extra_ndk_build_flags()
 
+    @property
+    def ndk_build_flags(self):
+        flags = self.config.get_extra_ndk_build_flags()
+        if flags is None:
+            flags = []
+        return flags + self.get_extra_ndk_build_flags()
+
     def get_device_subdir(self):
         return 'ndk-tests'
 
+    def get_build_dir(self, out_dir):
+        return os.path.join(
+            out_dir, 'device/ndk-build', str(self.config), self.name)
+
     def run(self, out_dir, test_filters):
         print('Building device test with ndk-build: {}'.format(self.name))
-        build_dir = os.path.join(out_dir, 'device/ndk-build', self.name)
+        build_dir = self.get_build_dir(out_dir)
         build_result = _run_ndk_build_test(self.name, build_dir, self.test_dir,
                                            self.ndk_build_flags, self.abi,
                                            self.platform, self.toolchain)
@@ -1122,22 +1190,29 @@ class NdkBuildDeviceTest(DeviceTest):
 
 
 class CMakeDeviceTest(DeviceTest):
-    def __init__(self, name, test_dir, abi, platform, toolchain, cmake_flags,
-                 device, device_api, skip_run):
-        super(CMakeDeviceTest, self).__init__(
-            name, test_dir, abi, platform, device, device_api, toolchain,
-            skip_run)
-        self.cmake_flags = cmake_flags + self.get_extra_cmake_flags()
+    def __init__(self, name, test_dir, config):
+        super(CMakeDeviceTest, self).__init__(name, test_dir, config)
 
     def get_extra_cmake_flags(self):
         return self.get_test_config().extra_cmake_flags()
 
+    @property
+    def cmake_flags(self):
+        flags = self.config.get_extra_cmake_flags()
+        if flags is None:
+            flags = []
+        return flags + self.get_extra_cmake_flags()
+
     def get_device_subdir(self):
         return 'cmake-tests'
 
+    def get_build_dir(self, out_dir):
+        return os.path.join(
+            out_dir, 'device/cmake', str(self.config), self.name)
+
     def run(self, out_dir, test_filters):
         print('Building device test with cmake: {}'.format(self.name))
-        build_dir = os.path.join(out_dir, 'device/cmake', self.name)
+        build_dir = self.get_build_dir(out_dir)
         build_result = _run_cmake_build_test(self.name, build_dir,
                                              self.test_dir, self.cmake_flags,
                                              self.abi, self.platform,
@@ -1152,16 +1227,31 @@ class CMakeDeviceTest(DeviceTest):
 
 
 class DeviceRunTest(Test):
-    def __init__(self, name, test_dir, case_name, device_dir, abi, build_api,
-                 device_api, toolchain, device):
+    def __init__(self, name, test_dir, case_name, device_dir, config):
         super(DeviceRunTest, self).__init__(name, test_dir)
+        self.config = config
         self.case_name = case_name
         self.device_dir = device_dir
-        self.abi = abi
-        self.build_api = build_api
-        self.device_api = device_api
-        self.toolchain = toolchain
-        self.device = device
+
+    @property
+    def abi(self):
+        return self.config.abi
+
+    @property
+    def build_api(self):
+        return self.config.api
+
+    @property
+    def toolchain(self):
+        return self.config.toolchain
+
+    @property
+    def device(self):
+        return self.config.device
+
+    @property
+    def device_api(self):
+        return self.config.device_api
 
     def get_test_config(self):
         return DeviceTestConfig.from_test_dir(self.test_dir)
