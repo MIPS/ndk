@@ -112,7 +112,8 @@ For more options and details, use `--help`.
 
 ### Unified Headers
 
-Unified headers are a new feature of NDK r14:
+Unified headers are the up to date platform headers that are shipped alongside
+the legacy headers in NDK r14:
 https://android.googlesource.com/platform/ndk/+/master/docs/UnifiedHeaders.md
 
 To use unified headers with standalone toolchains, pass `--unified-headers` when
