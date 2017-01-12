@@ -1103,17 +1103,14 @@ class DeviceTest(Test):
             '/data/local/tmp', self.get_device_subdir(), self.name)
 
     def copy_test_to_device(self, build_dir, test_filters):
-        # We have to use `ls foo || mkdir foo` because Gingerbread was lacking
-        # `mkdir -p`, the -d check for directory existence, stat, dirname, and
-        # every other thing I could think of to implement this aside from ls.
-        self.device.shell(
-            ['ls {0} || mkdir {0}'.format(self.get_device_dir())])
+        self.device.shell_nocheck(['rm -r {}'.format(self.get_device_dir())])
 
         abi_dir = os.path.join(build_dir, 'libs', self.abi)
         if not os.path.isdir(abi_dir):
             raise RuntimeError('No libraries for {}'.format(self.abi))
 
-        test_cases = []
+        print('Pushing {} to {}...'.format(abi_dir, self.get_device_dir()))
+        self.device.push(abi_dir, self.get_device_dir())
         for test_file in os.listdir(abi_dir):
             if test_file in ('gdbserver', 'gdb.setup'):
                 continue
@@ -1124,15 +1121,6 @@ class DeviceTest(Test):
                 case_name = _make_subtest_name(self.name, test_file)
                 if not test_filters.filter(case_name):
                     continue
-                test_cases.append(test_file)
-
-            # TODO(danalbert): Libs with the same name will clobber each other.
-            # This was the case with the old shell based script too. I'm trying
-            # not to change too much in the translation.
-            lib_path = os.path.join(abi_dir, test_file)
-            print('Pushing {} to {}...'.format(
-                lib_path, self.get_device_dir()))
-            self.device.push(lib_path, self.get_device_dir())
 
             # Binaries pushed from Windows may not have execute permissions.
             if not file_is_lib:
@@ -1141,15 +1129,33 @@ class DeviceTest(Test):
                 # didn't support that...
                 self.device.shell(['chmod', '777', file_path])
 
+    def get_test_executables(self, build_dir, test_filters):
+        abi_dir = os.path.join(build_dir, 'libs', self.abi)
+        if not os.path.isdir(abi_dir):
+            raise RuntimeError('No libraries for {}'.format(self.abi))
+
+        test_cases = []
+        for test_file in os.listdir(abi_dir):
+            if test_file in ('gdbserver', 'gdb.setup'):
+                continue
+
+            if test_file.endswith('.so'):
+                continue
+
+            case_name = _make_subtest_name(self.name, test_file)
+            if not test_filters.filter(case_name):
+                continue
+            test_cases.append(test_file)
+
         if len(test_cases) == 0:
             raise RuntimeError('Could not find any test executables.')
 
         return test_cases
 
     def get_additional_tests(self, build_dir, test_filters):
-        executables = self.copy_test_to_device(build_dir, test_filters)
         additional_tests = []
-        for exe in executables:
+        self.copy_test_to_device(build_dir, test_filters)
+        for exe in self.get_test_executables(build_dir, test_filters):
             name = _make_subtest_name(self.name, exe)
             run_test = DeviceRunTest(
                 name, self.test_dir, exe, self.get_device_dir(), self.config)
