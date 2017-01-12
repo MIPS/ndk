@@ -309,7 +309,11 @@ def _run_test(suite, test, out_dir, test_filters):
         message = 'test unsupported for {}'.format(config)
         return suite, Skipped(test.name, message), []
 
-    result, additional_tests = test.run(out_dir, test_filters)
+    try:
+        result, additional_tests = test.run(out_dir, test_filters)
+    except Exception as ex:  # pylint: disable=broad-except
+        result = Failure(test.name, ex)
+        additional_tests = []
     if test.is_negative_test():
         result = _fixup_negative_test(result)
     config, bug = test.check_broken()
