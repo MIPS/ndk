@@ -201,10 +201,8 @@ class ScriptShortcutModule(Module):
 
     def make_cmd_helper(self, out_dir, system):
         script = self.get_script_path(system)
-
-        basename = os.path.basename(script)
-        basename += '.' + self.windows_ext
-        full_path = ntpath.join('%~dp0', ntpath.normpath(script), basename)
+        full_path = ntpath.join(
+            '%~dp0', ntpath.normpath(script) + self.windows_ext)
 
         install_base = ndk.paths.get_install_path(out_dir)
         install_path = os.path.join(install_base, self.path) + '.cmd'
