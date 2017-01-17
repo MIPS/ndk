@@ -384,6 +384,9 @@ $(call ndk_log,Host 'awk' tool: $(HOST_AWK))
 # Location of all awk scripts we use
 BUILD_AWK := $(NDK_ROOT)/build/awk
 
+# Location of python build helpers.
+BUILD_PY := $(NDK_ROOT)/build
+
 AWK_TEST := $(shell $(HOST_AWK) -f $(BUILD_AWK)/check-awk.awk)
 $(call ndk_log,Host 'awk' test returned: $(AWK_TEST))
 ifneq ($(AWK_TEST),Pass)

@@ -81,7 +81,7 @@ ifndef APP_PLATFORM
         _local_props := $(strip $(wildcard $(APP_PROJECT_PATH)/default.properties))
     endif
     ifdef _local_props
-        APP_PLATFORM := $(strip $(shell $(HOST_AWK) -f $(BUILD_AWK)/extract-platform.awk $(call host-path,$(_local_props))))
+        APP_PLATFORM := $(strip $(shell $(HOST_PYTHON) $(BUILD_PY)/extract_platform.py $(call host-path,$(_local_props))))
         $(call ndk_log,  Found APP_PLATFORM=$(APP_PLATFORM) in $(_local_props))
     else
         APP_PLATFORM := android-9
