@@ -71,7 +71,8 @@ def temp_dir_in_out(dirname, out_dir=None):
         raise RuntimeError('Directory already exists: ' + path)
 
     os.makedirs(path)
-    abspath = os.path.abspath(path)
-    yield abspath
-
-    shutil.rmtree(abspath)
+    try:
+        abspath = os.path.abspath(path)
+        yield abspath
+    finally:
+        shutil.rmtree(abspath)
