@@ -16,10 +16,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import difflib
 import distutils.spawn
-import filecmp
-import glob
 import imp
 import logging
 import multiprocessing
@@ -146,27 +143,6 @@ class DeviceConfiguration(BuildConfiguration):
         if self.skip_run != other.skip_run:
             return False
         return True
-
-
-class AwkTestScanner(TestScanner):
-    def find_tests(self, path, name):
-        script_name = name + '.awk'
-        script = os.path.join(ndk.NDK_ROOT, 'build/awk', script_name)
-        if not os.path.isfile(script):
-            msg = '{} missing test script: {}'.format(name, script)
-            raise RuntimeError(msg)
-
-        tests = []
-        for test_case in glob.glob(os.path.join(path, '*.in')):
-            golden_path = re.sub(r'\.in$', '.out', test_case)
-            if not os.path.isfile(golden_path):
-                msg = '{} missing output: {}'.format(name, golden_path)
-                raise RuntimeError(msg)
-            case_name = os.path.splitext(os.path.basename(test_case))[0]
-            full_case_name = _make_subtest_name(name, case_name)
-            tests.append(
-                AwkTest(full_case_name, path, script, test_case, golden_path))
-        return tests
 
 
 class BuildTestScanner(TestScanner):
@@ -467,56 +443,6 @@ class Test(object):
 
     def run(self, out_dir, test_filters):
         raise NotImplementedError
-
-
-class AwkTest(Test):
-    def __init__(self, name, test_dir, script, input_path, golden_out_path):
-        super(AwkTest, self).__init__(name, test_dir)
-        self.script = script
-        self.input_path = input_path
-        self.golden_out_path = golden_out_path
-
-    # Awk tests only run in a single configuration. Disabling them per ABI,
-    # platform, or toolchain has no meaning. Stub out the checks.
-    def check_broken(self):
-        return None, None
-
-    def check_unsupported(self):
-        return None
-
-    def is_negative_test(self):
-        return False
-
-    def run(self, out_dir, test_filters):
-        # We need a subdirectory named for our test to handle the case where
-        # multiple awk tests share names for test cases. If run simultaneously,
-        # the outputs will collide.
-        out_path = os.path.join(
-            out_dir, 'awk', self.name, os.path.basename(self.golden_out_path))
-        test_out_dir = os.path.dirname(out_path)
-        if not os.path.exists(test_out_dir):
-            os.makedirs(test_out_dir)
-
-        with open(self.input_path) as test_in, open(out_path, 'w') as out_file:
-            awk_path = ndk.get_tool('awk')
-            print('{} -f {} < {} > {}'.format(
-                awk_path, self.script, self.input_path, out_path))
-            rc = subprocess.call([awk_path, '-f', self.script], stdin=test_in,
-                                 stdout=out_file)
-            if rc != 0:
-                return Failure(self.name, 'awk failed'), []
-
-        if filecmp.cmp(out_path, self.golden_out_path):
-            return Success(self.name), []
-        else:
-            with open(out_path) as out_file:
-                out_lines = out_file.readlines()
-            with open(self.golden_out_path) as golden_out_file:
-                golden_lines = golden_out_file.readlines()
-            diff = ''.join(difflib.unified_diff(
-                golden_lines, out_lines, fromfile='expected', tofile='actual'))
-            message = 'output does not match expected:\n\n' + diff
-            return Failure(self.name, message), []
 
 
 def _prep_build_dir(src_dir, out_dir):

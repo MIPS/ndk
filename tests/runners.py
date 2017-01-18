@@ -154,8 +154,7 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
             the value set in the test's Application.mk, or ndk-build's default.
         verbose_build: Show verbose output from ndk-build and cmake.
         suites: Set of strings denoting which test suites to run. Possible
-            values are 'awk', 'build', and 'device'. If None, will run all
-            suites.
+            values are 'build' and 'device'. If None, will run all suites.
         test_filter: Filter string for selecting a subset of tests.
         device_serial: Serial number of the device to use for device tests. If
             none, will try to find a device from ANDROID_SERIAL or a unique
@@ -179,7 +178,7 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
         }
     """
     if suites is None:
-        suites = ('awk', 'build', 'device')
+        suites = ('build', 'device')
 
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
@@ -226,9 +225,6 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
         device_api_level = build.lib.build_support.minimum_platform_level(abi)
 
     runner = tests.testlib.TestRunner(printer)
-    if 'awk' in suites:
-        awk_scanner = tests.testlib.AwkTestScanner()
-        runner.add_suite('awk', 'awk', awk_scanner)
     if 'build' in suites:
         build_scanner = tests.testlib.BuildTestScanner()
         build_scanner.add_build_configuration(
@@ -278,8 +274,6 @@ def run_for_fleet(ndk_path, fleet, out_dir, log_dir, test_filter,
                   use_color=False):
     # Note that we are duplicating some testing here.
     #
-    # * The awk tests only need to be run once because they do not vary by
-    #   configuration.
     # * The build tests only vary per-device by the PIE configuration, so we
     #   only need to run them twice per ABI/toolchain.
     # * The build tests are already run as a part of the build process.
