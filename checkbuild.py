@@ -341,10 +341,6 @@ class HostTools(ndk.builds.Module):
         invoke_external_build(
             'ndk/sources/host-tools/ndk-depends/build.py', build_args)
 
-        print('Building awk...')
-        invoke_external_build(
-            'ndk/sources/host-tools/nawk-20071023/build.py', build_args)
-
         print('Building make...')
         invoke_external_build(
             'ndk/sources/host-tools/make-3.81/build.py', build_args)
@@ -369,7 +365,6 @@ class HostTools(ndk.builds.Module):
 def package_host_tools(out_dir, dist_dir, host):
     packages = [
         'gdb-multiarch-7.11',
-        'ndk-awk',
         'ndk-depends',
         'ndk-make',
         'ndk-python',
@@ -400,7 +395,6 @@ def package_host_tools(out_dir, dist_dir, host):
     build_support.merge_license_files(
         os.path.join(out_dir, 'host-tools/NOTICE'), [
             build_support.android_path('toolchain/gdb/gdb-7.11/COPYING'),
-            build_support.ndk_path('sources/host-tools/nawk-20071023/NOTICE'),
             build_support.ndk_path('sources/host-tools/ndk-depends/NOTICE'),
             build_support.ndk_path('sources/host-tools/make-3.81/COPYING'),
             build_support.android_path(

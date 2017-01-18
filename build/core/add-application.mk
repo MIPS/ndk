@@ -70,8 +70,8 @@ endif
 else
 
 # check whether APP_PLATFORM is defined. If not, look for project.properties in
-# the $(APP_PROJECT_PATH) and extract the value with awk's help. If nothing is here,
-# revert to the default value (i.e. "android-3").
+# the $(APP_PROJECT_PATH) and extract the value with Python's help. If nothing
+# is here, revert to the default value (i.e. "android-3").
 #
 APP_PLATFORM := $(strip $(APP_PLATFORM))
 ifndef APP_PLATFORM

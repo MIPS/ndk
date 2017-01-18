@@ -313,7 +313,6 @@ $(call ndk_log,HOST_TAG set to $(HOST_TAG))
 # Check for NDK-specific versions of our host tools
 HOST_TOOLS_ROOT := $(NDK_ROOT)/prebuilt/$(HOST_TAG64)
 HOST_PREBUILT := $(strip $(wildcard $(HOST_TOOLS_ROOT)/bin))
-HOST_AWK := $(strip $(NDK_HOST_AWK))
 HOST_MAKE := $(strip $(NDK_HOST_MAKE))
 HOST_PYTHON := $(strip $(NDK_HOST_PYTHON))
 ifdef HOST_PREBUILT
@@ -321,9 +320,6 @@ ifdef HOST_PREBUILT
     # The windows prebuilt binaries are for ndk-build.cmd
     # On cygwin, we must use the Cygwin version of these tools instead.
     ifneq ($(HOST_OS),cygwin)
-        ifndef HOST_AWK
-            HOST_AWK := $(wildcard $(HOST_PREBUILT)/awk$(HOST_EXEEXT))
-        endif
         ifndef HOST_MAKE
             HOST_MAKE := $(wildcard $(HOST_PREBUILT)/make$(HOST_EXEEXT))
         endif
@@ -371,28 +367,8 @@ ifndef HOST_CMP
 endif
 $(call ndk_log,Host 'cmp' tool: $(HOST_CMP))
 
-#
-# Verify that the 'awk' tool has the features we need.
-# Both Nawk and Gawk do.
-#
-HOST_AWK := $(strip $(HOST_AWK))
-ifndef HOST_AWK
-    HOST_AWK := awk
-endif
-$(call ndk_log,Host 'awk' tool: $(HOST_AWK))
-
-# Location of all awk scripts we use
-BUILD_AWK := $(NDK_ROOT)/build/awk
-
 # Location of python build helpers.
 BUILD_PY := $(NDK_ROOT)/build
-
-AWK_TEST := $(shell $(HOST_AWK) -f $(BUILD_AWK)/check-awk.awk)
-$(call ndk_log,Host 'awk' test returned: $(AWK_TEST))
-ifneq ($(AWK_TEST),Pass)
-    $(call __ndk_info,Host 'awk' tool is outdated. Please define NDK_HOST_AWK to point to Gawk or Nawk !)
-    $(call __ndk_error,Aborting.)
-endif
 
 #
 # On Cygwin/MSys, define the 'cygwin-to-host-path' function here depending on the
@@ -439,7 +415,8 @@ ifeq ($(HOST_OS),cygwin)
         $(call ndk_log, Forced usage of 'cygpath -m' through NDK_USE_CYGPATH=1)
         cygwin-to-host-path = $(strip $(shell $(CYGPATH) -m $1))
     else
-        # Call an awk script to generate a Makefile fragment used to define a function
+        # Call a Python script to generate a Makefile function that approximates
+        # cygpath.
         WINDOWS_HOST_PATH_FRAGMENT := $(shell mount | $(HOST_PYTHON) $(BUILD_PY)/gen_cygpath.py)
         $(eval cygwin-to-host-path = $(WINDOWS_HOST_PATH_FRAGMENT))
     endif
