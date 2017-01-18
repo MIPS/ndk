@@ -440,11 +440,7 @@ ifeq ($(HOST_OS),cygwin)
         cygwin-to-host-path = $(strip $(shell $(CYGPATH) -m $1))
     else
         # Call an awk script to generate a Makefile fragment used to define a function
-        WINDOWS_HOST_PATH_FRAGMENT := $(shell mount | tr '\\' '/' | $(HOST_AWK) -f $(BUILD_AWK)/gen-windows-host-path.awk)
-        ifeq ($(NDK_LOG),1)
-            $(info Using cygwin substitution rules:)
-            $(eval $(shell mount | tr '\\' '/' | $(HOST_AWK) -f $(BUILD_AWK)/gen-windows-host-path.awk -vVERBOSE=1))
-        endif
+        WINDOWS_HOST_PATH_FRAGMENT := $(shell mount | $(HOST_PYTHON) $(BUILD_PY)/gen_cygpath.py)
         $(eval cygwin-to-host-path = $(WINDOWS_HOST_PATH_FRAGMENT))
     endif
 endif # HOST_OS == cygwin
