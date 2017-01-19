@@ -154,6 +154,11 @@ class DeviceConfiguration(BuildConfiguration):
             return False
         return True
 
+    def __str__(self):
+        build_str = super(DeviceConfiguration, self).__str__()
+        serial = 'no-device' if self.device is None else self.device.serial
+        return '{}-{}'.format(build_str, serial)
+
 
 class BuildTestScanner(TestScanner):
     def __init__(self):
