@@ -49,7 +49,7 @@ The NDK consists of three parts: host binaries, target prebuilts, and others
     * `$TOOLCHAIN/setup.mk` contains toolchain-specific default CFLAGS/LDFLAGS
       when this toolchain is used.
 * `prebuilt/$HOST_TAG` contains build dependencies and additional tools.
-    * make, awk, python, yasm, and for Windows: cmp.exe and echo.exe
+    * make, python, yasm, and for Windows: cmp.exe and echo.exe
     * `ndk-depends`, `ndk-stack` and `ndk-gdb` can also be found here.
 
 ### Target Headers and Binaries

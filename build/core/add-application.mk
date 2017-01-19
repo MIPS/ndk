@@ -70,8 +70,8 @@ endif
 else
 
 # check whether APP_PLATFORM is defined. If not, look for project.properties in
-# the $(APP_PROJECT_PATH) and extract the value with awk's help. If nothing is here,
-# revert to the default value (i.e. "android-3").
+# the $(APP_PROJECT_PATH) and extract the value with Python's help. If nothing
+# is here, revert to the default value (i.e. "android-3").
 #
 APP_PLATFORM := $(strip $(APP_PLATFORM))
 ifndef APP_PLATFORM
@@ -81,7 +81,7 @@ ifndef APP_PLATFORM
         _local_props := $(strip $(wildcard $(APP_PROJECT_PATH)/default.properties))
     endif
     ifdef _local_props
-        APP_PLATFORM := $(strip $(shell $(HOST_AWK) -f $(BUILD_AWK)/extract-platform.awk $(call host-path,$(_local_props))))
+        APP_PLATFORM := $(strip $(shell $(HOST_PYTHON) $(BUILD_PY)/extract_platform.py $(call host-path,$(_local_props))))
         $(call ndk_log,  Found APP_PLATFORM=$(APP_PLATFORM) in $(_local_props))
     else
         APP_PLATFORM := android-9
@@ -149,7 +149,7 @@ ifneq (null,$(APP_PROJECT_PATH))
 APP_MANIFEST := $(strip $(wildcard $(APP_PROJECT_PATH)/AndroidManifest.xml))
 APP_PLATFORM_LEVEL := $(strip $(subst android-,,$(APP_PLATFORM)))
 ifdef APP_MANIFEST
-  APP_MIN_PLATFORM_LEVEL := $(strip $(shell $(HOST_AWK) -f $(BUILD_AWK)/extract-minsdkversion.awk $(call host-path,$(APP_MANIFEST))))
+  APP_MIN_PLATFORM_LEVEL := $(strip $(shell $(HOST_PYTHON) $(BUILD_PY)/extract_manifest.py minSdkVersion $(call host-path,$(APP_MANIFEST))))
   ifdef APP_MIN_PLATFORM_LEVEL
     ifneq (,$(call gt,$(APP_PLATFORM_LEVEL),$(APP_MIN_PLATFORM_LEVEL)))
       $(call __ndk_info,WARNING: APP_PLATFORM $(APP_PLATFORM) is larger than android:minSdkVersion $(APP_MIN_PLATFORM_LEVEL) in $(APP_MANIFEST))
@@ -234,7 +234,7 @@ else
   # NOTE: To make unit-testing simpler, handle the case where there is no manifest.
   APP_DEBUGGABLE := false
   ifdef APP_MANIFEST
-    APP_DEBUGGABLE := $(shell $(HOST_AWK) -f $(BUILD_AWK)/extract-debuggable.awk $(call host-path,$(APP_MANIFEST)))
+    APP_DEBUGGABLE := $(shell $(HOST_PYTHON) $(BUILD_PY)/extract_manifest.py debuggable $(call host-path,$(APP_MANIFEST)))
   endif
   ifeq ($(NDK_LOG),1)
     ifeq ($(APP_DEBUGGABLE),true)
