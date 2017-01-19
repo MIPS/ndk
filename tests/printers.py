@@ -17,25 +17,25 @@ from __future__ import print_function
 
 import sys
 
-import util
+import tests.util as util
 
 
-def format_stats_str(num_tests, stats, use_color):
+def format_stats_str(report, use_color):
     pass_label = util.color_string('PASS', 'green') if use_color else 'PASS'
     fail_label = util.color_string('FAIL', 'red') if use_color else 'FAIL'
     skip_label = util.color_string('SKIP', 'yellow') if use_color else 'SKIP'
     return '{pl} {p}/{t} {fl} {f}/{t} {sl} {s}/{t}'.format(
-        pl=pass_label, p=stats['pass'],
-        fl=fail_label, f=stats['fail'],
-        sl=skip_label, s=stats['skip'],
-        t=num_tests)
+        pl=pass_label, p=report.num_passed,
+        fl=fail_label, f=report.num_failed,
+        sl=skip_label, s=report.num_skipped,
+        t=report.num_tests)
 
 
 class Printer(object):
     def print_result(self, result):
         raise NotImplementedError
 
-    def print_summary(self, results, stats):
+    def print_summary(self, report):
         raise NotImplementedError
 
 
@@ -48,20 +48,17 @@ class FilePrinter(Printer):
     def print_result(self, result):
         print(result.to_string(colored=self.use_color), file=self.file)
 
-    def print_summary(self, results, stats):
+    def print_summary(self, report):
         print(file=self.file)
-        formatted = format_stats_str(stats.num_tests,
-                                     stats.global_stats, self.use_color)
+        formatted = format_stats_str(report, self.use_color)
         print(formatted, file=self.file)
-        for suite, test_results in results.items():
-            stats_str = format_stats_str(len(test_results),
-                                         stats.suite_stats[suite],
-                                         self.use_color)
+        for suite, suite_report in report.by_suite().items():
+            stats_str = format_stats_str(suite_report, self.use_color)
             print(file=self.file)
             print('{}: {}'.format(suite, stats_str), file=self.file)
-            for result in test_results:
-                if self.show_all or result.failed():
-                    print(result.to_string(colored=self.use_color),
+            for report in suite_report.reports:
+                if self.show_all or report.result.failed():
+                    print(report.result.to_string(colored=self.use_color),
                           file=self.file)
 
 

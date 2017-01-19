@@ -228,14 +228,13 @@ def parse_args():
 
 def get_aggregate_results(details):
     tests = {}
-    for config, results in details.iteritems():
-        for suite, test_results in results.iteritems():
-            for test in test_results:
-                if test.failed():
-                    name = '.'.join([suite, test.test_name])
-                    if name not in tests:
-                        tests[name] = []
-                    tests[name].append((config, test))
+    for config, report in details.iteritems():
+        for suite, suite_report in report.by_suite().items():
+            for test_report in suite_report.all_failed:
+                name = '.'.join([suite, test_report.result.test.name])
+                if name not in tests:
+                    tests[name] = []
+                tests[name].append((config, test_report.result))
     return tests
 
 

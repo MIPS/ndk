@@ -107,38 +107,37 @@ def package_ndk(ndk_dir, dist_dir, host_tag, build_number):
         _make_tar_package(package_path, base_dir, files)
 
 
-def group_by_test(details):
+def group_by_test(reports):
     """Arranges per-ABI test results into failures by name.
 
     Args:
-        details: dict of {abi: {suite_name: [results]}}.
+        details: dict of {config_str: ndk.test.Report}.
 
     Returns:
-        Dict of {test_name: (abi, result)}.
+        Dict of {test_name: (config_str, result)}.
     """
     by_test = {}
-    for abi, suites in details.iteritems():
-        for suite, test_results in suites.iteritems():
-            for test in test_results:
-                if test.failed():
-                    name = '.'.join([suite, test.test_name])
-                    if name not in by_test:
-                        by_test[name] = []
-                    by_test[name].append((abi, test))
+    for config_str, report in reports.iteritems():
+        for suite, suite_report in report.by_suite():
+            for test in suite_report.all_failed:
+                name = '.'.join([suite, test.test_name])
+                if name not in by_test:
+                    by_test[name] = []
+                by_test[name].append((config_str, test))
     return by_test
 
 
-def make_test_report(details, use_color):
+def make_test_report(reports, use_color):
     """Returns a string containing a test failure report.
 
     Args:
-        details: dict of {abi: suite_name: [results]}}.
+        details: dict of {config_str: ndk.test.Report}.
         use_color: Print results with color if True.
 
     Returns:
         Test failure report as a string.
     """
-    grouped_details = group_by_test(details)
+    grouped_details = group_by_test(reports)
     lines = []
     for test_name, test_failures in grouped_details.iteritems():
         lines.append('BEGIN TEST RESULT: ' + test_name)
@@ -175,7 +174,7 @@ def test_ndk(out_dir, dist_dir, args):
         abis = build_support.arch_to_abis(args.arch)
 
     use_color = sys.stdin.isatty() and os.name != 'nt'
-    results = collections.OrderedDict()
+    reports = collections.OrderedDict()
 
     site.addsitedir(os.path.join(test_dir, 'python-packages'))
     import tests.runners
@@ -187,7 +186,6 @@ def test_ndk(out_dir, dist_dir, args):
         [False, True],  # Force deprecated headers.
     )
 
-    details = {}
     for abi, toolchain, force_deprecated_headers in configurations:
         if force_deprecated_headers:
             force_deprecated_headers_str = 'deprecated headers'
@@ -196,23 +194,24 @@ def test_ndk(out_dir, dist_dir, args):
 
         cfg = ' '.join([abi, toolchain, force_deprecated_headers_str])
         test_out_dir = os.path.join(out_dir, 'test', abi)
-        results[cfg], details[cfg] = tests.runners.run_single_configuration(
+        reports[cfg] = tests.runners.run_single_configuration(
             test_dir, test_out_dir,
             tests.printers.StdoutPrinter(use_color=use_color),
             abi, toolchain, skip_run=True,
             force_deprecated_headers=force_deprecated_headers)
 
-    all_pass = all(results.values())
+    all_pass = all([r.successful for r in reports.values()])
     if not all_pass:
-        test_report = make_test_report(details, use_color)
+        test_report = make_test_report(reports, use_color)
         print(test_report)
         log_path = os.path.join(dist_dir, 'logs/build_error.log')
         with open(log_path, 'a') as error_log:
             error_log.write(test_report)
 
     print('Results:')
-    for abi, result in results.iteritems():
-        print('{}: {}'.format(abi, 'PASS' if result else 'FAIL'))
+    for test_config, report in reports.iteritems():
+        success_text = 'PASS' if report.successful else 'FAIL'
+        print('{}: {}'.format(test_config, success_text))
     return all_pass
 
 

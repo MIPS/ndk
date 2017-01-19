@@ -31,6 +31,7 @@ import xml.etree.ElementTree
 
 import build.lib.build_support
 import ndk.abis
+import ndk.test.report
 import ndk.workqueue as wq
 import tests.ndk as ndkbuild
 import tests.util as util
@@ -351,7 +352,7 @@ class TestRunner(object):
                     workqueue.add_task(
                         _run_test, suite, test, out_dir, test_filters)
 
-            results = {suite: [] for suite in self.tests.keys()}
+            report = ndk.test.report.Report()
             while not workqueue.finished():
                 suite, result, additional_tests = workqueue.get_result()
                 for test in additional_tests:
