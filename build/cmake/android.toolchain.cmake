@@ -248,6 +248,13 @@ else()
 	message(FATAL_ERROR "Invalid Android ABI: ${ANDROID_ABI}.")
 endif()
 
+set(ANDROID_COMPILER_FLAGS)
+set(ANDROID_COMPILER_FLAGS_CXX)
+set(ANDROID_COMPILER_FLAGS_DEBUG)
+set(ANDROID_COMPILER_FLAGS_RELEASE)
+set(ANDROID_LINKER_FLAGS)
+set(ANDROID_LINKER_FLAGS_EXE)
+
 # STL.
 set(ANDROID_STL_STATIC_LIBRARIES)
 set(ANDROID_STL_SHARED_LIBRARIES)
@@ -269,27 +276,13 @@ elseif(ANDROID_STL STREQUAL gnustl_shared)
 	set(ANDROID_STL_SHARED_LIBRARIES
 		gnustl_shared)
 elseif(ANDROID_STL STREQUAL c++_static)
-	set(ANDROID_STL_STATIC_LIBRARIES
-		c++_static
-		c++abi
-		unwind
-		android_support)
+	set(ANDROID_STL_STATIC_LIBRARIES c++)
 elseif(ANDROID_STL STREQUAL c++_shared)
-	set(ANDROID_STL_STATIC_LIBRARIES
-		unwind)
-	set(ANDROID_STL_SHARED_LIBRARIES
-		c++_shared)
+	set(ANDROID_STL_SHARED_LIBRARIES c++)
 elseif(ANDROID_STL STREQUAL none)
 else()
 	message(FATAL_ERROR "Invalid Android STL: ${ANDROID_STL}.")
 endif()
-
-set(ANDROID_COMPILER_FLAGS)
-set(ANDROID_COMPILER_FLAGS_CXX)
-set(ANDROID_COMPILER_FLAGS_DEBUG)
-set(ANDROID_COMPILER_FLAGS_RELEASE)
-set(ANDROID_LINKER_FLAGS)
-set(ANDROID_LINKER_FLAGS_EXE)
 
 # Sysroot.
 if(NOT ANDROID_UNIFIED_HEADERS)
@@ -456,9 +449,6 @@ elseif(ANDROID_STL MATCHES "^c\\+\\+_")
 	if(ANDROID_ABI MATCHES "^armeabi")
 		list(APPEND ANDROID_LINKER_FLAGS
 			-Wl,--exclude-libs,libunwind.a)
-	else()
-		list(REMOVE_ITEM ANDROID_STL_STATIC_LIBRARIES
-			unwind)
 	endif()
 	list(APPEND ANDROID_COMPILER_FLAGS_CXX
 		-std=c++11)
@@ -466,6 +456,12 @@ elseif(ANDROID_STL MATCHES "^c\\+\\+_")
 		list(APPEND ANDROID_COMPILER_FLAGS_CXX
 			-fno-strict-aliasing)
 	endif()
+
+	# Add the libc++ lib directory to the path so the linker scripts can pick up
+	# the extra libraries.
+	list(APPEND ANDROID_LINKER_FLAGS
+		"-L${ANDROID_NDK}/sources/cxx-stl/${ANDROID_STL_PREFIX}/libs/${ANDROID_ABI}")
+
 	set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES
 		"${ANDROID_NDK}/sources/cxx-stl/${ANDROID_STL_PREFIX}/include"
 		"${ANDROID_NDK}/sources/android/support/include"
