@@ -1351,6 +1351,18 @@ class LibcxxTest(Test):
         return None, None
 
     def check_unsupported(self):
+        # The NDK's libc++ support has always come with a big scary beta label
+        # on it. The tests have never been 100% passing. We're going to only
+        # enable it for a handful of configurations as support falls in to
+        # place.
+        if not self.unified_headers:
+            return 'legacy headers'
+        if self.toolchain == '4.9':
+            return '4.9'
+        if self.abi != 'armeabi-v7a':
+            # The ABI case is something we will eventually support, but don't
+            # bother wasting time running them until we get to that point.
+            return self.abi
         return None
 
     def is_negative_test(self):
