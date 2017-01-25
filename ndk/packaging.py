@@ -36,7 +36,7 @@ def expand_paths(package, host, arches):
     """Expands package definition tuple into list of full package names.
 
     >>> expand_paths('gcc-{toolchain}-{host}', 'linux', ['arm', 'x86_64'])
-    ['gcc-arm-linux-androideabi-4.9-x86_64', 'gcc-x86_64-linux-x86_64']
+    ['gcc-arm-linux-androideabi-linux-x86_64', 'gcc-x86_64-linux-x86_64']
 
     >>> expand_paths('gdbserver-{arch}', 'linux', ['arm64', 'x86_64'])
     ['gdbserver-arm64', 'gdbserver-x86_64']
