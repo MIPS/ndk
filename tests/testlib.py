@@ -26,6 +26,7 @@ import re
 import shutil
 import subprocess
 import time
+import traceback
 
 import build.lib.build_support
 import ndk.workqueue as wq
@@ -287,16 +288,16 @@ def _run_test(suite, test, out_dir, test_filters):
 
     try:
         result, additional_tests = test.run(out_dir, test_filters)
-    except Exception as ex:  # pylint: disable=broad-except
-        result = Failure(test.name, ex)
+        if test.is_negative_test():
+            result = _fixup_negative_test(result)
+        config, bug = test.check_broken()
+        if config is not None:
+            # We need to check change each pass/fail to either an
+            # ExpectedFailure or an UnexpectedSuccess as necessary.
+            result = _fixup_expected_failure(result, config, bug)
+    except Exception:  # pylint: disable=broad-except
+        result = Failure(test.name, traceback.format_exc())
         additional_tests = []
-    if test.is_negative_test():
-        result = _fixup_negative_test(result)
-    config, bug = test.check_broken()
-    if config is not None:
-        # We need to check change each pass/fail to either an
-        # ExpectedFailure or an UnexpectedSuccess as necessary.
-        result = _fixup_expected_failure(result, config, bug)
     return suite, result, additional_tests
 
 
