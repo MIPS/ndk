@@ -284,9 +284,28 @@ else()
 	message(FATAL_ERROR "Invalid Android STL: ${ANDROID_STL}.")
 endif()
 
+# Behavior of CMAKE_SYSTEM_LIBRARY_PATH and CMAKE_LIBRARY_PATH are really weird
+# when CMAKE_SYSROOT is set. The library path is appended to the sysroot even if
+# the library path is an abspath. Using a relative path from the sysroot doesn't
+# work either, because the relative path is abspath'd relative to the current
+# CMakeLists.txt file before being appended :(
+#
+# We can try to get out of this problem by providing another root path for cmake
+# to check. CMAKE_FIND_ROOT_PATH is intended for this purpose:
+# https://cmake.org/cmake/help/v3.8/variable/CMAKE_FIND_ROOT_PATH.html
+#
+# In theory this should just be our sysroot, but since we don't have a single
+# sysroot that is correct for unified headers (there's only one set of headers,
+# but multiple locations for libraries that need to be handled differently).
+# Some day we'll want to move all the libraries into ${ANDROID_NDK}/sysroot, but
+# we'll need to make some fixes to Clang, various build systems, and possibly
+# CMake itself to get that working.
+list(APPEND CMAKE_FIND_ROOT_PATH "${ANDROID_NDK}")
+
 # Sysroot.
 if(ANDROID_DEPRECATED_HEADERS)
-	set(CMAKE_SYSROOT "${ANDROID_NDK}/platforms/${ANDROID_PLATFORM}/arch-${ANDROID_SYSROOT_ABI}")
+	set(CMAKE_SYSROOT
+		"${ANDROID_NDK}/platforms/${ANDROID_PLATFORM}/arch-${ANDROID_SYSROOT_ABI}")
 else()
 	set(CMAKE_SYSROOT "${ANDROID_NDK}/sysroot")
 	# The compiler driver doesn't check any arch specific include locations
@@ -300,8 +319,24 @@ else()
 	# We need different sysroots for linking and compiling when using unified
 	# headers, but cmake doesn't support that. Pass the sysroot flag manually when
 	# linking.
-	list(APPEND ANDROID_LINKER_FLAGS
-		"--sysroot ${ANDROID_NDK}/platforms/${ANDROID_PLATFORM}/arch-${ANDROID_SYSROOT_ABI}")
+	set(ANDROID_SYSTEM_LIBRARY_PATH
+		"${ANDROID_NDK}/platforms/${ANDROID_PLATFORM}/arch-${ANDROID_SYSROOT_ABI}")
+	list(APPEND ANDROID_LINKER_FLAGS "--sysroot ${ANDROID_SYSTEM_LIBRARY_PATH}")
+
+	# find_library searches a handful of paths as described by
+	# https://cmake.org/cmake/help/v3.6/command/find_library.html. Before unified
+	# headers, we found NDK libraries in the CMAKE_SYSROOT. With unified headers,
+	# we don't have libraries in the CMAKE_SYSROOT any more. Set up
+	# CMAKE_SYSTEM_LIBRARY_PATH
+	# (https://cmake.org/cmake/help/v3.6/variable/CMAKE_SYSTEM_LIBRARY_PATH.html)
+	# instead.
+	#
+	# NB: The suffix is just lib here instead of dealing with lib64 because
+	# apparently CMake does some automatic rewriting of that? I've been testing
+	# by building my own CMake with a bunch of logging added, and that seems to be
+	# the case.
+	list(APPEND CMAKE_SYSTEM_LIBRARY_PATH
+		"${ANDROID_SYSTEM_LIBRARY_PATH}/usr/lib")
 endif()
 
 # Toolchain.
