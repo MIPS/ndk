@@ -3,7 +3,9 @@ Continuous Builds
 
 The NDK's continuous builds can be accessed by anyone with a Google account at
 http://partner.android.com/build. Select "Build List" from the menu on the left
-and then choose a branch and target from the menus at the top of the page.
+and then choose a branch and target from the menus at the top of the page. Note
+that the "product" defaults to the macOS download, so if you're using Linux or
+Windows you'll need to change that combo box too.
 
 **Disclaimer**: These builds are **not** suitable for production use. This is
 just a continuous build. The amount of testing these builds have been put
