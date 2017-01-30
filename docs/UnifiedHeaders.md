@@ -73,6 +73,28 @@ https://developer.android.com/ndk/guides/standalone_toolchain.html
 TBD
 
 
+Using unified headers with `configure && make`
+----------------------------------------------
+
+If you're trying to build a traditional open-source `configure && make`
+style project with the NDK, unified headers are your best choice. The
+basic steps look like this (here for 32-bit ARM):
+
+```bash
+$ $NDK/build/tools/make_standalone_toolchain.py --unified-headers \
+    --arch arm --api 21 --install-dir /tmp/ndk-arm-21
+$ cd <project>
+$ export CC=/tmp/ndk-arm-21/arm-linux-androideabi-clang
+$ export LDFLAGS="-pie"
+$ ./configure --host=arm-linux-androideabi
+$ make
+```
+
+Replace "arm" and "arm-linux-androideabi" with the appropriate pair for
+the architecture you actually want to build for, and 21 with the API
+level you want to target.
+
+
 Supporting Unified Headers in Your Build System
 -----------------------------------------------
 
