@@ -135,11 +135,15 @@ class InvokeExternalBuildModule(Module):
         build_args = common_build_args(build_dir, dist_dir, args)
         if self.arch_specific and args.arch is not None:
             build_args.append('--arch={}'.format(args.arch))
+        build_args.extend(self.additional_args(args))
         script = self.get_script_path()
         invoke_external_build(script, build_args)
 
     def get_script_path(self):
         return build.lib.build_support.android_path(self.script)
+
+    def additional_args(self, _args):  # pylint: disable=no-self-use
+        return []
 
 
 class InvokeBuildModule(InvokeExternalBuildModule):
