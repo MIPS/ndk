@@ -556,9 +556,15 @@ def parse_args():
         '--stl', choices=('gnustl', 'libc++', 'stlport'), default='gnustl',
         help='C++ STL to use.')
 
-    parser.add_argument(
-        '--unified-headers', action='store_true', default=False,
-        help='Use unified headers.')
+    headers_option_group = parser.add_mutually_exclusive_group()
+
+    headers_option_group.add_argument(
+        '--unified-headers', action='store_true', default=True,
+        help='Use unified headers (default).')
+
+    headers_option_group.add_argument(
+        '--deprecated-headers', action='store_false', dest='unified_headers',
+        help='Force the use of the deprecated headers (not recommended).')
 
     parser.add_argument(
         '--force', action='store_true',

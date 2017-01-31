@@ -64,7 +64,7 @@ TARGET_LDFLAGS += \
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
     LLVM_TRIPLE := armv7-none-linux-androideabi
-    ifeq ($(APP_UNIFIED_HEADERS),true)
+    ifneq ($(APP_DEPRECATED_HEADERS),true)
         LLVM_TRIPLE := $(LLVM_TRIPLE)$(APP_PLATFORM_LEVEL)
     endif
 
@@ -79,7 +79,7 @@ ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
     GCCLIB_SUBDIR := armv7-a
 else ifeq ($(TARGET_ARCH_ABI),armeabi)
     LLVM_TRIPLE := armv5te-none-linux-androideabi
-    ifeq ($(APP_UNIFIED_HEADERS),true)
+    ifneq ($(APP_DEPRECATED_HEADERS),true)
         LLVM_TRIPLE := $(LLVM_TRIPLE)$(APP_PLATFORM_LEVEL)
     endif
 

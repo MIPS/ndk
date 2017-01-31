@@ -186,23 +186,23 @@ def test_ndk(out_dir, dist_dir, args):
     configurations = itertools.product(
         abis,
         ['clang'],  # Toolchains to test. Don't bother with GCC.
-        [False, True],  # Force unified headers.
+        [False, True],  # Force deprecated headers.
     )
 
     details = {}
-    for abi, toolchain, force_unified_headers in configurations:
-        if force_unified_headers:
-            force_unified_headers_str = 'unified headers'
+    for abi, toolchain, force_deprecated_headers in configurations:
+        if force_deprecated_headers:
+            force_deprecated_headers_str = 'deprecated headers'
         else:
-            force_unified_headers_str = 'legacy headers'
+            force_deprecated_headers_str = 'unified headers'
 
-        cfg = ' '.join([abi, toolchain, force_unified_headers_str])
+        cfg = ' '.join([abi, toolchain, force_deprecated_headers_str])
         test_out_dir = os.path.join(out_dir, 'test', abi)
         results[cfg], details[cfg] = tests.runners.run_single_configuration(
             test_dir, test_out_dir,
             tests.printers.StdoutPrinter(use_color=use_color),
             abi, toolchain, skip_run=True,
-            force_unified_headers=force_unified_headers)
+            force_deprecated_headers=force_deprecated_headers)
 
     all_pass = all(results.values())
     if not all_pass:

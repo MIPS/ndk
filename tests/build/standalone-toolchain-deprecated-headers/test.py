@@ -43,7 +43,8 @@ def make_standalone_toolchain(arch, platform, install_dir):
         ndk_dir, 'build/tools/make_standalone_toolchain.py')
 
     cmd = [make_standalone_toolchain_path, '--force',
-           '--install-dir=' + install_dir, '--stl=libc++', '--unified-headers']
+           '--install-dir=' + install_dir, '--stl=libc++',
+           '--deprecated-headers']
 
     if arch is not None:
         cmd.append('--arch=' + arch)
