@@ -15,7 +15,7 @@ Announcements
    means that the headers are now up to date, accurate, and header only bug
    fixes will affect all API levels. Prior to this, the M and N headers were
    actually the L headers, all the headers did not actually match the platform
-   level they were supposedely for (declared functions that didn't exist, didn't
+   level they were supposedly for (declared functions that didn't exist, didn't
    declare ones that did), and many of the old API levels had missing or
    incorrect constants that were in newer API levels.
 
