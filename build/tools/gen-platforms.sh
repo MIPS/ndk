@@ -378,22 +378,8 @@ gen_crt_objects ()
         exit 1
     fi
 
-    # Build crtbrand.o from crtbrand.c, via a crtbrand.s that we sed.
-    # TODO: this should just be direct from a .S file like bionic's crtbrand.
     NDK_VERSION=`python $NDK_DIR/config.py`
-    CRTBRAND_S=$DST_DIR/crtbrand.s
-    log "Generating platform $API crtbrand assembly code: $CRTBRAND_S"
-    (cd "$COMMON_SRC_DIR" && mkdir -p `dirname $CRTBRAND_S` && \
-        $CC -DPLATFORM_SDK_VERSION=$API \
-            -DABI_NDK_VERSION=\"$NDK_VERSION\" \
-            -DABI_NDK_BUILD_NUMBER=\"$NDK_BUILD_NUMBER\" \
-            -fpic -S -o - crtbrand.c | \
-        sed -e '/\.note\.android\.ident/s/progbits/note/' > "$CRTBRAND_S")
-
-    if [ $? != 0 ]; then
-        dump "ERROR: Could not generate $CRTBRAND_S from $COMMON_SRC_DIR/crtbrand.c"
-        exit 1
-    fi
+    CRTBRAND_S="$NDK_DIR/sources/crt/crtbrand.S"
 
     for SRC_FILE in $(cd "$SRC_DIR" && ls crt*.[cS]); do
         DST_FILE=${SRC_FILE%%.c}
@@ -431,6 +417,8 @@ gen_crt_objects ()
                  -I$SRCDIR/../../bionic/libc/arch-common/bionic \
                  -I$SRCDIR/../../bionic/libc/arch-$ARCH/include \
                  -DPLATFORM_SDK_VERSION=$API \
+                 -DABI_NDK_VERSION=\"$NDK_VERSION\" \
+                 -DABI_NDK_BUILD_NUMBER=\"$NDK_BUILD_NUMBER\" \
                  -O2 -fpic -Wl,-r -nostdlib -o "$DST_DIR/$DST_FILE" $SRC_FILE)
         if [ $? != 0 ]; then
             dump "ERROR: Could not generate $DST_FILE from $SRC_DIR/$SRC_FILE"
@@ -448,7 +436,6 @@ gen_crt_objects ()
             cp "$DST_DIR/crtbegin_dynamic.o" "$DST_DIR/crtbegin_static.o"
         fi
     done
-    rm -f "$CRTBRAND_S"
 }
 
 # $1: platform number
