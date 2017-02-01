@@ -96,8 +96,6 @@ def package_ndk(ndk_dir, dist_dir, host_tag, build_number):
         build_number (printable): Build number to use in the package name. Will
                                   be 'dev' if the argument evaluates to False.
     """
-    if not build_number:
-        build_number = 'dev'
     package_name = 'android-ndk-{}-{}'.format(build_number, host_tag)
     package_path = os.path.join(dist_dir, package_name)
 
@@ -461,7 +459,7 @@ class Platforms(ndk.builds.InvokeBuildModule):
     script = 'build-platforms.py'
 
     def additional_args(self, args):
-        return ['--build-number', args.build_number]
+        return ['--build-number={}'.format(args.build_number)]
 
 
 class LibShaderc(ndk.builds.Module):
@@ -1009,7 +1007,8 @@ def parse_args():
         help='Do not run host tests when finished.')
 
     parser.add_argument(
-        '--build-number', help='Build number for use in version files.')
+        '--build-number', default='dev',
+        help='Build number for use in version files.')
     parser.add_argument(
         '--release', help='Ignored. Temporarily compatibility.')
 
