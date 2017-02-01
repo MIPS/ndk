@@ -131,7 +131,7 @@ SYSROOT_ARCH_INC_ARG :=
 # things they actually don't).
 SYSROOT_LINK := $(SYSROOT_BASE)
 
-ifeq ($(APP_UNIFIED_HEADERS),true)
+ifneq ($(APP_DEPRECATED_HEADERS),true)
     SYSROOT_INC := $(NDK_ROOT)/sysroot
     # The compiler driver doesn't check any arch specific include locations
     # (though maybe we should add that). Architecture specific headers like asm/

@@ -100,8 +100,8 @@ class ArgParser(argparse.ArgumentParser):
             help='Toolchain for building tests. Defaults to clang.')
 
         self.add_argument(
-            '--force-unified-headers', action='store_true',
-            help='Set `APP_UNIFIED_HEADERS=true` for all builds.')
+            '--force-deprecated-headers', action='store_true',
+            help='Set `APP_DEPRECATED_HEADERS=true` for all builds.')
 
         self.add_argument(
             '--show-commands', action='store_true',
@@ -183,7 +183,7 @@ def main():
         ndk_path, out_dir, printer, args.abi, args.toolchain, args.platform,
         args.show_commands, suites=suites, test_filter=args.filter,
         skip_run=args.skip_run,
-        force_unified_headers=args.force_unified_headers)
+        force_deprecated_headers=args.force_deprecated_headers)
 
     subject = 'NDK Testing {}!'.format('Passed' if good else 'Failed')
     ndk.notify.toast(subject)

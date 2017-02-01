@@ -136,7 +136,7 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
                              build_api_level=None, verbose_build=False,
                              suites=None, test_filter=None,
                              device_serial=None, skip_run=False,
-                             force_unified_headers=False):
+                             force_deprecated_headers=False):
     """Runs all the tests for the given configuration.
 
     Sets up the necessary build flags and environment, checks that the device
@@ -161,7 +161,8 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
             attached device.
         skip_run: Skip running the tests; just build. Useful for post-build
             steps if CI doesn't have the device available.
-        force_unified_headers: Set `APP_UNIFIED_HEADERS=true` for every build.
+        force_deprecated_headers: Set `APP_DEPRECATED_HEADERS=true` for every
+            build.
 
     Returns:
         Tuple of (result, details).
@@ -229,13 +230,13 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
         build_scanner = tests.testlib.BuildTestScanner()
         build_scanner.add_build_configuration(
             abi, build_api_level, toolchain, force_pie, verbose_build,
-            force_unified_headers)
+            force_deprecated_headers)
         runner.add_suite('build', 'build', build_scanner)
     if 'device' in suites:
         device_scanner = tests.testlib.DeviceTestScanner()
         device_scanner.add_device_configuration(
             abi, build_api_level, toolchain, force_pie, verbose_build,
-            force_unified_headers, device, device_api_level, skip_run)
+            force_deprecated_headers, device, device_api_level, skip_run)
         runner.add_suite('device', 'device', device_scanner)
 
     test_filters = tests.filters.TestFilter.from_string(test_filter)
@@ -247,14 +248,14 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
     return stats.global_stats['fail'] == 0, results
 
 
-def get_headers_text(unified_headers):
-    return 'unified' if unified_headers else 'legacy'
+def get_headers_text(deprecated_headers):
+    return 'deprecated' if deprecated_headers else 'unified'
 
 
 def run_tests(ndk_path, device, abi, toolchain, out_dir, log_dir, test_filter,
-              force_unified_headers):
+              force_deprecated_headers):
     print('Running {} {} tests with {} headers for {}... '.format(
-        toolchain, abi, get_headers_text(force_unified_headers), device),
+        toolchain, abi, get_headers_text(force_deprecated_headers), device),
         end='')
     sys.stdout.flush()
 
@@ -265,7 +266,7 @@ def run_tests(ndk_path, device, abi, toolchain, out_dir, log_dir, test_filter,
         good, details = run_single_configuration(
             ndk_path, out_dir, printer, abi, toolchain,
             device_serial=device.serial, test_filter=test_filter,
-            force_unified_headers=force_unified_headers)
+            force_deprecated_headers=force_deprecated_headers)
         print('PASS' if good else 'FAIL')
         return good, details
 
@@ -285,22 +286,22 @@ def run_for_fleet(ndk_path, fleet, out_dir, log_dir, test_filter,
         for abi in fleet.get_abis(version):
             device = fleet.get_device(version, abi)
             for toolchain in ('clang', '4.9'):
-                for unified_headers in (False, True):
+                for deprecated_headers in (False, True):
                     if device is None:
                         results.append('android-{} {} {}: {}'.format(
                             version, abi, toolchain, 'SKIP'))
                         continue
                     configurations.append(
-                        (version, abi, toolchain, unified_headers, device))
+                        (version, abi, toolchain, deprecated_headers, device))
 
-    for version, abi, toolchain, unified_headers, device in configurations:
+    for version, abi, toolchain, deprecated_headers, device in configurations:
         config_name = 'android-{} {} {} {}-headers'.format(
-            version, abi, toolchain, get_headers_text(unified_headers))
+            version, abi, toolchain, get_headers_text(deprecated_headers))
         details[config_name] = None
 
         result, run_details = run_tests(
             ndk_path, device, abi, toolchain, out_dir, log_dir,
-            test_filter, unified_headers)
+            test_filter, deprecated_headers)
         pass_label = tests.util.maybe_color('PASS', 'green', use_color)
         fail_label = tests.util.maybe_color('FAIL', 'red', use_color)
         results.append('{}: {}'.format(

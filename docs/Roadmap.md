@@ -104,11 +104,11 @@ version. Optimistically, NDK r16's compatibility library will support back to
 Jelly Bean, and NDK r17 will support back to the minimum supported NDK API
 (currently Gingerbread).
 
-### Remove legacy headers
+### Remove deprecated headers
 
 Assuming that r15 switching to unified headers by default went well, we'll be
-removing the legacy headers in r16. If r15 turns up many issues, this will be
-pushed to r17.
+removing the deprecated headers in r16. If r15 turns up many issues, this will
+be pushed to r17.
 
 
 NDK r17

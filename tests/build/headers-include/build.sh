@@ -55,6 +55,7 @@ for ABI in $ABIS; do
 APP_PLATFORM=android-$API_LEVEL
 APP_ABI=$ABI
 APP_MODULES=libfoo
+APP_DEPRECATED_HEADERS := true
 EOF
         ANDROID_MK=$PROJECT_DIR/jni/Android.mk
         cat > $ANDROID_MK <<EOF
@@ -91,7 +92,7 @@ include \$(BUILD_STATIC_LIBRARY)
 
 EOF
         echo "Checking headers for android-$API_LEVEL/$ABI"
-        $ANDROID_NDK_ROOT/ndk-build -C "$PROJECT_DIR" -B -j$JOBS V=1 1>/dev/null 2>&1
+        $ANDROID_NDK_ROOT/ndk-build -C "$PROJECT_DIR" -B -j$JOBS V=1
         fail_panic "Can't compile header for android-$API_LEVEL/$ABI, to reproduce: $ANDROID_NDK_ROOT/ndk-build -C $PROJECT_DIR"
 
         rm -rf "$PROJECT_DIR"

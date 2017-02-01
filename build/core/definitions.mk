@@ -1304,7 +1304,7 @@ NDK_APP_VARS_OPTIONAL := \
     APP_SHORT_COMMANDS \
     APP_STL \
     APP_THIN_ARCHIVE \
-    APP_UNIFIED_HEADERS \
+    APP_DEPRECATED_HEADERS \
 
 # the list of all variables that may appear in an Application.mk file
 # or defined by the build scripts.

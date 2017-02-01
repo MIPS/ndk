@@ -69,13 +69,13 @@ class TestScanner(object):
 
 class BuildConfiguration(object):
     def __init__(self, abi, api, toolchain, force_pie, verbose,
-                 force_unified_headers):
+                 force_deprecated_headers):
         self.abi = abi
         self.api = api
         self.toolchain = toolchain
         self.force_pie = force_pie
         self.verbose = verbose
-        self.force_unified_headers = force_unified_headers
+        self.force_deprecated_headers = force_deprecated_headers
 
     def __eq__(self, other):
         if self.abi != other.abi:
@@ -88,7 +88,7 @@ class BuildConfiguration(object):
             return False
         if self.verbose != other.verbose:
             return False
-        if self.force_unified_headers != other.force_unified_headers:
+        if self.force_deprecated_headers != other.force_deprecated_headers:
             return False
         return True
 
@@ -97,9 +97,9 @@ class BuildConfiguration(object):
         if self.force_pie:
             pie_option = 'force-pie'
 
-        headers_option = 'legacy-headers'
-        if self.force_unified_headers:
-            headers_option = 'unified-headers'
+        headers_option = 'unified-headers'
+        if self.force_deprecated_headers:
+            headers_option = 'deprecated-headers'
 
         return '{}-{}-{}-{}-{}'.format(
             self.abi, self.api, self.toolchain, pie_option, headers_option)
@@ -110,8 +110,8 @@ class BuildConfiguration(object):
             extra_flags.append('APP_PIE=true')
         if self.verbose:
             extra_flags.append('V=1')
-        if self.force_unified_headers:
-            extra_flags.append('APP_UNIFIED_HEADERS=true')
+        if self.force_deprecated_headers:
+            extra_flags.append('APP_DEPRECATED_HEADERS=true')
         return extra_flags
 
     def get_extra_cmake_flags(self):
@@ -120,16 +120,16 @@ class BuildConfiguration(object):
             extra_flags.append('-DANDROID_PIE=TRUE')
         if self.verbose:
             extra_flags.append('-DCMAKE_VERBOSE_MAKEFILE=ON')
-        if self.force_unified_headers:
-            extra_flags.append('-DANDROID_UNIFIED_HEADERS=ON')
+        if self.force_deprecated_headers:
+            extra_flags.append('-DANDROID_DEPRECATED_HEADERS=ON')
         return extra_flags
 
 
 class DeviceConfiguration(BuildConfiguration):
     def __init__(self, abi, api, toolchain, force_pie, verbose,
-                 force_unified_headers, device, device_api, skip_run):
+                 force_deprecated_headers, device, device_api, skip_run):
         super(DeviceConfiguration, self).__init__(
-            abi, api, toolchain, force_pie, verbose, force_unified_headers)
+            abi, api, toolchain, force_pie, verbose, force_deprecated_headers)
         self.device = device
         self.device_api = device_api
         self.skip_run = skip_run
@@ -151,9 +151,9 @@ class BuildTestScanner(TestScanner):
         self.build_configurations = set()
 
     def add_build_configuration(self, abi, api, toolchain, force_pie, verbose,
-                                force_unified_headers):
+                                force_deprecated_headers):
         self.build_configurations.add(BuildConfiguration(
-            abi, api, toolchain, force_pie, verbose, force_unified_headers))
+            abi, api, toolchain, force_pie, verbose, force_deprecated_headers))
 
     def find_tests(self, path, name):
         # If we have a build.sh, that takes precedence over the Android.mk.
@@ -207,10 +207,10 @@ class DeviceTestScanner(TestScanner):
         self.device_configurations = set()
 
     def add_device_configuration(self, abi, api, toolchain, force_pie, verbose,
-                                 force_unified_headers, device, device_api,
+                                 force_deprecated_headers, device, device_api,
                                  skip_run):
         self.device_configurations.add(DeviceConfiguration(
-            abi, api, toolchain, force_pie, verbose, force_unified_headers,
+            abi, api, toolchain, force_pie, verbose, force_deprecated_headers,
             device, device_api, skip_run))
 
     def find_tests(self, path, name):
@@ -805,7 +805,7 @@ class PythonBuildTest(BuildTest):
             api = build.lib.build_support.minimum_platform_level(config.abi)
         config = BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
-            config.verbose, config.force_unified_headers)
+            config.verbose, config.force_deprecated_headers)
         super(PythonBuildTest, self).__init__(name, test_dir, config)
 
     def get_build_dir(self, out_dir):
@@ -834,7 +834,7 @@ class ShellBuildTest(BuildTest):
             api = build.lib.build_support.minimum_platform_level(config.abi)
         config = BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
-            config.verbose, config.force_unified_headers)
+            config.verbose, config.force_deprecated_headers)
         super(ShellBuildTest, self).__init__(name, test_dir, config)
 
     def get_build_dir(self, out_dir):
@@ -917,7 +917,7 @@ class NdkBuildTest(BuildTest):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
         config = BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
-            config.verbose, config.force_unified_headers)
+            config.verbose, config.force_deprecated_headers)
         super(NdkBuildTest, self).__init__(name, test_dir, config)
 
     def get_build_dir(self, out_dir):
@@ -938,7 +938,7 @@ class CMakeBuildTest(BuildTest):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
         config = BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
-            config.verbose, config.force_unified_headers)
+            config.verbose, config.force_deprecated_headers)
         super(CMakeBuildTest, self).__init__(name, test_dir, config)
 
     def get_build_dir(self, out_dir):
@@ -976,7 +976,7 @@ class DeviceTest(Test):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
         config = DeviceConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
-            config.verbose, config.force_unified_headers, config.device,
+            config.verbose, config.force_deprecated_headers, config.device,
             config.device_api, config.skip_run)
         self.config = config
 

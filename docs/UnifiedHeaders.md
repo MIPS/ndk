@@ -43,26 +43,32 @@ Known Issues
 Using Unified Headers
 ---------------------
 
-Enabling unified headers will depend on your build system.
+Unified headers are enabled by default starting with NDK r15. If your build is
+not yet compatible with unified headers, you can revert to the deprecated
+headers.  The way to do so depends on your build system.
+
+**Warning:** The deprecated headers will be removed from the NDK in r16. If you
+need to revert to the deprecated headers, make sure you're working on fixing
+your build or filing bugs.
 
 ### ndk-build
 
 Add the following to your Android.mk:
 
 ```makefile
-APP_UNIFIED_HEADERS := true
+APP_DEPRECATED_HEADERS := true
 ```
 
 ### CMake
 
 ```bash
-cmake -DANDROID_UNIFIED_HEADERS=ON ...
+cmake -DANDROID_DEPRECATED_HEADERS=ON ...
 ```
 
 ### Standalone Toolchains
 
 ```bash
-$NDK/build/tools/make_standalone_toolchain.py --unified-headers ...
+$NDK/build/tools/make_standalone_toolchain.py --deprecated-headers ...
 ```
 
 For general standalone toolchain documentation, see
@@ -101,7 +107,7 @@ Supporting Unified Headers in Your Build System
 App developers can stop reading here. The following information is only
 relevant to build system engineers.
 
-Unified headers require only a few changes compared to using the legacy NDK
+Unified headers require only a few changes compared to using the deprecated NDK
 headers. For reference, this patch added support to ndk-build:
 https://android-review.googlesource.com/c/239934/
 
@@ -130,5 +136,5 @@ https://android-review.googlesource.com/c/239934/
    or similar to Clang so this is automatic.
 
 4. At link time, change nothing. All link time build behavior should match the
-   legacy headers behavior. `--sysroot` should still point to
+   deprecated headers behavior. `--sysroot` should still point to
    `$NDK/platforms/android-$API/arch-$ARCH/`.
