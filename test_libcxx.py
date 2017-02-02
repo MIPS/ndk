@@ -24,6 +24,13 @@ import build.lib.build_support
 import ndk.paths
 
 
+def prep_device(device, libcxx_dir, device_dir, abi):
+    device.shell_nocheck(['rm', '-r', device_dir])
+    device.shell(['mkdir', device_dir])
+    libcxx_lib = os.path.join(libcxx_dir, 'libs', abi, 'libc++_shared.so')
+    device.push(libcxx_lib, device_dir)
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
 
@@ -39,6 +46,9 @@ def parse_args():
     parser.add_argument(
         '-t', '--timeout', default=300, type=int,
         help='Per-test timeout in seconds.')
+    parser.add_argument(
+        '--build-only', action='store_true',
+        help='Build tests only. Skip run and do not use adb.')
 
     parser.add_argument(
         '--ndk', type=os.path.realpath, help='Path to NDK under test.')
@@ -52,13 +62,21 @@ def main():
     if args.ndk is None:
         args.ndk = ndk.paths.get_install_path()
 
-    # We need to do this here rather than at the top because we load the module
-    # from a path that is given on the command line. We load it from the NDK
-    # given on the command line so this script can be run even without a full
-    # platform checkout.
-    site.addsitedir(os.path.join(args.ndk, 'python-packages'))
-    import adb  # pylint: disable=import-error
-    device = adb.get_device()
+    libcxx_dir = os.path.join(args.ndk, 'sources/cxx-stl/llvm-libc++')
+    device_dir = '/data/local/tmp/libcxx'
+    use_pie = True
+    if not args.build_only:
+        # We need to do this here rather than at the top because we load the
+        # module from a path that is given on the command line. We load it from
+        # the NDK given on the command line so this script can be run even
+        # without a full platform checkout.
+        site.addsitedir(os.path.join(args.ndk, 'python-packages'))
+        import adb  # pylint: disable=import-error
+        device = adb.get_device()
+        prep_device(device, libcxx_dir, device_dir, args.abi)
+        device_api_level = int(device.get_prop('ro.build.version.sdk'))
+        if device_api_level < 16:
+            use_pie = False
 
     arch = build.lib.build_support.abi_to_arch(args.abi)
     triple = build.lib.build_support.arch_to_triple(arch)
@@ -66,15 +84,12 @@ def main():
 
     lit_path = build.lib.build_support.android_path(
         'external/llvm/utils/lit/lit.py')
-    libcxx_dir = os.path.join(args.ndk, 'sources/cxx-stl/llvm-libc++')
-
-    device_api_level = device.get_prop('ro.build.version.sdk')
 
     replacements = [
         ('ABI', args.abi),
         ('API', args.platform),
         ('ARCH', arch),
-        ('DEVICE_API', device_api_level),
+        ('USE_PIE', use_pie),
         ('TOOLCHAIN', toolchain),
         ('TRIPLE', triple),
     ]
@@ -84,12 +99,6 @@ def main():
     sed_args.append(os.path.join(libcxx_dir, 'test/lit.ndk.cfg.in'))
     with open(os.path.join(libcxx_dir, 'test/lit.site.cfg'), 'w') as cfg_file:
         subprocess.check_call(sed_args, stdout=cfg_file)
-
-    device_dir = '/data/local/tmp/libcxx'
-    device.shell_nocheck(['rm', '-r', device_dir])
-    device.shell(['mkdir', device_dir])
-    libcxx_lib = os.path.join(libcxx_dir, 'libs', args.abi, 'libc++_shared.so')
-    device.push(libcxx_lib, device_dir)
 
     default_test_path = os.path.join(libcxx_dir, 'test')
     have_filter_args = False
@@ -110,6 +119,10 @@ def main():
         '--param=unified_headers={}'.format(not args.deprecated_headers),
         '--timeout={}'.format(args.timeout)
     ] + extra_args
+
+    if args.build_only:
+        lit_args.append('--param=build_only=True')
+
     if not have_filter_args:
         lit_args.append(default_test_path)
     env = dict(os.environ)

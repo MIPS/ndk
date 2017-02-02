@@ -243,7 +243,7 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
         libcxx_scanner = tests.testlib.LibcxxTestScanner()
         libcxx_scanner.add_device_configuration(
             abi, build_api_level, toolchain, force_pie, verbose_build,
-            force_unified_headers, device, device_api_level, skip_run)
+            force_deprecated_headers, device, device_api_level, skip_run)
         runner.add_suite('libc++', 'libc++', libcxx_scanner)
 
     test_filters = tests.filters.TestFilter.from_string(test_filter)

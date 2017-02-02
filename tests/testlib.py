@@ -252,10 +252,10 @@ class LibcxxTestScanner(TestScanner):
         self.device_configurations = set()
 
     def add_device_configuration(self, abi, api, toolchain, force_pie,
-                                 verbose, force_unified_headers, device,
+                                 verbose, force_deprecated_headers, device,
                                  device_api, skip_run):
         self.device_configurations.add(DeviceConfiguration(
-            abi, api, toolchain, force_pie, verbose, force_unified_headers,
+            abi, api, toolchain, force_pie, verbose, force_deprecated_headers,
             device, device_api, skip_run))
 
     def find_tests(self, path, name):
@@ -263,8 +263,8 @@ class LibcxxTestScanner(TestScanner):
         for config in self.device_configurations:
             tests.append(LibcxxTest(
                 name, path, config.abi, config.api, config.toolchain,
-                config.force_unified_headers, config.device, config.device_api,
-                config.skip_run))
+                config.force_deprecated_headers, config.device,
+                config.device_api, config.skip_run))
         return tests
 
 
@@ -1287,7 +1287,7 @@ def get_xunit_reports(xunit_file, abi, api, toolchain, device_api, skip_run):
 
 
 class LibcxxTest(Test):
-    def __init__(self, name, test_dir, abi, api, toolchain, unified_headers,
+    def __init__(self, name, test_dir, abi, api, toolchain, deprecated_headers,
                  device, device_api, skip_run):
         super(LibcxxTest, self).__init__(name, test_dir)
 
@@ -1297,7 +1297,7 @@ class LibcxxTest(Test):
         self.abi = abi
         self.api = api
         self.toolchain = toolchain
-        self.unified_headers = unified_headers
+        self.deprecated_headers = deprecated_headers
         self.device = device
         self.device_api = device_api
         self.skip_run = skip_run
@@ -1321,11 +1321,11 @@ class LibcxxTest(Test):
             '--timeout=600',
         ]
 
-        if self.unified_headers:
-            cmd.append('--unified-headers')
+        if self.deprecated_headers:
+            cmd.append('--deprecated-headers')
 
         if self.skip_run:
-            cmd.append('--param=build_only=True')
+            cmd.append('--build-only')
 
         # Ignore the exit code. We do most XFAIL processing outside the test
         # runner so expected failures in the test runner will still cause a
@@ -1355,7 +1355,7 @@ class LibcxxTest(Test):
         # on it. The tests have never been 100% passing. We're going to only
         # enable it for a handful of configurations as support falls in to
         # place.
-        if not self.unified_headers:
+        if self.deprecated_headers:
             return 'legacy headers'
         if self.toolchain == '4.9':
             return '4.9'
