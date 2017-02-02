@@ -117,11 +117,12 @@ def main():
     lit_args = [
         lit_path, '-sv', '--param=device_dir=' + device_dir,
         '--param=unified_headers={}'.format(not args.deprecated_headers),
-        '--timeout={}'.format(args.timeout)
     ] + extra_args
 
     if args.build_only:
         lit_args.append('--param=build_only=True')
+    else:
+        lit_args.append('--timeout={}'.format(args.timeout))
 
     if not have_filter_args:
         lit_args.append(default_test_path)
