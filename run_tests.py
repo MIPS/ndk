@@ -109,9 +109,10 @@ class ArgParser(argparse.ArgumentParser):
         self.add_argument(
             '--skip-run', action='store_true',
             help='Do not run device tests; just build them.')
+
+        import tests.testlib
         self.add_argument(
-            '--suite', default=None,
-            choices=('awk', 'build', 'device'),
+            '--suite', default=None, choices=tests.testlib.ALL_SUITES,
             help=('Run only the chosen test suite.'))
         self.add_argument(
             '-v', '--verbose', action='count', default=0,
@@ -160,6 +161,7 @@ def main():
 
     import tests.printers
     import tests.runners
+    import tests.testlib
 
     out_dir = args.out_dir
     if out_dir is not None:
@@ -172,7 +174,7 @@ def main():
         out_dir = tempfile.mkdtemp()
         atexit.register(lambda: shutil.rmtree(out_dir))
 
-    suites = ['awk', 'build', 'device']
+    suites = tests.testlib.ALL_SUITES
     if args.suite:
         suites = [args.suite]
 

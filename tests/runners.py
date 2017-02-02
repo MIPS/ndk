@@ -179,7 +179,7 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
         }
     """
     if suites is None:
-        suites = ('build', 'device')
+        suites = tests.testlib.ALL_SUITES
 
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
@@ -195,7 +195,8 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
 
     # Do this early so we find any device issues now rather than after we've
     # run all the build tests.
-    if 'device' in suites and not skip_run:
+    have_device_suites = 'device' in suites or 'libc++' in suites
+    if have_device_suites and not skip_run:
         device = adb.get_device(device_serial)
         check_adb_works_or_die(device, abi)
         device_api_level = int(device.get_prop('ro.build.version.sdk'))
@@ -238,6 +239,12 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
             abi, build_api_level, toolchain, force_pie, verbose_build,
             force_deprecated_headers, device, device_api_level, skip_run)
         runner.add_suite('device', 'device', device_scanner)
+    if 'libc++' in suites:
+        libcxx_scanner = tests.testlib.LibcxxTestScanner()
+        libcxx_scanner.add_device_configuration(
+            abi, build_api_level, toolchain, force_pie, verbose_build,
+            force_deprecated_headers, device, device_api_level, skip_run)
+        runner.add_suite('libc++', 'libc++', libcxx_scanner)
 
     test_filters = tests.filters.TestFilter.from_string(test_filter)
     results = runner.run(out_dir, test_filters)
