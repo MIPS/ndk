@@ -1359,7 +1359,7 @@ class LibcxxTest(Test):
             return 'legacy headers'
         if self.toolchain == '4.9':
             return '4.9'
-        if self.abi != 'armeabi-v7a':
+        if self.abi not in ('armeabi-v7a', 'x86'):
             # The ABI case is something we will eventually support, but don't
             # bother wasting time running them until we get to that point.
             return self.abi
