@@ -74,8 +74,25 @@ class Module(object):
         install_base = ndk.paths.get_install_path(build_dir)
         return [os.path.join(install_base, d) for d in install_subdirs]
 
-    def get_install_path(self, build_dir, host, arch):
-        install_subdirs = self.get_install_paths(build_dir, host, [arch])
+    def get_install_path(self, build_dir, host, arch=None):
+        arch_dependent = False
+        if ndk.packaging.package_varies_by(self.path, 'abi'):
+            arch_dependent = True
+        elif ndk.packaging.package_varies_by(self.path, 'arch'):
+            arch_dependent = True
+        elif ndk.packaging.package_varies_by(self.path, 'toolchain'):
+            arch_dependent = True
+        elif ndk.packaging.package_varies_by(self.path, 'triple'):
+            arch_dependent = True
+
+        arches = None
+        if arch is not None:
+            arches = [arch]
+        elif arch_dependent:
+            raise ValueError(
+                'get_install_path for {} requires valid arch'.format(arch))
+
+        install_subdirs = self.get_install_paths(build_dir, host, arches)
 
         if len(install_subdirs) != 1:
             raise RuntimeError(
