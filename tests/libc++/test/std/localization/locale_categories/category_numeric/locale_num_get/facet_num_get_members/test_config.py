@@ -1,7 +1,10 @@
 def run_broken(abi, device_api, toolchain, name):
     lp64_abis = ('arm64-v8a', 'mips64', 'x86_64')
-    if device_api < 26 and abi in lp64_abis and name == 'stold.pass':
+    failing_tests = (
+        'get_double.pass',
+        'get_float.pass',
+        'get_long_double.pass',
+    )
+    if abi in lp64_abis and device_api < 26 and name in failing_tests:
         return 'android-{}'.format(device_api), 'http://b/31101647'
-    if abi not in lp64_abis and name == 'stof.pass':
-        return 'all', 'http://b/34739876'
     return None, None
