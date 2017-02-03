@@ -31,6 +31,13 @@ def prep_device(device, libcxx_dir, device_dir, abi):
     device.push(libcxx_lib, device_dir)
 
 
+def find_host_tag(ndk_path):
+    dirs = os.listdir(os.path.join(ndk_path, 'toolchains/llvm/prebuilt'))
+    if len(dirs) != 1:
+        raise RuntimeError('Found multiple toolchain hosts.')
+    return dirs[0]
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
 
@@ -79,6 +86,7 @@ def main():
             use_pie = False
 
     arch = build.lib.build_support.abi_to_arch(args.abi)
+    host_tag = find_host_tag(args.ndk)
     triple = build.lib.build_support.arch_to_triple(arch)
     toolchain = build.lib.build_support.arch_to_toolchain(arch)
 
@@ -89,9 +97,10 @@ def main():
         ('ABI', args.abi),
         ('API', args.platform),
         ('ARCH', arch),
-        ('USE_PIE', use_pie),
+        ('HOST_TAG', host_tag),
         ('TOOLCHAIN', toolchain),
         ('TRIPLE', triple),
+        ('USE_PIE', use_pie),
     ]
     sed_args = ['sed']
     for key, repl in replacements:
