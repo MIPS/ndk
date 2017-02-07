@@ -75,9 +75,9 @@ server to `prebuilts/clang` (see the [Clang docs]).
 [Clang docs]: https://android.googlesource.com/platform/external/clang/+/dev/ToolchainPrebuilts.md
 
 ```bash
-# Edit ndk/build/tools/build-llvm.py and update the build number.
-$ ../prebuilts/ndk/symlink/clang.py # Latest version autodetected.
-$ ./checkbuid.py
+# Edit ndk/checkbuild.py and update `Clang.version`.
+$ ../prebuilts/ndk/symlink-clang.py # Latest version autodetected.
+$ ./checkbuid.py # `--module clang` to build just Clang.
 # Run tests.
 ```
 
