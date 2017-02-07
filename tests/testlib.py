@@ -1370,6 +1370,10 @@ class LibcxxTest(Test):
             # The ABI case is something we will eventually support, but don't
             # bother wasting time running them until we get to that point.
             return self.abi
+
+        if self.device is not None and self.device_api < 21:
+            return 'android-{}'.format(self.device_api)
+
         return None
 
     def is_negative_test(self):
