@@ -41,7 +41,7 @@ def expand_paths(package, host, arches):
     >>> expand_paths('gdbserver-{arch}', 'linux', ['arm64', 'x86_64'])
     ['gdbserver-arm64', 'gdbserver-x86_64']
 
-    >>> expand_paths('llvm-{host}', 'linux', ['arm'])
+    >>> expand_paths('llvm-{host}', 'linux', None)
     ['llvm-linux-x86_64']
 
     >>> expand_paths('platforms', 'linux', ['arm'])
@@ -57,6 +57,9 @@ def expand_paths(package, host, arches):
     ['toolchains/arm-linux-androideabi-4.9', 'toolchains/x86-4.9']
     """
     host_tag = build_support.host_to_tag(host)
+    if arches is None:
+        return [package.format(host=host_tag)]
+
     seen_packages = set()
     packages = []
     for arch in arches:

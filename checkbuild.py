@@ -252,10 +252,62 @@ def _install_file(src_file, dst_file):
     shutil.copy2(src_file, dst_file)
 
 
-class Clang(ndk.builds.InvokeBuildModule):
+class Clang(ndk.builds.Module):
     name = 'clang'
     path = 'toolchains/llvm/prebuilt/{host}'
-    script = 'build-llvm.py'
+    version = 'clang-3362437'
+
+    def get_prebuilt_path(self, host):
+        # The 32-bit Windows Clang is a part of the 64-bit Clang package in
+        # prebuilts/clang.
+        platform_host_tag = host + '-x86'
+        if platform_host_tag.startswith('windows'):
+            platform_host_tag = 'windows-x86'
+
+        rel_prebuilt_path = 'prebuilts/clang/host/{}'.format(platform_host_tag)
+        prebuilt_path = os.path.join(build_support.android_path(),
+                                     rel_prebuilt_path, self.version)
+        if not os.path.isdir(prebuilt_path):
+            raise RuntimeError(
+                'Could not find prebuilt LLVM at {}'.format(prebuilt_path))
+        return prebuilt_path
+
+    def build(self, _build_dir, _dist_dir, _args):
+        pass
+
+    def install(self, out_dir, _dist_dir, args):
+        prebuilt_path = self.get_prebuilt_path(args.system)
+        install_path = self.get_install_path(out_dir, args.system)
+
+        install_parent = os.path.dirname(install_path)
+        if os.path.exists(install_path):
+            shutil.rmtree(install_path)
+        if not os.path.exists(install_parent):
+            os.makedirs(install_parent)
+        shutil.copytree(prebuilt_path, install_path)
+
+        if args.system == 'windows':
+            # We need to replace clang.exe with clang_32.exe and
+            # libwinpthread-1.dll with libwinpthread-1.dll.32.
+            os.rename(os.path.join(install_path, 'bin/clang_32.exe'),
+                      os.path.join(install_path, 'bin/clang.exe'))
+            os.rename(os.path.join(install_path, 'bin/libwinpthread-1.dll.32'),
+                      os.path.join(install_path, 'bin/libwinpthread-1.dll'))
+
+            # clang++.exe is not a symlink in the Windows package. Need to copy
+            # to there as well.
+            shutil.copy2(os.path.join(install_path, 'bin/clang.exe'),
+                         os.path.join(install_path, 'bin/clang++.exe'))
+        elif args.system in ('darwin', 'linux'):
+            # The Linux and Darwin toolchains have Python compiler wrappers
+            # that currently do nothing. We don't have these for Windows and we
+            # want to make sure Windows behavior is consistent with the other
+            # platforms, so just unwrap the compilers until they do something
+            # useful and are available on Windows.
+            os.rename(os.path.join(install_path, 'bin/clang.real'),
+                      os.path.join(install_path, 'bin/clang'))
+            os.rename(os.path.join(install_path, 'bin/clang++.real'),
+                      os.path.join(install_path, 'bin/clang++'))
 
 
 def get_gcc_prebuilt_path(host):
