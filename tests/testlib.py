@@ -1364,6 +1364,7 @@ class LibcxxTest(Test):
             'arm64-v8a',
             'armeabi-v7a',
             'x86',
+            'x86_64',
         )
 
         if self.abi not in supported_abis:
