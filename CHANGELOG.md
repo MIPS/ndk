@@ -28,3 +28,5 @@ Known Issues
 
  * This is not intended to be a comprehensive list of all outstanding bugs.
  * Gradle does not yet support unified headers.
+ * Clang does not yet support OpenMP:
+   https://github.com/android-ndk/ndk/issues/9.
