@@ -73,9 +73,6 @@ endif # APP_PROJECT_PATH == null
 # this soon since we'll be adding O APIs to only the new headers, but for now
 # just preserve the old behavior.
 APP_PLATFORM_LEVEL := $(strip $(subst android-,,$(APP_PLATFORM)))
-ifneq (,$(filter 10 11,$(APP_PLATFORM_LEVEL)))
-    override APP_PLATFORM := android-9
-endif
 ifneq (,$(filter 20,$(APP_PLATFORM_LEVEL)))
     override APP_PLATFORM := android-19
 endif

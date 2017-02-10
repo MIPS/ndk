@@ -21,6 +21,10 @@ Announcements
    become stable enough to be the default, as some parts of gnustl are still
    incompatible with Clang. It will likely be removed after that point.
 
+ * Gingerbread (android-9) is no longer supported. The minimum API level target
+   in the NDK is now Ice Cream Sandwich (android-14). If your `APP_PLATFORM` is
+   set lower than android-14, android-14 will be used instead.
+
 [Unified Headers]: docs/UnifiedHeaders.md
 
 Known Issues
