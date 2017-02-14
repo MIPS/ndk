@@ -56,7 +56,7 @@ DRYRUN=
 register_var_option "--dryrun" DRYRUN "Unsupported."
 
 PLATFORM=
-register_option "--platform=<name>" do_platform "Specify target Android platform/API level." "android-9"
+register_option "--platform=<name>" do_platform "Specify target Android platform/API level." "android-14"
 do_platform () {
     PLATFORM=$1;
     if [ "$PLATFORM" = "android-L" ]; then

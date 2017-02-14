@@ -28,11 +28,6 @@ TARGET_OUT := $(NDK_APP_OUT)/$(_app)/$(TARGET_ARCH_ABI)
 
 # For x86 and mips: the minimal platform level is android-9
 TARGET_PLATFORM_SAVED := $(TARGET_PLATFORM)
-ifneq ($(filter %x86 %mips,$(TARGET_ARCH_ABI)),)
-$(foreach _plat,3 4 5 8,\
-    $(eval TARGET_PLATFORM := $$(subst android-$(_plat),android-9,$$(TARGET_PLATFORM)))\
-)
-endif
 
 # For 64-bit ABIs: the minimal platform level is android-21
 ifneq ($(filter $(NDK_KNOWN_DEVICE_ABI64S),$(TARGET_ARCH_ABI)),)

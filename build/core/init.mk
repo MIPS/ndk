@@ -488,10 +488,14 @@ ifneq (,$(filter $(NDK_PREVIEW_LEVEL),$(NDK_ALL_PLATFORM_LEVELS)))
 endif
 $(call ndk_log,Found stable platform levels: $(NDK_ALL_PLATFORM_LEVELS))
 
+NDK_MIN_PLATFORM_LEVEL := 14
+NDK_MIN_PLATFORM := android-$(NDK_MIN_PLATFORM_LEVEL)
+
 NDK_MAX_PLATFORM_LEVEL := 3
 $(foreach level,$(NDK_ALL_PLATFORM_LEVELS),\
   $(eval NDK_MAX_PLATFORM_LEVEL := $$(call max,$$(NDK_MAX_PLATFORM_LEVEL),$$(level)))\
 )
+NDK_MAX_PLATFORM := android-$(NDK_MAX_PLATFORM_LEVEL)
 
 $(call ndk_log,Found max platform level: $(NDK_MAX_PLATFORM_LEVEL))
 

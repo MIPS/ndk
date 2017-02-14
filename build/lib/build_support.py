@@ -77,7 +77,7 @@ def minimum_platform_level(abi):
     if abi in LP64_ABIS:
         return 21
     else:
-        return 9
+        return 14
 
 
 class Timer(object):
