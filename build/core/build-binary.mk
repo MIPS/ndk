@@ -245,6 +245,15 @@ ifeq ($(TARGET_ARCH_ABI),x86)
     LOCAL_CFLAGS += -mstackrealign
 endif
 
+# https://github.com/android-ndk/ndk/issues/297
+ifeq ($(TARGET_ARCH_ABI),x86)
+    ifneq (,$(call lt,$(APP_PLATFORM_LEVEL),17))
+        ifeq ($(NDK_TOOLCHAIN_VERSION),4.9)
+            LOCAL_CFLAGS += -mstack-protector-guard=global
+        endif
+    endif
+endif
+
 #
 # The original Android build system allows you to use the .arm prefix
 # to a source file name to indicate that it should be defined in either
