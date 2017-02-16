@@ -1072,8 +1072,8 @@ def parse_args():
     module_group = parser.add_mutually_exclusive_group()
 
     module_group.add_argument(
-        '--module', choices=sorted(get_all_module_names()),
-        help='NDK modules to build.')
+        '--module', dest='modules', action='append',
+        choices=get_all_module_names(), help='NDK modules to build.')
 
     module_group.add_argument(
         '--host-only', action='store_true',
@@ -1096,10 +1096,10 @@ def main():
 
     args = parse_args()
 
-    if args.module is None:
-        modules = set(get_all_module_names())
+    if args.modules is None:
+        modules = get_all_module_names()
     else:
-        modules = [args.module]
+        modules = args.modules
 
     if args.host_only:
         modules = [
