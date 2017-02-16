@@ -132,7 +132,11 @@ SYSROOT_ARCH_INC_ARG :=
 SYSROOT_LINK := $(SYSROOT_BASE)
 
 ifneq ($(APP_DEPRECATED_HEADERS),true)
-    SYSROOT_INC := $(NDK_ROOT)/sysroot
+    ifndef NDK_UNIFIED_SYSROOT_PATH
+        NDK_UNIFIED_SYSROOT_PATH := $(NDK_ROOT)/sysroot
+    endif
+    SYSROOT_INC := $(NDK_UNIFIED_SYSROOT_PATH)
+
     # The compiler driver doesn't check any arch specific include locations
     # (though maybe we should add that). Architecture specific headers like asm/
     # and machine/ are installed to an arch-$ARCH subdirectory of the sysroot.
