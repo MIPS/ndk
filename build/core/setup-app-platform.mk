@@ -135,7 +135,9 @@ ifdef APP_MANIFEST
         $(call __ndk_info,WARNING: APP_PLATFORM $(APP_PLATFORM) is higher than \
             android:minSdkVersion $(_minsdkversion) in $(APP_MANIFEST). NDK \
             binaries will *not* be comptible with devices older than \
-            $(APP_PLATFORM).)
+            $(APP_PLATFORM). See \
+            https://android.googlesource.com/platform/ndk/+/master/docs/user/common_problems.md \
+            for more information.)
     endif
 endif
 
