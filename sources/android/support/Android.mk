@@ -4,11 +4,7 @@ android_support_c_includes := $(LOCAL_PATH)/include
 
 ifneq ($(filter $(NDK_KNOWN_DEVICE_ABI64S),$(TARGET_ARCH_ABI)),)
 # 64-bit ABIs
-android_support_sources := \
-    src/musl-locale/catclose.c \
-    src/musl-locale/catgets.c \
-    src/musl-locale/catopen.c
-
+android_support_sources :=
 else
 # 32-bit ABIs
 
@@ -41,53 +37,6 @@ android_support_sources := \
     src/musl-ctype/wcswidth.c \
     src/musl-ctype/wctrans.c \
     src/musl-ctype/wcwidth.c \
-    src/musl-locale/catclose.c \
-    src/musl-locale/catgets.c \
-    src/musl-locale/catopen.c \
-    src/musl-locale/iconv.c \
-    src/musl-locale/intl.c \
-    src/musl-locale/isalnum_l.c \
-    src/musl-locale/isalpha_l.c \
-    src/musl-locale/isblank_l.c \
-    src/musl-locale/iscntrl_l.c \
-    src/musl-locale/isdigit_l.c \
-    src/musl-locale/isgraph_l.c \
-    src/musl-locale/islower_l.c \
-    src/musl-locale/isprint_l.c \
-    src/musl-locale/ispunct_l.c \
-    src/musl-locale/isspace_l.c \
-    src/musl-locale/isupper_l.c \
-    src/musl-locale/iswalnum_l.c \
-    src/musl-locale/iswalpha_l.c \
-    src/musl-locale/iswblank_l.c \
-    src/musl-locale/iswcntrl_l.c \
-    src/musl-locale/iswctype_l.c \
-    src/musl-locale/iswdigit_l.c \
-    src/musl-locale/iswgraph_l.c \
-    src/musl-locale/iswlower_l.c \
-    src/musl-locale/iswprint_l.c \
-    src/musl-locale/iswpunct_l.c \
-    src/musl-locale/iswspace_l.c \
-    src/musl-locale/iswupper_l.c \
-    src/musl-locale/iswxdigit_l.c \
-    src/musl-locale/isxdigit_l.c \
-    src/musl-locale/langinfo.c \
-    src/musl-locale/strcasecmp_l.c \
-    src/musl-locale/strcoll.c \
-    src/musl-locale/strerror_l.c \
-    src/musl-locale/strfmon.c \
-    src/musl-locale/strftime_l.c \
-    src/musl-locale/strncasecmp_l.c \
-    src/musl-locale/strxfrm.c \
-    src/musl-locale/tolower_l.c \
-    src/musl-locale/toupper_l.c \
-    src/musl-locale/towctrans_l.c \
-    src/musl-locale/towlower_l.c \
-    src/musl-locale/towupper_l.c \
-    src/musl-locale/wcscoll.c \
-    src/musl-locale/wcsxfrm.c \
-    src/musl-locale/wctrans_l.c \
-    src/musl-locale/wctype_l.c \
     src/musl-math/frexp.c \
     src/musl-math/frexpf.c \
     src/musl-math/frexpl.c \
