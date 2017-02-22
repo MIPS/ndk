@@ -110,11 +110,12 @@ class Module(object):
         if not os.path.exists(repo_prop_file):
             raise RuntimeError(
                 '{} did not install a repo.prop file at {}'.format(
-                    self.name, license_file))
+                    self.name, repo_prop_file))
 
 
 class PackageModule(Module):
     src = None
+    create_repo_prop = False
 
     def validate(self):
         super(PackageModule, self).validate()
@@ -142,6 +143,9 @@ class PackageModule(Module):
         install_path = install_paths[0]
         print 'Installing {} to {}'.format(self.src, install_path)
         install_directory(self.src, install_path)
+        if self.create_repo_prop:
+            build.lib.build_support.make_repo_prop(install_path)
+        self.validate_notice(install_path)
 
 
 class InvokeExternalBuildModule(Module):
