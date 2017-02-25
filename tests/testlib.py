@@ -1308,6 +1308,9 @@ class LibcxxTest(Test):
             'python', '../test_libcxx.py',
             '--abi', self.abi,
             '--platform', str(self.api),
+            '--xunit-xml-output=' + xunit_output,
+            '--timeout=600',
+            '--ndk=' + os.environ['NDK'],
 
             # We don't want the progress bar since we're already printing our
             # own output, so we need --show-all so we get *some* output,
@@ -1315,10 +1318,6 @@ class LibcxxTest(Test):
             # wouldn't be clear if something had hung.
             '--no-progress-bar',
             '--show-all',
-
-            '--xunit-xml-output=' + xunit_output,
-
-            '--timeout=600',
         ]
 
         if self.deprecated_headers:
