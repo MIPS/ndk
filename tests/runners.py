@@ -260,7 +260,7 @@ def get_headers_text(deprecated_headers):
 
 
 def run_tests(ndk_path, device, abi, toolchain, out_dir, log_dir, test_filter,
-              force_deprecated_headers):
+              force_deprecated_headers, suites):
     print('Running {} {} tests with {} headers for {}... '.format(
         toolchain, abi, get_headers_text(force_deprecated_headers), device),
         end='')
@@ -273,12 +273,13 @@ def run_tests(ndk_path, device, abi, toolchain, out_dir, log_dir, test_filter,
         good, details = run_single_configuration(
             ndk_path, out_dir, printer, abi, toolchain,
             device_serial=device.serial, test_filter=test_filter,
-            force_deprecated_headers=force_deprecated_headers)
+            force_deprecated_headers=force_deprecated_headers, suites=suites)
         print('PASS' if good else 'FAIL')
         return good, details
 
 
 def run_for_fleet(ndk_path, fleet, out_dir, log_dir, test_filter,
+                  versions, abis, toolchains, headers_configs, suites,
                   use_color=False):
     # Note that we are duplicating some testing here.
     #
@@ -289,11 +290,26 @@ def run_for_fleet(ndk_path, fleet, out_dir, log_dir, test_filter,
     details = {}
     good = True
     configurations = []
-    for version in fleet.get_versions():
+
+    if versions is None:
+        versions = fleet.get_versions()
+    if abis is None:
+        abis = build.lib.build_support.ALL_ABIS
+    if toolchains is None:
+        toolchains = ('clang', '4.9')
+    if headers_configs is None:
+        headers_configs = (False, True)
+    if suites is None:
+        suites = tests.testlib.ALL_SUITES
+
+    for version in versions:
         for abi in fleet.get_abis(version):
+            if abi not in abis:
+                continue
+
             device = fleet.get_device(version, abi)
-            for toolchain in ('clang', '4.9'):
-                for deprecated_headers in (False, True):
+            for toolchain in toolchains:
+                for deprecated_headers in headers_configs:
                     if device is None:
                         results.append('android-{} {} {}: {}'.format(
                             version, abi, toolchain, 'SKIP'))
@@ -308,7 +324,7 @@ def run_for_fleet(ndk_path, fleet, out_dir, log_dir, test_filter,
 
         result, run_details = run_tests(
             ndk_path, device, abi, toolchain, out_dir, log_dir,
-            test_filter, deprecated_headers)
+            test_filter, deprecated_headers, suites)
         pass_label = tests.util.maybe_color('PASS', 'green', use_color)
         fail_label = tests.util.maybe_color('FAIL', 'red', use_color)
         results.append('{}: {}'.format(
