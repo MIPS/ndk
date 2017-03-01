@@ -196,6 +196,27 @@ def parse_args():
     parser.add_argument(
         'ndk', metavar='NDK', type=os.path.realpath, nargs='?',
         help='NDK to validate. Defaults to ../out/android-ndk-$RELEASE.')
+
+    parser.add_argument(
+        '--abi', dest='abis', action='append',
+        help=('ABIs to test. Defaults to all available for the connected '
+              'devices.'))
+    parser.add_argument(
+        '--platform', dest='platforms', action='append', type=int,
+        help=('Device API levels to test. Must be a subset of '
+              'DeviceFleet.devices.'))
+    parser.add_argument(
+        '--toolchain', dest='toolchains', action='append',
+        choices=('clang', '4.9'), help='Toolchains to test.')
+    parser.add_argument(
+        '--headers-config', dest='headers_configs', action='append',
+        choices=('unified', 'deprecated'), help='Headers configs to test.')
+
+    import tests.testlib
+    parser.add_argument(
+        '--suite', dest='suites', action='append',
+        choices=tests.testlib.ALL_SUITES, help='Test suites to run.')
+
     parser.add_argument(
         '--filter', help='Only run tests that match the given pattern.')
     parser.add_argument(
@@ -269,11 +290,18 @@ def main():
         shutil.rmtree(args.log_dir)
     os.makedirs(args.log_dir)
 
+    if args.headers_configs is None:
+        headers_configs = args.headers_configs
+    else:
+        headers_configs = [c == 'deprecated' for c in args.headers_configs]
+
     use_color = sys.stdin.isatty() and os.name != 'nt'
     with ndk.paths.temp_dir_in_out('validate-out') as out_dir:
         import tests.runners
         good, details = tests.runners.run_for_fleet(
-            args.ndk, fleet, out_dir, args.log_dir, args.filter, use_color)
+            args.ndk, fleet, out_dir, args.log_dir, args.filter,
+            args.platforms, args.abis, args.toolchains, headers_configs,
+            args.suites, use_color)
 
     print_aggregate_details(details, use_color)
 
