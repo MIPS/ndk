@@ -26,7 +26,7 @@ int test_compute()
         printf("New RS %p\n", rs.get());
 
         // only legitimate because this is a standalone executable
-        bool r = rs->init("/system/bin");
+        bool r = rs->init("/data/local/tmp");
         printf("Init returned %i\n", r);
 
         sp<const Element> e = Element::RGBA_8888(rs);
