@@ -23,19 +23,6 @@ likely to find them).
 Known Issues
 ------------
 
- * For old (pre-L) API levels, non-x86 architectures had their `fenv.h`
-   implementations inlined into the headers. This has not been preserved in the
-   unified headers (this may change). If you need `fenv.h` support, you'll need
-   to use `libandroid_support`. For ndk-build:
-
-       include $(CLEAR_VARS)
-       LOCAL_MODULE := foo
-       LOCAL_SRC_FILES := foo.cpp
-       LOCAL_STATIC_LIBRARIES := libandroid_support
-       include $(BUILD_SHARED_LIBRARY)
-
-       $(call import-module,android/support)
-
  * Standalone toolchains using GCC are not supported out of the box. To use GCC,
    pass `-D__ANDROID_API__=$API` when compiling.
 
