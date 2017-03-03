@@ -18,30 +18,6 @@ have gone according to plan until then.
 [release schedule]: https://github.com/android-ndk/ndk/wiki#release-schedule
 
 
-NDK r14
--------
-
-### Unified Headers
-
-[Issue #120](https://github.com/android-ndk/ndk/issues/120)
-
-Currently, we have a set of libc headers for each API version. In many cases
-these headers are incorrect. Many expose APIs that didn't exist, and others
-don't expose APIs that did.
-
-Over the last few months we've been doing the prep work to unify these into a
-single set of headers. This single header path will be used for *every* platform
-level. API level guards are handled with `#ifdef`. The work in progress headers
-can be found in [prebuilts/ndk/headers].
-
-Unified headers are built directly from the Android platform, so they will no
-longer be out of date or incorrect (or at the very least, any bugs in the NDK
-headers will also be a bug in the platform headers, which means we're much more
-likely to find them).
-
-[prebuilts/ndk/headers]: https://android.googlesource.com/platform/prebuilts/ndk/+/master/headers/
-
-
 NDK r15
 -------
 
