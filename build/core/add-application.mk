@@ -89,19 +89,6 @@ APP_ABI := $(subst $(comma),$(space),$(strip $(APP_ABI)))
 ifndef APP_ABI
     APP_ABI := $(NDK_DEFAULT_ABIS)
 endif
-ifneq ($(APP_ABI),all)
-    _bad_abis := $(strip $(filter-out $(NDK_ALL_ABIS),$(APP_ABIS)))
-    ifdef _bad_abis
-        ifneq ($(filter $(_bad_abis),armeabi-v7a-hard),)
-            $(call __ndk_info,armeabi-v7a-hard is no longer supported. Use armeabi-v7a.)
-            $(call __ndk_info,See https://android.googlesource.com/platform/ndk/+/master/docs/HardFloatAbi.md)
-        endif
-        $(call __ndk_info,Application $(_app) targets unknown ABI '$(_bad_abis)')
-        $(call __ndk_info,Please fix the APP_ABI definition in $(_application_mk))
-        $(call __ndk_info,to use a set of the following values: $(NDK_ALL_ABIS))
-        $(call __ndk_error,Aborting)
-    endif
-endif
 
 # If APP_BUILD_SCRIPT is defined, check that the file exists.
 # If undefined, look in $(APP_PROJECT_PATH)/jni/Android.mk
