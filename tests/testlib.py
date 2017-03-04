@@ -262,7 +262,7 @@ class LibcxxTestScanner(TestScanner):
         tests = []
         for config in self.device_configurations:
             tests.append(LibcxxTest(
-                name, path, config.abi, config.api, config.toolchain,
+                'libc++', path, config.abi, config.api, config.toolchain,
                 config.force_deprecated_headers, config.device,
                 config.device_api, config.skip_run))
         return tests
@@ -1304,13 +1304,15 @@ class LibcxxTest(Test):
 
     def run(self, out_dir, test_filters):
         xunit_output = os.path.join(out_dir, 'xunit.xml')
+        ndk_path = os.environ['NDK']
+        libcxx_subpath = 'sources/cxx-stl/llvm-libc++/test'
         cmd = [
             'python', '../test_libcxx.py',
             '--abi', self.abi,
             '--platform', str(self.api),
             '--xunit-xml-output=' + xunit_output,
             '--timeout=600',
-            '--ndk=' + os.environ['NDK'],
+            '--ndk=' + ndk_path,
 
             # We don't want the progress bar since we're already printing our
             # own output, so we need --show-all so we get *some* output,
@@ -1325,6 +1327,19 @@ class LibcxxTest(Test):
 
         if self.skip_run:
             cmd.append('--build-only')
+
+        # The libc++ test runner's filters are path based. Assemble the path to
+        # the test based on the late_filters (early filters for a libc++ test
+        # would be simply "libc++", so that's not interesting at this stage).
+        for late_filter in test_filters.late_filters:
+            filter_pattern = late_filter.pattern
+            if not filter_pattern.startswith('libc++.'):
+                continue
+
+            _, _, path = filter_pattern.partition('.')
+            if not os.path.isabs(path):
+                path = os.path.join(ndk_path, libcxx_subpath, path)
+            cmd.append(path)
 
         # Ignore the exit code. We do most XFAIL processing outside the test
         # runner so expected failures in the test runner will still cause a
