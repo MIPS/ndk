@@ -16,13 +16,10 @@
 import logging
 import os
 import shutil
-import site
 import subprocess
 import tempfile
 
-site.addsitedir(os.path.join(os.environ['NDK'], 'build/lib'))
-
-import build_support  # pylint: disable=import-error
+import build.lib.build_support
 
 
 def logger():
@@ -56,7 +53,7 @@ def make_standalone_toolchain(arch, platform, install_dir):
 
 def test_standalone_toolchain(arch, toolchain, install_dir):
     if toolchain == '4.9':
-        triple = build_support.arch_to_triple(arch)
+        triple = build.lib.build_support.arch_to_triple(arch)
         # x86 toolchain names are dumb: http://b/25800583
         if arch == 'x86':
             triple = 'i686-linux-android'
@@ -77,7 +74,7 @@ def run_test(abi=None, platform=None, toolchain=None,
              build_flags=None):  # pylint: disable=unused-argument
     arch = 'arm'
     if abi is not None:
-        arch = build_support.abi_to_arch(abi)
+        arch = build.lib.build_support.abi_to_arch(abi)
 
     install_dir = tempfile.mkdtemp()
     try:
