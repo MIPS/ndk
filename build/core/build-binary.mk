@@ -693,7 +693,7 @@ ifdef undefined_libs
     # anything using libc++ on ARM has this problem because of libunwind).
     #
     # By default we will abort in this situation because this is so completely
-    # broken. A user may define APP_ALLOW_MISSING_DEPS to "false" in their
+    # broken. A user may define APP_ALLOW_MISSING_DEPS to "true" in their
     # Application.mk or on the command line to revert to the old, broken
     # behavior.
     ifneq ($(APP_ALLOW_MISSING_DEPS),true)
