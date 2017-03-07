@@ -16,13 +16,10 @@
 import logging
 import os
 import shutil
-import site
 import subprocess
 import tempfile
 
-site.addsitedir(os.path.join(os.environ['NDK'], 'build/lib'))
-
-import build_support  # pylint: disable=import-error
+import build.lib.build_support
 
 
 def logger():
@@ -37,54 +34,45 @@ def call_output(cmd, *args, **kwargs):
     return proc.returncode, out
 
 
-def make_standalone_toolchain(arch, platform, install_dir):
+def make_standalone_toolchain(arch, api, extra_args, install_dir):
     ndk_dir = os.environ['NDK']
     make_standalone_toolchain_path = os.path.join(
         ndk_dir, 'build/tools/make_standalone_toolchain.py')
 
     cmd = [make_standalone_toolchain_path, '--force',
-           '--install-dir=' + install_dir, '--stl=libc++',
-           '--deprecated-headers']
-
-    if arch is not None:
-        cmd.append('--arch=' + arch)
-    if platform is not None:
-        cmd.append('--api={}'.format(platform))
+           '--install-dir=' + install_dir, '--arch=' + arch,
+           '--api={}'.format(api)] + extra_args
 
     rc, out = call_output(cmd)
     return rc == 0, out
 
 
-def test_standalone_toolchain(arch, toolchain, install_dir):
+def test_standalone_toolchain(arch, toolchain, install_dir, test_source):
     if toolchain == '4.9':
-        triple = build_support.arch_to_triple(arch)
+        triple = build.lib.build_support.arch_to_triple(arch)
         # x86 toolchain names are dumb: http://b/25800583
         if arch == 'x86':
             triple = 'i686-linux-android'
         compiler_name = triple + '-g++'
     elif toolchain == 'clang':
         compiler_name = 'clang++'
-    else:
-        raise ValueError
 
     compiler = os.path.join(install_dir, 'bin', compiler_name)
-    test_source = 'foo.cpp'
     cmd = [compiler, test_source, '-Wl,--no-undefined', '-Wl,--fatal-warnings']
     rc, out = call_output(cmd)
     return rc == 0, out
 
 
-def run_test(abi=None, platform=None, toolchain=None,
-             build_flags=None):  # pylint: disable=unused-argument
-    arch = 'arm'
-    if abi is not None:
-        arch = build_support.abi_to_arch(abi)
+def run_test(abi, api, toolchain, test_source, extra_args):
+    arch = build.lib.build_support.abi_to_arch(abi)
 
     install_dir = tempfile.mkdtemp()
     try:
-        success, out = make_standalone_toolchain(arch, platform, install_dir)
+        success, out = make_standalone_toolchain(
+            arch, api, extra_args, install_dir)
         if not success:
             return success, out
-        return test_standalone_toolchain(arch, toolchain, install_dir)
+        return test_standalone_toolchain(
+            arch, toolchain, install_dir, test_source)
     finally:
         shutil.rmtree(install_dir)

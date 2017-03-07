@@ -29,13 +29,8 @@ import subprocess
 import sys
 
 
-def run_test(abi=None, platform=None, toolchain=None, build_flags=None):
+def run_test(abi, platform, _toolchain, build_flags):
     """Checks ndk-build V=1 output for correct compiler."""
-    toolchain = toolchain  # used
-
-    if build_flags is None:
-        build_flags = []
-
     ndk_dir = os.environ['NDK']
     ndk_build = os.path.join(ndk_dir, 'ndk-build')
     if sys.platform == 'win32':

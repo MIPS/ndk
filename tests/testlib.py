@@ -838,6 +838,23 @@ class PythonBuildTest(BuildTest):
             config.verbose, config.force_deprecated_headers)
         super(PythonBuildTest, self).__init__(name, test_dir, config)
 
+        if self.abi not in build.lib.build_support.ALL_ABIS:
+            raise ValueError('{} is not a valid ABI'.format(self.abi))
+
+        try:
+            int(self.platform)
+        except ValueError:
+            raise ValueError(
+                '{} is not a valid platform number'.format(self.platform))
+
+        if self.toolchain != 'clang' and self.toolchain != '4.9':
+            raise ValueError(
+                '{} is not a valid toolchain name'.format(self.toolchain))
+
+        # Not a ValueError for this one because it should be impossible. This
+        # is actually a computed result from the config we're passed.
+        assert self.ndk_build_flags is not None
+
     def get_build_dir(self, out_dir):
         return os.path.join(
             out_dir, 'build/test.py', str(self.config), self.name)
@@ -849,8 +866,7 @@ class PythonBuildTest(BuildTest):
         with util.cd(build_dir):
             module = imp.load_source('test', 'test.py')
             success, failure_message = module.run_test(
-                abi=self.abi, platform=self.platform, toolchain=self.toolchain,
-                build_flags=self.ndk_build_flags)
+                self.abi, self.platform, self.toolchain, self.ndk_build_flags)
             if success:
                 return Success(self.name), []
             else:
