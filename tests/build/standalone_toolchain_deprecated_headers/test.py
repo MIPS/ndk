@@ -34,19 +34,14 @@ def call_output(cmd, *args, **kwargs):
     return proc.returncode, out
 
 
-def make_standalone_toolchain(arch, platform, install_dir):
+def make_standalone_toolchain(arch, api, install_dir):
     ndk_dir = os.environ['NDK']
     make_standalone_toolchain_path = os.path.join(
         ndk_dir, 'build/tools/make_standalone_toolchain.py')
 
     cmd = [make_standalone_toolchain_path, '--force',
-           '--install-dir=' + install_dir, '--stl=libc++',
-           '--deprecated-headers']
-
-    if arch is not None:
-        cmd.append('--arch=' + arch)
-    if platform is not None:
-        cmd.append('--api={}'.format(platform))
+           '--install-dir=' + install_dir, '--arch=' + arch,
+           '--api={}'.format(api), '--stl=libc++', '--deprecated-headers']
 
     rc, out = call_output(cmd)
     return rc == 0, out
@@ -61,8 +56,6 @@ def test_standalone_toolchain(arch, toolchain, install_dir):
         compiler_name = triple + '-g++'
     elif toolchain == 'clang':
         compiler_name = 'clang++'
-    else:
-        raise ValueError
 
     compiler = os.path.join(install_dir, 'bin', compiler_name)
     test_source = 'foo.cpp'
@@ -71,11 +64,8 @@ def test_standalone_toolchain(arch, toolchain, install_dir):
     return rc == 0, out
 
 
-def run_test(abi=None, platform=None, toolchain=None,
-             build_flags=None):  # pylint: disable=unused-argument
-    arch = 'arm'
-    if abi is not None:
-        arch = build.lib.build_support.abi_to_arch(abi)
+def run_test(abi, platform, toolchain, _build_flags):
+    arch = build.lib.build_support.abi_to_arch(abi)
 
     install_dir = tempfile.mkdtemp()
     try:
