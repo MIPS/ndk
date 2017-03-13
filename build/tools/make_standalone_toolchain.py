@@ -255,6 +255,9 @@ def make_clang_scripts(install_dir, triple, api, windows, unified_headers):
 
     if windows:
         flags = '-target {} --sysroot %~dp0\\..\\sysroot'.format(target)
+        if unified_headers:
+            flags += ' -D__ANDROID_API__={}'.format(api)
+
         clangbat_path = os.path.join(install_dir, 'bin/clang.cmd')
         with open(clangbat_path, 'w') as clangbat:
             clangbat.write(textwrap.dedent("""\
