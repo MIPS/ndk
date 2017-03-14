@@ -43,6 +43,20 @@ def make_standalone_toolchain(arch, api, extra_args, install_dir):
            '--install-dir=' + install_dir, '--arch=' + arch,
            '--api={}'.format(api)] + extra_args
 
+    if os.name == 'nt':
+        # Windows doesn't process shebang lines, and we wouldn't be pointing at
+        # the right Python if it did. Explicitly invoke the NDK's Python for on
+        # Windows.
+        prebuilt_dir = os.path.join(ndk_dir, 'prebuilt/windows-x86_64')
+        if not os.path.exists(prebuilt_dir):
+            prebuilt_dir = os.path.join(ndk_dir, 'prebuilt/windows')
+        if not os.path.exists(prebuilt_dir):
+            raise RuntimeError('Could not find prebuilts in {}'.format(
+                os.path.join(ndk_dir, 'prebuilt')))
+
+        python_path = os.path.join(prebuilt_dir, 'bin/python.exe')
+        cmd = [python_path] + cmd
+
     rc, out = call_output(cmd)
     return rc == 0, out
 
@@ -59,6 +73,10 @@ def test_standalone_toolchain(arch, toolchain, install_dir, test_source):
 
     compiler = os.path.join(install_dir, 'bin', compiler_name)
     cmd = [compiler, test_source, '-Wl,--no-undefined', '-Wl,--fatal-warnings']
+    if os.name == 'nt':
+        # The Windows equivalent of exec doesn't know file associations so it
+        # tries to load the batch file as an executable. Invoke it with cmd.
+        cmd = ['cmd', '/c'] + cmd
     rc, out = call_output(cmd)
     return rc == 0, out
 
