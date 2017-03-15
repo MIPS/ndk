@@ -27,6 +27,17 @@ Announcements
 
 [Unified Headers]: docs/UnifiedHeaders.md
 
+NDK
+===
+
+ * `awk` is no longer in the NDK. We've replaced all uses of awk with Python.
+
+libc++
+======
+
+ * We've begun slimming down and improving `libandroid_support` to fix libc++
+   reliability issues. https://github.com/android-ndk/ndk/issues/300.
+
 Known Issues
 ------------
 
