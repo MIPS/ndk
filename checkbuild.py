@@ -950,6 +950,16 @@ class CanaryReadme(ndk.builds.Module):
                 canary_file.write(CANARY_TEXT)
 
 
+class Meta(ndk.builds.PackageModule):
+    name = 'meta'
+    path = 'meta'
+    src = build_support.ndk_path('meta')
+
+    def validate_notice(self, _install_base):
+        # No license needed for meta.
+        pass
+
+
 class SourceProperties(ndk.builds.Module):
     name = 'source.properties'
     path = 'source.properties'
@@ -1005,6 +1015,7 @@ ALL_MODULES = [
     LibShaderc(),
     Libcxx(),
     Libcxxabi(),
+    Meta(),
     NativeAppGlue(),
     NdkBuild(),
     NdkBuildShortcut(),
