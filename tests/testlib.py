@@ -17,6 +17,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import distutils.spawn
+import fnmatch
 import imp
 import logging
 import multiprocessing
@@ -254,8 +255,11 @@ class DeviceTestScanner(TestScanner):
 
 
 class LibcxxTestScanner(TestScanner):
+    ALL_TESTS = []
+
     def __init__(self):
         self.device_configurations = set()
+        LibcxxTestScanner.find_all_libcxx_tests()
 
     def add_device_configuration(self, abi, api, toolchain, force_pie,
                                  verbose, force_deprecated_headers, device,
@@ -269,6 +273,25 @@ class LibcxxTestScanner(TestScanner):
         for config in self.device_configurations:
             tests.append(LibcxxTest('libc++', path, config))
         return tests
+
+    @classmethod
+    def find_all_libcxx_tests(cls):
+        # If we instantiate multiple LibcxxTestScanners, we still only need to
+        # initialize this once. We only create these in the main thread, so
+        # there's no risk of race.
+        if len(cls.ALL_TESTS) != 0:
+            return
+
+        ndk_path = os.environ['NDK']
+        test_base_dir = os.path.join(
+            ndk_path, 'sources/cxx-stl/llvm-libc++/test')
+
+        for root, _dirs, files in os.walk(test_base_dir):
+            for test_file in files:
+                if test_file.endswith('.cpp'):
+                    test_path = os.path.relpath(
+                        os.path.join(root, test_file), test_base_dir)
+                    cls.ALL_TESTS.append(test_path)
 
 
 def _scan_test_suite(suite_dir, test_scanner):
@@ -1283,11 +1306,24 @@ def get_xunit_reports(xunit_file, config):
 
     reports = []
     for test_case in cases:
-        test_dir = test_case.get('classname')
-        if test_dir.startswith('libc++.'):
-            test_dir = test_dir[len('libc++.'):]
+        mangled_test_dir = test_case.get('classname')
 
-        name = '/'.join([test_dir, test_case.get('name')])
+        # The classname is the path from the root of the libc++ test directory
+        # to the directory containing the test (prefixed with 'libc++.')...
+        mangled_path = '/'.join([mangled_test_dir, test_case.get('name')])
+
+        # ... that has had '.' in its path replaced with '_' because xunit.
+        test_matches = find_original_libcxx_test(mangled_path)
+        if len(test_matches) == 0:
+            raise RuntimeError('Found no matches for test ' + mangled_path)
+        if len(test_matches) > 1:
+            raise RuntimeError('Found multiple matches for test {}: {}'.format(
+                mangled_path, test_matches))
+        assert len(test_matches) == 1
+
+        # We found a unique path matching the xunit class/test name.
+        name = test_matches[0]
+        test_dir = os.path.dirname(name)[len('libc++.'):]
 
         failure_nodes = test_case.findall('failure')
         if len(failure_nodes) == 0:
@@ -1379,6 +1415,16 @@ class LibcxxTest(Test):
             _, _, path = filter_pattern.partition('.')
             if not os.path.isabs(path):
                 path = os.path.join(ndk_path, libcxx_subpath, path)
+
+            # If we have a filter like "libc++.std", we'll run everything in
+            # std, but all our XunitReport "tests" will be filtered out.  Make
+            # sure we have something usable.
+            if path.endswith('*'):
+                # But the libc++ test runner won't like that, so strip it.
+                path = path[:-1]
+            else:
+                assert os.path.isfile(path)
+
             cmd.append(path)
 
         # Ignore the exit code. We do most XFAIL processing outside the test
@@ -1454,6 +1500,32 @@ class LibcxxTestConfig(DeviceTestConfig):
         def run_broken(abi, device_api, toolchain, name):
             return None, None
         # pylint: enable=unused-argument,arguments-differ
+
+
+def find_original_libcxx_test(name):
+    """Finds the original libc++ test file given the xunit test name.
+
+    LIT mangles test names to replace all periods with underscores because
+    xunit. This returns all tests that could possibly match the xunit test
+    name.
+    """
+
+    # LIT special cases tests in the root of the test directory (such as
+    # test/nothing_to_do.pass.cpp) as "libc++.libc++/$TEST_FILE.pass.cpp" for
+    # some reason. Strip it off so we can find the tests.
+    if name.startswith('libc++.libc++/'):
+        name = 'libc++.' + name[len('libc++.libc++/'):]
+
+    test_prefix = 'libc++.'
+    if not name.startswith(test_prefix):
+        raise ValueError('libc++ test name must begin with "libc++."')
+
+    name = name[len(test_prefix):]
+    test_pattern = name.replace('_', '?')
+    matches = []
+    for match in fnmatch.filter(LibcxxTestScanner.ALL_TESTS, test_pattern):
+        matches.append(test_prefix + match)
+    return matches
 
 
 class XunitResult(Test):
