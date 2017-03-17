@@ -34,6 +34,7 @@ import build.lib.build_support
 import ndk.abis
 import ndk.test.report
 import ndk.workqueue as wq
+import tests.filters as filters
 import tests.ndk as ndkbuild
 import tests.util as util
 
@@ -357,6 +358,101 @@ def _run_test(suite, test, out_dir, test_filters):
     return suite, result, additional_tests
 
 
+def flake_filter(result):
+    # Only device tests can be flaky.
+    if not result.test.is_flaky:
+        return False
+
+    # adb might return no text at all under high load.
+    if 'Did not receive exit status from test.' in result.message:
+        return True
+
+    # adb can return from push before it's fully pushed the test.
+    if is_text_busy(result.message):
+        return True
+
+    return False
+
+
+def get_rerun_tests(report):
+    """Returns tests to be rerun.
+
+    Returns:
+        A tuple of (rerun_tests, libcxx_tests). rerun_tests are normal NDK
+        tests that can simply be run again with test.run(). libcxx_tests are
+        XunitResult tests from LIT that need to be grouped and rerun via LIT as
+        a batch.
+    """
+    flaky_failures = report.remove_all_failing_flaky(flake_filter)
+
+    # libc++ tests are a special case because we can't run them
+    # individually. We need to collect all of the ones that failed and
+    # kick off a new run of their parent test case.
+    rerun_tests = []
+    libcxx_tests = []
+    for flaky_report in flaky_failures:
+        if isinstance(flaky_report.result.test, XunitResult):
+            libcxx_tests.append(flaky_report)
+        else:
+            rerun_tests.append(flaky_report)
+    return rerun_tests, libcxx_tests
+
+
+def get_libcxx_test_filter(failing_libcxx_reports):
+    """Builds a test filter to rerun only the flaky libc++ test failures.
+
+    We can't rerun each libc++ "test" failure individually because each of them
+    is actually just a stub to expose the result from the monolithic LIT test
+    run.
+    """
+    ndk_path = os.environ['NDK']
+    test_base_dir = os.path.join(
+        ndk_path, 'sources/cxx-stl/llvm-libc++/test')
+
+    libcxx_test_filters = []
+    for libcxx_report in failing_libcxx_reports:
+        name = libcxx_report.result.test.name
+        test_files = find_original_libcxx_test(name)
+        if len(test_files) == 0:
+            raise RuntimeError('Found no libc++ tests matching ' + name)
+
+        for test_file in test_files:
+            logger().info('Found match %s', test_file)
+            logger().info(
+                'Adding filter %s',
+                os.path.relpath(test_file, test_base_dir))
+            libcxx_test_filters.append(test_file)
+
+    return filters.TestFilter(libcxx_test_filters)
+
+
+def restart_flaky_tests(report, workqueue, out_dir, test_filters):
+    """Finds and restarts any failing flaky tests."""
+    rerun_tests, libcxx_tests = get_rerun_tests(report)
+    num_flaky_failures = len(rerun_tests) + len(libcxx_tests)
+    if num_flaky_failures > 0:
+        cooldown = 10
+        logger().warning(
+            'Found %d flaky failures. Sleeping for %d seconds to let '
+            'device recover.', num_flaky_failures, cooldown)
+        time.sleep(cooldown)
+
+    for flaky_report in rerun_tests:
+        workqueue.add_task(
+            _run_test, flaky_report.suite,
+            flaky_report.result.test, out_dir, test_filters)
+
+    if len(libcxx_tests) > 0:
+        libcxx_test_dir = build.lib.build_support.ndk_path('tests/libc++')
+        libcxx_filter = get_libcxx_test_filter(libcxx_tests)
+        config = libcxx_tests[0].result.test.config
+        rerun_test = LibcxxTest(
+            'libc++', libcxx_test_dir, config)
+        workqueue.add_task(
+            _run_test, 'libc++', rerun_test, out_dir,
+            libcxx_filter)
+
+
 class TestRunner(object):
     def __init__(self, printer):
         self.printer = printer
@@ -376,21 +472,33 @@ class TestRunner(object):
                         _run_test, suite, test, out_dir, test_filters)
 
             report = ndk.test.report.Report()
-            while not workqueue.finished():
-                suite, result, additional_tests = workqueue.get_result()
-                for test in additional_tests:
-                    workqueue.add_task(
-                        _run_test, suite, test, out_dir, test_filters)
-                # Filtered test. Skip them entirely to avoid polluting
-                # --show-all results.
-                if result is None:
-                    continue
-                report.add_result(suite, result)
-                self.printer.print_result(result)
+            self.wait_for_results(report, workqueue, out_dir, test_filters)
+
+            # adb can be very flaky under the high load we throw at the device.
+            # If we have failures on device tests, retry those tests.
+            restart_flaky_tests(report, workqueue, out_dir, test_filters)
+            self.wait_for_results(report, workqueue, out_dir, test_filters)
+
             return report
         finally:
             workqueue.terminate()
             workqueue.join()
+
+    def wait_for_results(self, report, workqueue, out_dir, test_filters):
+        while not workqueue.finished():
+            suite, result, additional_tests = workqueue.get_result()
+            # Filtered test. Skip them entirely to avoid polluting
+            # --show-all results.
+            if result is None:
+                assert len(additional_tests) == 0
+                continue
+
+            assert result.passed() or len(additional_tests) == 0
+            for test in additional_tests:
+                workqueue.add_task(
+                    _run_test, suite, test, out_dir, test_filters)
+            report.add_result(suite, result)
+            self.printer.print_result(result)
 
 
 class TestResult(object):
@@ -498,6 +606,10 @@ class Test(object):
     def __init__(self, name, test_dir):
         self.name = name
         self.test_dir = test_dir
+
+    @property
+    def is_flaky(self):
+        return False
 
     def get_test_config(self):
         return TestConfig.from_test_dir(self.test_dir)
@@ -1246,6 +1358,10 @@ class DeviceRunTest(Test):
         self.device_dir = device_dir
 
     @property
+    def is_flaky(self):
+        return True
+
+    @property
     def abi(self):
         return self.config.abi
 
@@ -1544,6 +1660,10 @@ class XunitResult(Test):
 
     def run(self, _out_dir, _test_filters):
         raise NotImplementedError
+
+    @property
+    def is_flaky(self):
+        return True
 
     def get_test_config(self):
         test_config_dir = build.lib.build_support.ndk_path(

@@ -86,3 +86,19 @@ class Report(object):
             if not report.result.passed() and not report.result.failed():
                 skips.append(report)
         return skips
+
+    def remove_all_failing_flaky(self, flake_filter):
+        """Splits out the flaky tests that failed so they can be rerun.
+
+        Any failing tests that are known flaky are removed from the list of
+        reports and returned to the caller to be rerun.
+        """
+        new_list = []
+        flaky = []
+        for report in self.reports:
+            if report.result.failed() and flake_filter(report.result):
+                flaky.append(report)
+            else:
+                new_list.append(report)
+        self.reports = new_list
+        return flaky
