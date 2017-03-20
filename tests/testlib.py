@@ -17,6 +17,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import distutils.spawn
+import fnmatch
 import imp
 import logging
 import multiprocessing
@@ -33,6 +34,7 @@ import build.lib.build_support
 import ndk.abis
 import ndk.test.report
 import ndk.workqueue as wq
+import tests.filters as filters
 import tests.ndk as ndkbuild
 import tests.util as util
 
@@ -254,8 +256,11 @@ class DeviceTestScanner(TestScanner):
 
 
 class LibcxxTestScanner(TestScanner):
+    ALL_TESTS = []
+
     def __init__(self):
         self.device_configurations = set()
+        LibcxxTestScanner.find_all_libcxx_tests()
 
     def add_device_configuration(self, abi, api, toolchain, force_pie,
                                  verbose, force_deprecated_headers, device,
@@ -269,6 +274,25 @@ class LibcxxTestScanner(TestScanner):
         for config in self.device_configurations:
             tests.append(LibcxxTest('libc++', path, config))
         return tests
+
+    @classmethod
+    def find_all_libcxx_tests(cls):
+        # If we instantiate multiple LibcxxTestScanners, we still only need to
+        # initialize this once. We only create these in the main thread, so
+        # there's no risk of race.
+        if len(cls.ALL_TESTS) != 0:
+            return
+
+        ndk_path = os.environ['NDK']
+        test_base_dir = os.path.join(
+            ndk_path, 'sources/cxx-stl/llvm-libc++/test')
+
+        for root, _dirs, files in os.walk(test_base_dir):
+            for test_file in files:
+                if test_file.endswith('.cpp'):
+                    test_path = os.path.relpath(
+                        os.path.join(root, test_file), test_base_dir)
+                    cls.ALL_TESTS.append(test_path)
 
 
 def _scan_test_suite(suite_dir, test_scanner):
@@ -334,6 +358,101 @@ def _run_test(suite, test, out_dir, test_filters):
     return suite, result, additional_tests
 
 
+def flake_filter(result):
+    # Only device tests can be flaky.
+    if not result.test.is_flaky:
+        return False
+
+    # adb might return no text at all under high load.
+    if 'Did not receive exit status from test.' in result.message:
+        return True
+
+    # adb can return from push before it's fully pushed the test.
+    if is_text_busy(result.message):
+        return True
+
+    return False
+
+
+def get_rerun_tests(report):
+    """Returns tests to be rerun.
+
+    Returns:
+        A tuple of (rerun_tests, libcxx_tests). rerun_tests are normal NDK
+        tests that can simply be run again with test.run(). libcxx_tests are
+        XunitResult tests from LIT that need to be grouped and rerun via LIT as
+        a batch.
+    """
+    flaky_failures = report.remove_all_failing_flaky(flake_filter)
+
+    # libc++ tests are a special case because we can't run them
+    # individually. We need to collect all of the ones that failed and
+    # kick off a new run of their parent test case.
+    rerun_tests = []
+    libcxx_tests = []
+    for flaky_report in flaky_failures:
+        if isinstance(flaky_report.result.test, XunitResult):
+            libcxx_tests.append(flaky_report)
+        else:
+            rerun_tests.append(flaky_report)
+    return rerun_tests, libcxx_tests
+
+
+def get_libcxx_test_filter(failing_libcxx_reports):
+    """Builds a test filter to rerun only the flaky libc++ test failures.
+
+    We can't rerun each libc++ "test" failure individually because each of them
+    is actually just a stub to expose the result from the monolithic LIT test
+    run.
+    """
+    ndk_path = os.environ['NDK']
+    test_base_dir = os.path.join(
+        ndk_path, 'sources/cxx-stl/llvm-libc++/test')
+
+    libcxx_test_filters = []
+    for libcxx_report in failing_libcxx_reports:
+        name = libcxx_report.result.test.name
+        test_files = find_original_libcxx_test(name)
+        if len(test_files) == 0:
+            raise RuntimeError('Found no libc++ tests matching ' + name)
+
+        for test_file in test_files:
+            logger().info('Found match %s', test_file)
+            logger().info(
+                'Adding filter %s',
+                os.path.relpath(test_file, test_base_dir))
+            libcxx_test_filters.append(test_file)
+
+    return filters.TestFilter(libcxx_test_filters)
+
+
+def restart_flaky_tests(report, workqueue, out_dir, test_filters):
+    """Finds and restarts any failing flaky tests."""
+    rerun_tests, libcxx_tests = get_rerun_tests(report)
+    num_flaky_failures = len(rerun_tests) + len(libcxx_tests)
+    if num_flaky_failures > 0:
+        cooldown = 10
+        logger().warning(
+            'Found %d flaky failures. Sleeping for %d seconds to let '
+            'device recover.', num_flaky_failures, cooldown)
+        time.sleep(cooldown)
+
+    for flaky_report in rerun_tests:
+        workqueue.add_task(
+            _run_test, flaky_report.suite,
+            flaky_report.result.test, out_dir, test_filters)
+
+    if len(libcxx_tests) > 0:
+        libcxx_test_dir = build.lib.build_support.ndk_path('tests/libc++')
+        libcxx_filter = get_libcxx_test_filter(libcxx_tests)
+        config = libcxx_tests[0].result.test.config
+        rerun_test = LibcxxTest(
+            'libc++', libcxx_test_dir, config)
+        workqueue.add_task(
+            _run_test, 'libc++', rerun_test, out_dir,
+            libcxx_filter)
+
+
 class TestRunner(object):
     def __init__(self, printer):
         self.printer = printer
@@ -353,21 +472,33 @@ class TestRunner(object):
                         _run_test, suite, test, out_dir, test_filters)
 
             report = ndk.test.report.Report()
-            while not workqueue.finished():
-                suite, result, additional_tests = workqueue.get_result()
-                for test in additional_tests:
-                    workqueue.add_task(
-                        _run_test, suite, test, out_dir, test_filters)
-                # Filtered test. Skip them entirely to avoid polluting
-                # --show-all results.
-                if result is None:
-                    continue
-                report.add_result(suite, result)
-                self.printer.print_result(result)
+            self.wait_for_results(report, workqueue, out_dir, test_filters)
+
+            # adb can be very flaky under the high load we throw at the device.
+            # If we have failures on device tests, retry those tests.
+            restart_flaky_tests(report, workqueue, out_dir, test_filters)
+            self.wait_for_results(report, workqueue, out_dir, test_filters)
+
             return report
         finally:
             workqueue.terminate()
             workqueue.join()
+
+    def wait_for_results(self, report, workqueue, out_dir, test_filters):
+        while not workqueue.finished():
+            suite, result, additional_tests = workqueue.get_result()
+            # Filtered test. Skip them entirely to avoid polluting
+            # --show-all results.
+            if result is None:
+                assert len(additional_tests) == 0
+                continue
+
+            assert result.passed() or len(additional_tests) == 0
+            for test in additional_tests:
+                workqueue.add_task(
+                    _run_test, suite, test, out_dir, test_filters)
+            report.add_result(suite, result)
+            self.printer.print_result(result)
 
 
 class TestResult(object):
@@ -475,6 +606,10 @@ class Test(object):
     def __init__(self, name, test_dir):
         self.name = name
         self.test_dir = test_dir
+
+    @property
+    def is_flaky(self):
+        return False
 
     def get_test_config(self):
         return TestConfig.from_test_dir(self.test_dir)
@@ -1223,6 +1358,10 @@ class DeviceRunTest(Test):
         self.device_dir = device_dir
 
     @property
+    def is_flaky(self):
+        return True
+
+    @property
     def abi(self):
         return self.config.abi
 
@@ -1283,11 +1422,24 @@ def get_xunit_reports(xunit_file, config):
 
     reports = []
     for test_case in cases:
-        test_dir = test_case.get('classname')
-        if test_dir.startswith('libc++.'):
-            test_dir = test_dir[len('libc++.'):]
+        mangled_test_dir = test_case.get('classname')
 
-        name = '/'.join([test_dir, test_case.get('name')])
+        # The classname is the path from the root of the libc++ test directory
+        # to the directory containing the test (prefixed with 'libc++.')...
+        mangled_path = '/'.join([mangled_test_dir, test_case.get('name')])
+
+        # ... that has had '.' in its path replaced with '_' because xunit.
+        test_matches = find_original_libcxx_test(mangled_path)
+        if len(test_matches) == 0:
+            raise RuntimeError('Found no matches for test ' + mangled_path)
+        if len(test_matches) > 1:
+            raise RuntimeError('Found multiple matches for test {}: {}'.format(
+                mangled_path, test_matches))
+        assert len(test_matches) == 1
+
+        # We found a unique path matching the xunit class/test name.
+        name = test_matches[0]
+        test_dir = os.path.dirname(name)[len('libc++.'):]
 
         failure_nodes = test_case.findall('failure')
         if len(failure_nodes) == 0:
@@ -1379,6 +1531,16 @@ class LibcxxTest(Test):
             _, _, path = filter_pattern.partition('.')
             if not os.path.isabs(path):
                 path = os.path.join(ndk_path, libcxx_subpath, path)
+
+            # If we have a filter like "libc++.std", we'll run everything in
+            # std, but all our XunitReport "tests" will be filtered out.  Make
+            # sure we have something usable.
+            if path.endswith('*'):
+                # But the libc++ test runner won't like that, so strip it.
+                path = path[:-1]
+            else:
+                assert os.path.isfile(path)
+
             cmd.append(path)
 
         # Ignore the exit code. We do most XFAIL processing outside the test
@@ -1456,6 +1618,32 @@ class LibcxxTestConfig(DeviceTestConfig):
         # pylint: enable=unused-argument,arguments-differ
 
 
+def find_original_libcxx_test(name):
+    """Finds the original libc++ test file given the xunit test name.
+
+    LIT mangles test names to replace all periods with underscores because
+    xunit. This returns all tests that could possibly match the xunit test
+    name.
+    """
+
+    # LIT special cases tests in the root of the test directory (such as
+    # test/nothing_to_do.pass.cpp) as "libc++.libc++/$TEST_FILE.pass.cpp" for
+    # some reason. Strip it off so we can find the tests.
+    if name.startswith('libc++.libc++/'):
+        name = 'libc++.' + name[len('libc++.libc++/'):]
+
+    test_prefix = 'libc++.'
+    if not name.startswith(test_prefix):
+        raise ValueError('libc++ test name must begin with "libc++."')
+
+    name = name[len(test_prefix):]
+    test_pattern = name.replace('_', '?')
+    matches = []
+    for match in fnmatch.filter(LibcxxTestScanner.ALL_TESTS, test_pattern):
+        matches.append(test_prefix + match)
+    return matches
+
+
 class XunitResult(Test):
     """Fake tests so we can show a result for each libc++ test.
 
@@ -1472,6 +1660,10 @@ class XunitResult(Test):
 
     def run(self, _out_dir, _test_filters):
         raise NotImplementedError
+
+    @property
+    def is_flaky(self):
+        return True
 
     def get_test_config(self):
         test_config_dir = build.lib.build_support.ndk_path(
