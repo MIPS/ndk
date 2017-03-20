@@ -165,18 +165,7 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
             build.
 
     Returns:
-        Tuple of (result, details).
-
-        result is True if all tests completed successfully, False if there were
-        failures.
-
-        details is the dict returned by tests.TestRunner: {
-            "suite_name": [
-                tests.TestResult,
-                ...
-            ],
-            ...
-        }
+        ndk.test.Report describing the test results.
     """
     if suites is None:
         suites = tests.testlib.ALL_SUITES
@@ -247,12 +236,8 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
         runner.add_suite('libc++', 'libc++', libcxx_scanner)
 
     test_filters = tests.filters.TestFilter.from_string(test_filter)
-    results = runner.run(out_dir, test_filters)
-
-    stats = ResultStats(suites, results)
-
-    printer.print_summary(results, stats)
-    return stats.global_stats['fail'] == 0, results
+    report = runner.run(out_dir, test_filters)
+    return report
 
 
 def get_headers_text(deprecated_headers):
@@ -270,12 +255,12 @@ def run_tests(ndk_path, device, abi, toolchain, out_dir, log_dir, test_filter,
     log_file_name = '{}-{}-{}.log'.format(toolchain_name, abi, device.version)
     with open(os.path.join(log_dir, log_file_name), 'w') as log_file:
         printer = tests.printers.FilePrinter(log_file)
-        good, details = run_single_configuration(
+        report = run_single_configuration(
             ndk_path, out_dir, printer, abi, toolchain,
             device_serial=device.serial, test_filter=test_filter,
             force_deprecated_headers=force_deprecated_headers, suites=suites)
-        print('PASS' if good else 'FAIL')
-        return good, details
+        print('PASS' if report.successful else 'FAIL')
+        return report
 
 
 def run_for_fleet(ndk_path, fleet, out_dir, log_dir, test_filter,
@@ -322,15 +307,15 @@ def run_for_fleet(ndk_path, fleet, out_dir, log_dir, test_filter,
             version, abi, toolchain, get_headers_text(deprecated_headers))
         details[config_name] = None
 
-        result, run_details = run_tests(
+        report = run_tests(
             ndk_path, device, abi, toolchain, out_dir, log_dir,
             test_filter, deprecated_headers, suites)
         pass_label = tests.util.maybe_color('PASS', 'green', use_color)
         fail_label = tests.util.maybe_color('FAIL', 'red', use_color)
         results.append('{}: {}'.format(
-            config_name, pass_label if result else fail_label))
-        details[config_name] = run_details
-        if not result:
+            config_name, pass_label if report.successful else fail_label))
+        details[config_name] = report
+        if not report.successful:
             good = False
 
     print('\n'.join(results))

@@ -31,6 +31,7 @@ import xml.etree.ElementTree
 
 import build.lib.build_support
 import ndk.abis
+import ndk.test.report
 import ndk.workqueue as wq
 import tests.ndk as ndkbuild
 import tests.util as util
@@ -154,6 +155,11 @@ class DeviceConfiguration(BuildConfiguration):
             return False
         return True
 
+    def __str__(self):
+        build_str = super(DeviceConfiguration, self).__str__()
+        serial = 'no-device' if self.device is None else self.device.serial
+        return '{}-{}'.format(build_str, serial)
+
 
 class BuildTestScanner(TestScanner):
     def __init__(self):
@@ -261,10 +267,7 @@ class LibcxxTestScanner(TestScanner):
     def find_tests(self, path, name):
         tests = []
         for config in self.device_configurations:
-            tests.append(LibcxxTest(
-                'libc++', path, config.abi, config.api, config.toolchain,
-                config.force_deprecated_headers, config.device,
-                config.device_api, config.skip_run))
+            tests.append(LibcxxTest('libc++', path, config))
         return tests
 
 
@@ -280,18 +283,18 @@ def _scan_test_suite(suite_dir, test_scanner):
 
 def _fixup_expected_failure(result, config, bug):
     if isinstance(result, Failure):
-        return ExpectedFailure(result.test_name, config, bug)
+        return ExpectedFailure(result.test, config, bug)
     elif isinstance(result, Success):
-        return UnexpectedSuccess(result.test_name, config, bug)
+        return UnexpectedSuccess(result.test, config, bug)
     else:  # Skipped, UnexpectedSuccess, or ExpectedFailure.
         return result
 
 
 def _fixup_negative_test(result):
     if isinstance(result, Failure):
-        return Success(result.test_name)
+        return Success(result.test)
     elif isinstance(result, Success):
-        return Failure(result.test_name, 'negative test case succeeded')
+        return Failure(result.test, 'negative test case succeeded')
     else:  # Skipped, UnexpectedSuccess, or ExpectedFailure.
         return result
 
@@ -314,7 +317,7 @@ def _run_test(suite, test, out_dir, test_filters):
     config = test.check_unsupported()
     if config is not None:
         message = 'test unsupported for {}'.format(config)
-        return suite, Skipped(test.name, message), []
+        return suite, Skipped(test, message), []
 
     try:
         result, additional_tests = test.run(out_dir, test_filters)
@@ -326,7 +329,7 @@ def _run_test(suite, test, out_dir, test_filters):
             # ExpectedFailure or an UnexpectedSuccess as necessary.
             result = _fixup_expected_failure(result, config, bug)
     except Exception:  # pylint: disable=broad-except
-        result = Failure(test.name, traceback.format_exc())
+        result = Failure(test, traceback.format_exc())
         additional_tests = []
     return suite, result, additional_tests
 
@@ -349,7 +352,7 @@ class TestRunner(object):
                     workqueue.add_task(
                         _run_test, suite, test, out_dir, test_filters)
 
-            results = {suite: [] for suite in self.tests.keys()}
+            report = ndk.test.report.Report()
             while not workqueue.finished():
                 suite, result, additional_tests = workqueue.get_result()
                 for test in additional_tests:
@@ -359,17 +362,17 @@ class TestRunner(object):
                 # --show-all results.
                 if result is None:
                     continue
-                results[suite].append(result)
+                report.add_result(suite, result)
                 self.printer.print_result(result)
-            return results
+            return report
         finally:
             workqueue.terminate()
             workqueue.join()
 
 
 class TestResult(object):
-    def __init__(self, test_name):
-        self.test_name = test_name
+    def __init__(self, test):
+        self.test = test
 
     def __repr__(self):
         return self.to_string(colored=False)
@@ -385,8 +388,8 @@ class TestResult(object):
 
 
 class Failure(TestResult):
-    def __init__(self, test_name, message):
-        super(Failure, self).__init__(test_name)
+    def __init__(self, test, message):
+        super(Failure, self).__init__(test)
         self.message = message
 
     def passed(self):
@@ -397,7 +400,8 @@ class Failure(TestResult):
 
     def to_string(self, colored=False):
         label = util.maybe_color('FAIL', 'red', colored)
-        return '{} {}: {}'.format(label, self.test_name, self.message)
+        return '{} {} [{}]: {}'.format(
+            label, self.test.name, self.test.config, self.message)
 
 
 class Success(TestResult):
@@ -409,12 +413,12 @@ class Success(TestResult):
 
     def to_string(self, colored=False):
         label = util.maybe_color('PASS', 'green', colored)
-        return '{} {}'.format(label, self.test_name)
+        return '{} {} [{}]'.format(label, self.test.name, self.test.config)
 
 
 class Skipped(TestResult):
-    def __init__(self, test_name, reason):
-        super(Skipped, self).__init__(test_name)
+    def __init__(self, test, reason):
+        super(Skipped, self).__init__(test)
         self.reason = reason
 
     def passed(self):
@@ -425,13 +429,14 @@ class Skipped(TestResult):
 
     def to_string(self, colored=False):
         label = util.maybe_color('SKIP', 'yellow', colored)
-        return '{} {}: {}'.format(label, self.test_name, self.reason)
+        return '{} {} [{}]: {}'.format(
+            label, self.test.name, self.test.config, self.reason)
 
 
 class ExpectedFailure(TestResult):
-    def __init__(self, test_name, config, bug):
-        super(ExpectedFailure, self).__init__(test_name)
-        self.config = config
+    def __init__(self, test, broken_config, bug):
+        super(ExpectedFailure, self).__init__(test)
+        self.broken_config = broken_config
         self.bug = bug
 
     def passed(self):
@@ -442,14 +447,15 @@ class ExpectedFailure(TestResult):
 
     def to_string(self, colored=False):
         label = util.maybe_color('KNOWN FAIL', 'yellow', colored)
-        return '{} {}: known failure for {} ({})'.format(
-            label, self.test_name, self.config, self.bug)
+        return '{} {} [{}]: known failure for {} ({})'.format(
+            label, self.test.name, self.test.config, self.broken_config,
+            self.bug)
 
 
 class UnexpectedSuccess(TestResult):
-    def __init__(self, test_name, config, bug):
-        super(UnexpectedSuccess, self).__init__(test_name)
-        self.config = config
+    def __init__(self, test, broken_config, bug):
+        super(UnexpectedSuccess, self).__init__(test)
+        self.broken_config = broken_config
         self.bug = bug
 
     def passed(self):
@@ -460,8 +466,9 @@ class UnexpectedSuccess(TestResult):
 
     def to_string(self, colored=False):
         label = util.maybe_color('SHOULD FAIL', 'red', colored)
-        return '{} {}: unexpected success for {} ({})'.format(
-            label, self.test_name, self.config, self.bug)
+        return '{} {} [{}]: unexpected success for {} ({})'.format(
+            label, self.test.name, self.test.config, self.broken_config,
+            self.bug)
 
 
 class Test(object):
@@ -665,7 +672,7 @@ class DeviceTestConfig(TestConfig):
             pass
 
 
-def _run_build_sh_test(test_name, build_dir, test_dir, ndk_build_flags, abi,
+def _run_build_sh_test(test, build_dir, test_dir, ndk_build_flags, abi,
                        platform, toolchain):
     _prep_build_dir(test_dir, build_dir)
     with util.cd(build_dir):
@@ -678,12 +685,12 @@ def _run_build_sh_test(test_name, build_dir, test_dir, ndk_build_flags, abi,
         test_env['NDK_TOOLCHAIN_VERSION'] = toolchain
         rc, out = util.call_output(build_cmd, env=test_env)
         if rc == 0:
-            return Success(test_name)
+            return Success(test)
         else:
-            return Failure(test_name, out)
+            return Failure(test, out)
 
 
-def _run_ndk_build_test(test_name, build_dir, test_dir, ndk_build_flags, abi,
+def _run_ndk_build_test(test, build_dir, test_dir, ndk_build_flags, abi,
                         platform, toolchain):
     _prep_build_dir(test_dir, build_dir)
     with util.cd(build_dir):
@@ -696,12 +703,12 @@ def _run_ndk_build_test(test_name, build_dir, test_dir, ndk_build_flags, abi,
             args.append('APP_PLATFORM=android-{}'.format(platform))
         rc, out = ndkbuild.build(args + ndk_build_flags)
         if rc == 0:
-            return Success(test_name)
+            return Success(test)
         else:
-            return Failure(test_name, out)
+            return Failure(test, out)
 
 
-def _run_cmake_build_test(test_name, build_dir, test_dir, cmake_flags, abi,
+def _run_cmake_build_test(test, build_dir, test_dir, cmake_flags, abi,
                           platform, toolchain):
     _prep_build_dir(test_dir, build_dir)
 
@@ -715,12 +722,12 @@ def _run_cmake_build_test(test_name, build_dir, test_dir, cmake_flags, abi,
     # Skip if we don't have a working cmake executable, either from the
     # prebuilts, or from the SDK, or if a new enough version is installed.
     if distutils.spawn.find_executable('cmake') is None:
-        return Skipped(test_name, 'cmake executable not found')
+        return Skipped(test, 'cmake executable not found')
     out = subprocess.check_output(['cmake', '--version'], env=env)
     version_pattern = r'cmake version (\d+)\.(\d+)\.'
     version = [int(v) for v in re.match(version_pattern, out).groups()]
     if version < [3, 6]:
-        return Skipped(test_name, 'cmake 3.6 or above required')
+        return Skipped(test, 'cmake 3.6 or above required')
 
     toolchain_file = os.path.join(os.environ['NDK'], 'build', 'cmake',
                                   'android.toolchain.cmake')
@@ -747,12 +754,12 @@ def _run_cmake_build_test(test_name, build_dir, test_dir, cmake_flags, abi,
         args.append('-DANDROID_PLATFORM=android-{}'.format(platform))
     rc, out = util.call_output(['cmake'] + cmake_flags + args, env=env)
     if rc != 0:
-        return Failure(test_name, out)
+        return Failure(test, out)
     rc, out = util.call_output(['cmake', '--build', objs_dir,
                                 '--', _get_jobs_arg()], env=env)
     if rc != 0:
-        return Failure(test_name, out)
-    return Success(test_name)
+        return Failure(test, out)
+    return Success(test)
 
 
 class BuildTest(Test):
@@ -868,9 +875,9 @@ class PythonBuildTest(BuildTest):
             success, failure_message = module.run_test(
                 self.abi, self.platform, self.toolchain, self.ndk_build_flags)
             if success:
-                return Success(self.name), []
+                return Success(self), []
             else:
-                return Failure(self.name, failure_message), []
+                return Failure(self, failure_message), []
 
 
 class ShellBuildTest(BuildTest):
@@ -892,10 +899,10 @@ class ShellBuildTest(BuildTest):
         print('Building test: {}'.format(self.name))
         if os.name == 'nt':
             reason = 'build.sh tests are not supported on Windows'
-            return Skipped(self.name, reason), []
+            return Skipped(self, reason), []
         else:
             result = _run_build_sh_test(
-                self.name, build_dir, self.test_dir, self.ndk_build_flags,
+                self, build_dir, self.test_dir, self.ndk_build_flags,
                 self.abi, self.platform, self.toolchain)
             return result, []
 
@@ -974,7 +981,7 @@ class NdkBuildTest(BuildTest):
         build_dir = self.get_build_dir(out_dir)
         print('Building test: {}'.format(self.name))
         result = _run_ndk_build_test(
-            self.name, build_dir, self.test_dir, self.ndk_build_flags,
+            self, build_dir, self.test_dir, self.ndk_build_flags,
             self.abi, self.platform, self.toolchain)
         return result, []
 
@@ -995,7 +1002,7 @@ class CMakeBuildTest(BuildTest):
         build_dir = self.get_build_dir(out_dir)
         print('Building test: {}'.format(self.name))
         result = _run_cmake_build_test(
-            self.name, build_dir, self.test_dir, self.cmake_flags, self.abi,
+            self, build_dir, self.test_dir, self.cmake_flags, self.abi,
             self.platform, self.toolchain)
         return result, []
 
@@ -1160,7 +1167,7 @@ class NdkBuildDeviceTest(DeviceTest):
     def run(self, out_dir, test_filters):
         print('Building device test with ndk-build: {}'.format(self.name))
         build_dir = self.get_build_dir(out_dir)
-        build_result = _run_ndk_build_test(self.name, build_dir, self.test_dir,
+        build_result = _run_ndk_build_test(self, build_dir, self.test_dir,
                                            self.ndk_build_flags, self.abi,
                                            self.platform, self.toolchain)
         if not build_result.passed():
@@ -1196,10 +1203,9 @@ class CMakeDeviceTest(DeviceTest):
     def run(self, out_dir, test_filters):
         print('Building device test with cmake: {}'.format(self.name))
         build_dir = self.get_build_dir(out_dir)
-        build_result = _run_cmake_build_test(self.name, build_dir,
-                                             self.test_dir, self.cmake_flags,
-                                             self.abi, self.platform,
-                                             self.toolchain)
+        build_result = _run_cmake_build_test(self, build_dir, self.test_dir,
+                                             self.cmake_flags, self.abi,
+                                             self.platform, self.toolchain)
         if not build_result.passed():
             return build_result, []
 
@@ -1265,12 +1271,12 @@ class DeviceRunTest(Test):
             time.sleep(1)
 
         if result == 0:
-            return Success(self.name), []
+            return Success(self), []
         else:
-            return Failure(self.name, out), []
+            return Failure(self, out), []
 
 
-def get_xunit_reports(xunit_file, abi, api, toolchain, device_api, skip_run):
+def get_xunit_reports(xunit_file, config):
     tree = xml.etree.ElementTree.parse(xunit_file)
     root = tree.getroot()
     cases = root.findall('.//testcase')
@@ -1285,8 +1291,7 @@ def get_xunit_reports(xunit_file, abi, api, toolchain, device_api, skip_run):
 
         failure_nodes = test_case.findall('failure')
         if len(failure_nodes) == 0:
-            reports.append(XunitSuccess(
-                name, test_dir, abi, api, toolchain, device_api, skip_run))
+            reports.append(XunitSuccess(name, test_dir, config))
             continue
 
         if len(failure_nodes) != 1:
@@ -1296,27 +1301,46 @@ def get_xunit_reports(xunit_file, abi, api, toolchain, device_api, skip_run):
 
         failure_node = failure_nodes[0]
         failure_text = failure_node.text
-        reports.append(XunitFailure(
-            name, test_dir, failure_text, abi, api, toolchain, device_api,
-            skip_run))
+        reports.append(XunitFailure(name, test_dir, failure_text, config))
     return reports
 
 
 class LibcxxTest(Test):
-    def __init__(self, name, test_dir, abi, api, toolchain, deprecated_headers,
-                 device, device_api, skip_run):
+    def __init__(self, name, test_dir, config):
         super(LibcxxTest, self).__init__(name, test_dir)
 
-        if api is None:
-            api = ndk.abis.min_api_for_abi(abi)
+        if config.api is None:
+            config.api = ndk.abis.min_api_for_abi(config.abi)
 
-        self.abi = abi
-        self.api = api
-        self.toolchain = toolchain
-        self.deprecated_headers = deprecated_headers
-        self.device = device
-        self.device_api = device_api
-        self.skip_run = skip_run
+        self.config = config
+
+    @property
+    def abi(self):
+        return self.config.abi
+
+    @property
+    def api(self):
+        return self.config.api
+
+    @property
+    def toolchain(self):
+        return self.config.toolchain
+
+    @property
+    def force_deprecated_headers(self):
+        return self.config.force_deprecated_headers
+
+    @property
+    def device(self):
+        return self.config.device
+
+    @property
+    def device_api(self):
+        return self.config.device_api
+
+    @property
+    def skip_run(self):
+        return self.config.skip_run
 
     def run(self, out_dir, test_filters):
         xunit_output = os.path.join(out_dir, 'xunit.xml')
@@ -1338,7 +1362,7 @@ class LibcxxTest(Test):
             '--show-all',
         ]
 
-        if self.deprecated_headers:
+        if self.force_deprecated_headers:
             cmd.append('--deprecated-headers')
 
         if self.skip_run:
@@ -1368,11 +1392,9 @@ class LibcxxTest(Test):
 
         # We create a bunch of fake tests that report the status of each
         # individual test in the xunit report.
-        test_reports = get_xunit_reports(
-            xunit_output, self.abi, self.api, self.toolchain, self.device_api,
-            self.skip_run)
+        test_reports = get_xunit_reports(xunit_output, self.config)
 
-        return Success(self.name), test_reports
+        return Success(self), test_reports
 
     def check_broken(self):
         # Actual results are reported individually by pulling them out of the
@@ -1385,7 +1407,7 @@ class LibcxxTest(Test):
         # on it. The tests have never been 100% passing. We're going to only
         # enable it for a handful of configurations as support falls in to
         # place.
-        if self.deprecated_headers:
+        if self.force_deprecated_headers:
             return 'legacy headers'
         if self.toolchain == '4.9':
             return '4.9'
@@ -1444,14 +1466,9 @@ class XunitResult(Test):
     We don't have an ExpectedFailure form of the XunitResult because that is
     already handled for us by the libc++ test runner.
     """
-    def __init__(self, name, test_dir, abi, api, toolchain, device_api,
-                 skip_run):
+    def __init__(self, name, test_dir, config):
         super(XunitResult, self).__init__(name, test_dir)
-        self.abi = abi
-        self.api = api
-        self.toolchain = toolchain
-        self.device_api = device_api
-        self.skip_run = skip_run
+        self.config = config
 
     def run(self, _out_dir, _test_filters):
         raise NotImplementedError
@@ -1464,13 +1481,14 @@ class XunitResult(Test):
     def check_broken(self):
         name = os.path.splitext(os.path.basename(self.name))[0]
         config, bug = self.get_test_config().build_broken(
-            self.abi, self.api, self.toolchain, name)
+            self.config.abi, self.config.api, self.config.toolchain, name)
         if config is not None:
             return config, bug
 
-        if not self.skip_run:
+        if not self.config.skip_run:
             return self.get_test_config().run_broken(
-                self.abi, self.device_api, self.toolchain, name)
+                self.config.abi, self.config.device_api, self.config.toolchain,
+                name)
         return None, None
 
     def check_unsupported(self):
@@ -1482,15 +1500,13 @@ class XunitResult(Test):
 
 class XunitSuccess(XunitResult):
     def run(self, _out_dir, _test_filters):
-        return Success(self.name), []
+        return Success(self), []
 
 
 class XunitFailure(XunitResult):
-    def __init__(self, name, test_dir, text, abi, api, toolchain, device_api,
-                 skip_run):
-        super(XunitFailure, self).__init__(
-            name, test_dir, abi, api, toolchain, device_api, skip_run)
+    def __init__(self, name, test_dir, text, config):
+        super(XunitFailure, self).__init__(name, test_dir, config)
         self.text = text
 
     def run(self, _out_dir, _test_filters):
-        return Failure(self.name, self.text), []
+        return Failure(self, self.text), []

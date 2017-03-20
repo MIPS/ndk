@@ -181,16 +181,19 @@ def main():
     use_color = sys.stdin.isatty() and os.name != 'nt'
     printer = tests.printers.StdoutPrinter(use_color=use_color,
                                            show_all=args.show_all)
-    good, _ = tests.runners.run_single_configuration(
+    report = tests.runners.run_single_configuration(
         ndk_path, out_dir, printer, args.abi, args.toolchain, args.platform,
         args.show_commands, suites=suites, test_filter=args.filter,
         skip_run=args.skip_run,
         force_deprecated_headers=args.force_deprecated_headers)
 
-    subject = 'NDK Testing {}!'.format('Passed' if good else 'Failed')
+    printer.print_summary(report)
+
+    subject = 'NDK Testing {}!'.format(
+        'Passed' if report.successful else 'Failed')
     ndk.notify.toast(subject)
 
-    sys.exit(not good)
+    sys.exit(not report.successful)
 
 
 if __name__ == '__main__':
