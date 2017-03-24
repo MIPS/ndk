@@ -118,12 +118,12 @@ def group_by_test(reports):
     """
     by_test = {}
     for config_str, report in reports.iteritems():
-        for suite, suite_report in report.by_suite():
-            for test in suite_report.all_failed:
-                name = '.'.join([suite, test.test_name])
+        for suite, suite_report in report.by_suite().items():
+            for report in suite_report.all_failed:
+                name = '.'.join([suite, report.result.test.name])
                 if name not in by_test:
                     by_test[name] = []
-                by_test[name].append((config_str, test))
+                by_test[name].append((config_str, report.result))
     return by_test
 
 
