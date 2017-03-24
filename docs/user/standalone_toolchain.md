@@ -215,16 +215,6 @@ The toolchain binaries support C++ exceptions and RTTI by default. To disable
 C++ exceptions and RTTI when building sources (to generate lighter-weight
 machine code, for example), use `-fno-exceptions` and `-fno-rtti`.
 
-To use these features in conjunction with GNU libstdc++, you must explicitly
-link with libsupc++.  To do so, use `-lsupc++` when linking binaries. For
-example:
-
-```bash
-arm-linux-androideabi-g++ .... -lsupc++
-```
-
-You do not need to do this when using the STLport or libc++ library.
-
 ### C++ STL support
 
 The standalone toolchain includes a copy of a C++ Standard Template Library
