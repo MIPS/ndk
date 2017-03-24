@@ -1612,10 +1612,10 @@ _OBJ:=$$(LOCAL_OBJS_DIR:%/=%)/$(2)
 _FLAGS := $$($$(my)CFLAGS) \
           $$(call get-src-file-target-cflags,$(1)) \
           $$(call host-c-includes,$$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
-          $$(LOCAL_CFLAGS) \
-          $$(LOCAL_CONLYFLAGS) \
           $$(NDK_APP_CFLAGS) \
           $$(NDK_APP_CONLYFLAGS) \
+          $$(LOCAL_CFLAGS) \
+          $$(LOCAL_CONLYFLAGS) \
           --sysroot $$(call host-path,$$(SYSROOT_INC)) \
           $(SYSROOT_ARCH_INC_ARG) \
           -c \
@@ -1640,10 +1640,10 @@ _OBJ:=$$(LOCAL_OBJS_DIR:%/=%)/$(2)
 _FLAGS := $$($$(my)CFLAGS) \
           $$(call get-src-file-target-cflags,$(1)) \
           $$(call host-c-includes,$$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
-          $$(LOCAL_CFLAGS) \
-          $$(LOCAL_ASFLAGS) \
           $$(NDK_APP_CFLAGS) \
           $$(NDK_APP_ASFLAGS) \
+          $$(LOCAL_CFLAGS) \
+          $$(LOCAL_ASFLAGS) \
           -isystem $$(call host-path,$$(SYSROOT_INC)/usr/include) \
           -c \
 
@@ -1741,12 +1741,12 @@ _OBJ:=$$(LOCAL_OBJS_DIR:%/=%)/$(2)
 _FLAGS := $$($$(my)CXXFLAGS) \
           $$(call get-src-file-target-cflags,$(1)) \
           $$(call host-c-includes, $$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
-          $$(LOCAL_CFLAGS) \
-          $$(LOCAL_CPPFLAGS) \
-          $$(LOCAL_CXXFLAGS) \
           $$(NDK_APP_CFLAGS) \
           $$(NDK_APP_CPPFLAGS) \
           $$(NDK_APP_CXXFLAGS) \
+          $$(LOCAL_CFLAGS) \
+          $$(LOCAL_CPPFLAGS) \
+          $$(LOCAL_CXXFLAGS) \
           --sysroot $$(call host-path,$$(SYSROOT_INC)) \
           $(SYSROOT_ARCH_INC_ARG) \
           -c \
@@ -1790,12 +1790,12 @@ _COMPAT := $(6)
 _CPP_FLAGS := $$($$(my)CXXFLAGS) \
           $$(call get-src-file-target-cflags,$(1)) \
           $$(call host-c-includes, $$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
-          $$(LOCAL_CFLAGS) \
-          $$(LOCAL_CPPFLAGS) \
-          $$(LOCAL_CXXFLAGS) \
           $$(NDK_APP_CFLAGS) \
           $$(NDK_APP_CPPFLAGS) \
           $$(NDK_APP_CXXFLAGS) \
+          $$(LOCAL_CFLAGS) \
+          $$(LOCAL_CPPFLAGS) \
+          $$(LOCAL_CXXFLAGS) \
           --sysroot $$(call host-path,$$(SYSROOT_INC)) \
           $(SYSROOT_ARCH_INC_ARG) \
           -fno-rtti \
