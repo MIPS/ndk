@@ -925,6 +925,12 @@ class NdkBuildShortcut(ndk.builds.ScriptShortcutModule):
     windows_ext = '.cmd'
 
 
+class Readme(ndk.builds.FileModule):
+    name = 'readme'
+    path = 'README.md'
+    src = build_support.ndk_path('UserReadme.md')
+
+
 CANARY_TEXT = textwrap.dedent("""\
     This is a canary build of the Android NDK. It's updated almost every day.
 
@@ -1026,6 +1032,7 @@ ALL_MODULES = [
     NdkWhichShortcut(),
     Platforms(),
     PythonPackages(),
+    Readme(),
     RenderscriptLibs(),
     RenderscriptToolchain(),
     ShaderTools(),
