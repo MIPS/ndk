@@ -65,14 +65,15 @@ system_libs := \
     GLESv3 \
     OpenMAXAL \
     OpenSLES \
+    aaudio \
     android \
     atomic \
     c \
+    camera2ndk \
     dl \
     jnigraphics \
     log \
     m \
-    m_hard \
     mediandk \
     stdc++ \
     vulkan \
