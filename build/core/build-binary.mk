@@ -59,24 +59,24 @@ libs_in_ldflags := \
 # Remove the system libraries we know about from the warning, it's ok
 # (and actually expected) to link them with -l<name>.
 system_libs := \
+    EGL \
+    GLESv1_CM \
+    GLESv2 \
+    GLESv3 \
+    OpenMAXAL \
+    OpenSLES \
     android \
+    atomic \
     c \
     dl \
     jnigraphics \
     log \
     m \
     m_hard \
-    stdc++ \
-    z \
-    EGL \
-    GLESv1_CM \
-    GLESv2 \
-    GLESv3 \
-    vulkan \
-    OpenSLES \
-    OpenMAXAL \
     mediandk \
-    atomic
+    stdc++ \
+    vulkan \
+    z \
 
 libs_in_ldflags := $(filter-out $(addprefix -l,$(system_libs)), $(libs_in_ldflags))
 
