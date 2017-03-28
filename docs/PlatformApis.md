@@ -122,6 +122,22 @@ ndk_library {
 }
 ```
 
+### Linker namespaces' public libraries list
+
+You wouldn't be adding a library to the NDK unless you actually wanted apps to
+be able to use your library, but in Android N or later, apps are only allowed
+to access libraries on a specific whitelist of NDK libraries. This list is
+stored in `system/core/rootdir/etc/public.libraries.android.txt` with another
+subset in `system/core/rootdir/etc/public.libraries.wear.txt` for Android Wear
+devices.
+
+### CTS
+
+There's also a CTS test to ensure that non-NDK libraries don't get added to
+the public libraries list. This test can be found at
+`cts/tests/tests/jni/src/android/jni/cts/LinkerNamespacesHelper.java`. Simply
+add your library to the `PUBLIC_SYSTEM_LIBRARIES` list in that file.
+
 [bionic/libc/Android.bp]: https://android.googlesource.com/platform/bionic/+/master/libc/Android.bp
 
 For NDK Developers
