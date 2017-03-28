@@ -355,17 +355,13 @@ builder_host_static_library ()
 
 builder_shared_library ()
 {
-    local lib libname suffix libm
+    local lib libname suffix
     libname=$1
     suffix=$2
     armeabi_v7a_float_abi=$3
 
     if [ -z "$suffix" ]; then
         suffix=".so"
-    fi
-    libm="-lm"
-    if [ "$armeabi_v7a_float_abi" = "hard" ]; then
-        libm="-lm_hard"
     fi
     lib=$_BUILD_DSTDIR/$libname
     lib=${lib%%${suffix}}${suffix}
@@ -388,7 +384,7 @@ builder_shared_library ()
         $_BUILD_STATIC_LIBRARIES \
         $_BUILD_COMPILER_RUNTIME_LDFLAGS \
         $_BUILD_SHARED_LIBRARIES \
-        $libm -lc \
+        -lm -lc \
         $_BUILD_LDFLAGS \
         $_BUILD_LDFLAGS_END_SO \
         -o $lib
