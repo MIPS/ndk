@@ -358,7 +358,6 @@ builder_shared_library ()
     local lib libname suffix
     libname=$1
     suffix=$2
-    armeabi_v7a_float_abi=$3
 
     if [ -z "$suffix" ]; then
         suffix=".so"
