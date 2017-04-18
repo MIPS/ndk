@@ -61,9 +61,17 @@ $NDK/build/tools/make_standalone_toolchain.py --deprecated-headers ...
 For general standalone toolchain documentation, see
 https://developer.android.com/ndk/guides/standalone_toolchain.html
 
-### Gradle
+### Gradle Experimental Plugin
 
-TBD
+```gradle
+model {
+    android {
+        ndk {
+            useUnifiedHeaders false
+        }
+    }
+}
+```
 
 
 Using unified headers with `configure && make`
