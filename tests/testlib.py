@@ -363,6 +363,10 @@ def flake_filter(result):
     if not result.test.is_flaky:
         return False
 
+    if isinstance(result, UnexpectedSuccess):
+        # There are no flaky successes.
+        return False
+
     # adb might return no text at all under high load.
     if 'Did not receive exit status from test.' in result.message:
         return True
