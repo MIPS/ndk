@@ -21,6 +21,33 @@ have gone according to plan until then.
 NDK r15
 -------
 
+Estimated release: Q2 2017
+
+### Android O APIs
+
+NDK r15 cooincides with the Android O preview releases. This release will
+contain the preview APIs for Android O, including AAudio, AHwardwareBuffer, and
+more.
+
+### Bugfix Release
+
+The work to coordinate with the platform on Android O consumes too much time for
+much feature work to happen in this release, so r15 will be a general bugfix
+release. The majority of the `libandroid_support` changes have been pushed into
+r16.
+
+### Default to unified headers
+
+NDK r15 will use unified headers by default. It will still be possible to opt-in
+to the old headers (though they will be less well supported in this release,
+particularly with libc++).
+
+
+NDK r16
+-------
+
+Estimated release: Q3 2017
+
 ### Fixed libandroid\_support
 
 As you are all well aware, early versions of Android were lacking a significant
@@ -49,19 +76,21 @@ too many discrepancies between the old headers and the new ones to make
 complicated than a typical library in this because because it is actually the
 implementation of a lot of these headers).
 
-### Default to unified headers
+### Remove deprecated headers
 
-If NDK r14 shows that unified headers have been reliable, NDK r15 will use them
-by default. It will still be possible to opt-in to the old headers (though
-`libandroid_support`, and therefore libc++, will no longer work with them).
+Assuming that r15 switching to unified headers by default went well, we'll be
+removing the deprecated headers in r16. If r15 turns up many issues, this will
+be pushed to r17.
 
 
-NDK r16
+NDK r17
 -------
+
+Estimated release: Q4 2017
 
 ### Default to libc++
 
-If NDK r15 shows that libc++ with the refreshed `libandroid_support` is working
+If NDK r16 shows that libc++ with the refreshed `libandroid_support` is working
 well, the NDK will begin defaulting to using libc++. This means `ndk-build`,
 CMake, the Gradle plugin, and standalone toolchains. We don't have any control
 over other build systems :)
@@ -76,19 +105,15 @@ this is the point at which all the prerequisite work should finally be done.
 
 This project is going to span multiple releases. We'll be adding support for
 older releases with each update until we've reached the oldest supported
-version. Optimistically, NDK r16's compatibility library will support back to
-Jelly Bean, and NDK r17 will support back to the minimum supported NDK API
-(currently Gingerbread).
-
-### Remove deprecated headers
-
-Assuming that r15 switching to unified headers by default went well, we'll be
-removing the deprecated headers in r16. If r15 turns up many issues, this will
-be pushed to r17.
+version. Optimistically, NDK r17's compatibility library will support back to
+Jelly Bean, and NDK r18 will support back to the minimum supported NDK API
+(currently Ice Cream Sandwich).
 
 
-NDK r17
+NDK r18
 -------
+
+Estimated release: Q1 2018
 
 ### Remove non-libc++ STLs
 
@@ -114,13 +139,14 @@ can be removed.
 ### NDK Compatibility Library
 
 Continued work on the NDK Compatibility Library will hopefully now have us
-supporting back to the minimum supported target API. As of writing this is
-Gingerbread, but if adoption of new platform levels continues at its current
-pace this might be Ice Cream Sandwich or even Jelly Bean by now.
+supporting back to the minimum supported target API. As of writing this is Ice
+Cream Sandwich, but this might be Jelly Bean by now.
 
 
-NDK r18
+NDK r19
 -------
+
+Estimated release: Q2 2018
 
 ### Now what?
 
