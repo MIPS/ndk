@@ -183,33 +183,15 @@ QA Configuration
 ----------------
 
 The current configuration we use to test NDK releases is as written in
-[validate.py]:
+[qa\_config.yaml]:
 
-```python
-{
-    10: {
-        'armeabi': None,
-        'armeabi-v7a': None,
-    },
-    16: {
-        'armeabi': None,
-        'armeabi-v7a': None,
-    },
-    23: {
-        'armeabi': None,
-        'armeabi-v7a': None,
-        'arm64-v8a': None,
-        'x86': None,
-        'x86_64': None,
-    },
-}
-```
-
-Each API level/ABI pair will be checked with both Clang and GCC.
+Each API level/ABI pair will be checked with both Clang and GCC, unified and
+deprecated headers.
 
 Note that there are no ARM64 emulators whatsoever in the SDK manager. Testing
 ARM64 will require a physical device.
 
+[qa\_config.yaml]: ../qa_config.yaml
 [run\_tests.py]: ../run_tests.py
-[validate.py]: ../validate.py
 [test\_libcxx.sh]: ../test_libcxx.py
+[validate.py]: ../validate.py

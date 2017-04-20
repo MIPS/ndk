@@ -26,6 +26,7 @@ import signal
 import site
 import subprocess
 import sys
+import yaml
 
 import ndk.debug
 import ndk.notify
@@ -50,28 +51,21 @@ class Device(object):
 
 
 class DeviceFleet(object):
-    def __init__(self):
-        self.devices = {
-            # Earliest supported target.
-            15: {
-                'armeabi': None,
-                'armeabi-v7a': None,
-            },
-            # Earliest supported target with any real number of users.
-            16: {
-                'armeabi': None,
-                'armeabi-v7a': None,
-                'x86': None,
-            },
-            # Latest target.
-            25: {
-                'armeabi': None,
-                'armeabi-v7a': None,
-                'arm64-v8a': None,
-                'x86': None,
-                'x86_64': None,
-            },
-        }
+    def __init__(self, test_configurations):
+        """Initializes a device fleet.
+
+        Args:
+            test_configurations: Dict mapping API levels to a list of ABIs to
+                test for that API level. Example:
+
+                    {
+                        15: ['armeabi', 'armeabi-v7a'],
+                        16: ['armeabi', 'armeabi-v7a', 'x86'],
+                    }
+        """
+        self.devices = {}
+        for api, abis in test_configurations.items():
+            self.devices[api] = {abi: None for abi in abis}
 
     def add_device(self, device):
         if device.version not in self.devices:
@@ -143,7 +137,7 @@ def get_device_details(serial):
     return Device(serial, name, version, build_id, supported_abis, is_emulator)
 
 
-def find_devices():
+def find_devices(sought_devices):
     """Detects connected devices and returns a set for testing.
 
     We get a list of devices by scanning the output of `adb devices`. We want
@@ -170,7 +164,7 @@ def find_devices():
 
     # The first line of `adb devices` just says "List of attached devices", so
     # skip that.
-    fleet = DeviceFleet()
+    fleet = DeviceFleet(sought_devices)
     for line in out.split('\n')[1:]:
         if not line.strip():
             continue
@@ -222,6 +216,9 @@ def parse_args():
     parser.add_argument(
         '--log-dir', type=os.path.realpath, default='test-logs',
         help='Directory to store test logs.')
+    parser.add_argument(
+        '--config', type=os.path.realpath, default='qa_config.yaml',
+        help='Path to the config file describing the test run.')
 
     return parser.parse_args()
 
@@ -275,7 +272,10 @@ def main():
     if not os.path.exists(ndk_build_path):
         sys.exit(ndk_build_path + ' does not exist.')
 
-    fleet = find_devices()
+    with open(args.config) as test_config_file:
+        test_config = yaml.load(test_config_file)
+
+    fleet = find_devices(test_config['devices'])
     print('Test configuration:')
     for version in sorted(fleet.get_versions()):
         print('\tandroid-{}:'.format(version))
