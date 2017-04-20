@@ -138,9 +138,9 @@ can be removed.
 
 ### NDK Compatibility Library
 
-Continued work on the NDK Compatibility Library will hopefully now have us
-supporting back to the minimum supported target API. As of writing this is Ice
-Cream Sandwich, but this might be Jelly Bean by now.
+Continued work on the NDK Compatibility Library will hopefully have us
+supporting back to the minimum supported target API at this point. As of writing
+this is Ice Cream Sandwich, but this might be Jelly Bean by the time of release.
 
 
 NDK r19
