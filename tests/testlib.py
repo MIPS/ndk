@@ -296,16 +296,6 @@ class LibcxxTestScanner(TestScanner):
                     cls.ALL_TESTS.append(test_path)
 
 
-def _scan_test_suite(suite_dir, test_scanner):
-    tests = []
-    for dentry in os.listdir(suite_dir):
-        path = os.path.join(suite_dir, dentry)
-        if os.path.isdir(path):
-            test_name = os.path.basename(path)
-            tests.extend(test_scanner.find_tests(path, test_name))
-    return tests
-
-
 def _fixup_expected_failure(result, config, bug):
     if isinstance(result, Failure):
         return ExpectedFailure(result.test, config, bug)
@@ -462,11 +452,33 @@ class TestRunner(object):
     def __init__(self, printer):
         self.printer = printer
         self.tests = {}
+        self.build_dirs = {}
 
     def add_suite(self, name, path, test_scanner):
         if name in self.tests:
             raise KeyError('suite {} already exists'.format(name))
-        self.tests[name] = _scan_test_suite(path, test_scanner)
+        new_tests = self.scan_test_suite(path, test_scanner)
+        self.check_no_overlapping_build_dirs(name, new_tests)
+        self.tests[name] = new_tests
+
+    def scan_test_suite(self, suite_dir, test_scanner):
+        tests = []
+        for dentry in os.listdir(suite_dir):
+            path = os.path.join(suite_dir, dentry)
+            if os.path.isdir(path):
+                test_name = os.path.basename(path)
+                tests.extend(test_scanner.find_tests(path, test_name))
+        return tests
+
+    def check_no_overlapping_build_dirs(self, suite, new_tests):
+        for test in new_tests:
+            build_dir = test.get_build_dir('')
+            if build_dir in self.build_dirs:
+                dup_suite, dup_test = self.build_dirs[build_dir]
+                raise RuntimeError(
+                    'Found duplicate build directory:\n{} {}\n{} {}'.format(
+                        dup_suite, dup_test, suite, test))
+            self.build_dirs[build_dir] = (suite, test)
 
     def run(self, out_dir, test_filters):
         workqueue = wq.WorkQueue()
@@ -1000,8 +1012,7 @@ class PythonBuildTest(BuildTest):
         assert self.ndk_build_flags is not None
 
     def get_build_dir(self, out_dir):
-        return os.path.join(
-            out_dir, 'build/test.py', str(self.config), self.name)
+        return os.path.join(out_dir, 'test.py', str(self.config), self.name)
 
     def run(self, out_dir, _):
         build_dir = self.get_build_dir(out_dir)
@@ -1028,8 +1039,7 @@ class ShellBuildTest(BuildTest):
         super(ShellBuildTest, self).__init__(name, test_dir, config)
 
     def get_build_dir(self, out_dir):
-        return os.path.join(
-            out_dir, 'build/build.sh', str(self.config), self.name)
+        return os.path.join(out_dir, 'build.sh', str(self.config), self.name)
 
     def run(self, out_dir, _):
         build_dir = self.get_build_dir(out_dir)
@@ -1111,8 +1121,7 @@ class NdkBuildTest(BuildTest):
         super(NdkBuildTest, self).__init__(name, test_dir, config)
 
     def get_build_dir(self, out_dir):
-        return os.path.join(
-            out_dir, 'build/ndk-build', str(self.config), self.name)
+        return os.path.join(out_dir, 'ndk-build', str(self.config), self.name)
 
     def run(self, out_dir, _):
         build_dir = self.get_build_dir(out_dir)
@@ -1132,8 +1141,7 @@ class CMakeBuildTest(BuildTest):
         super(CMakeBuildTest, self).__init__(name, test_dir, config)
 
     def get_build_dir(self, out_dir):
-        return os.path.join(
-            out_dir, 'build/cmake', str(self.config), self.name)
+        return os.path.join(out_dir, 'cmake', str(self.config), self.name)
 
     def run(self, out_dir, _):
         build_dir = self.get_build_dir(out_dir)
@@ -1298,8 +1306,7 @@ class NdkBuildDeviceTest(DeviceTest):
         return 'ndk-tests'
 
     def get_build_dir(self, out_dir):
-        return os.path.join(
-            out_dir, 'device/ndk-build', str(self.config), self.name)
+        return os.path.join(out_dir, 'ndk-build', str(self.config), self.name)
 
     def run(self, out_dir, test_filters):
         print('Building device test with ndk-build: {}'.format(self.name))
@@ -1334,8 +1341,7 @@ class CMakeDeviceTest(DeviceTest):
         return 'cmake-tests'
 
     def get_build_dir(self, out_dir):
-        return os.path.join(
-            out_dir, 'device/cmake', str(self.config), self.name)
+        return os.path.join(out_dir, 'cmake', str(self.config), self.name)
 
     def run(self, out_dir, test_filters):
         print('Building device test with cmake: {}'.format(self.name))
@@ -1495,6 +1501,9 @@ class LibcxxTest(Test):
     @property
     def skip_run(self):
         return self.config.skip_run
+
+    def get_build_dir(self, out_dir):
+        return os.path.join(out_dir, 'libcxx', str(self.config), self.name)
 
     def run(self, out_dir, test_filters):
         xunit_output = os.path.join(out_dir, 'xunit.xml')
