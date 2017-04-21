@@ -18,172 +18,21 @@
 from __future__ import print_function
 
 import argparse
-import distutils.spawn
 import logging
 import os
-import re
 import shutil
 import signal
 import site
-import subprocess
 import sys
 import yaml
 
 import ndk.debug
 import ndk.notify
 import ndk.paths
+import ndk.test.devices
 
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
-
-
-class Device(object):
-    def __init__(self, serial, name, version, build_id, abis, is_emulator):
-        self.serial = serial
-        self.name = name
-        self.version = version
-        self.build_id = build_id
-        self.abis = abis
-        self.is_emulator = is_emulator
-
-    def __str__(self):
-        return 'android-{} {} {} {}'.format(
-            self.version, self.name, self.serial, self.build_id)
-
-
-class DeviceFleet(object):
-    def __init__(self, test_configurations):
-        """Initializes a device fleet.
-
-        Args:
-            test_configurations: Dict mapping API levels to a list of ABIs to
-                test for that API level. Example:
-
-                    {
-                        15: ['armeabi', 'armeabi-v7a'],
-                        16: ['armeabi', 'armeabi-v7a', 'x86'],
-                    }
-        """
-        self.devices = {}
-        for api, abis in test_configurations.items():
-            self.devices[api] = {abi: None for abi in abis}
-
-    def add_device(self, device):
-        if device.version not in self.devices:
-            print('Ignoring device for unwanted API level: {}'.format(device))
-            return
-
-        same_version = self.devices[device.version]
-        for abi, current_device in same_version.iteritems():
-            # This device can't fulfill this ABI.
-            if abi not in device.abis:
-                continue
-
-            # Never houdini.
-            if abi.startswith('armeabi') and 'x86' in device.abis:
-                continue
-
-            # Anything is better than nothing.
-            if current_device is None:
-                self.devices[device.version][abi] = device
-                continue
-
-            # The emulator images have actually been changed over time, so the
-            # devices are more trustworthy.
-            if current_device.is_emulator and not device.is_emulator:
-                self.devices[device.version][abi] = device
-
-    def get_device(self, version, abi):
-        return self.devices[version][abi]
-
-    def get_missing(self):
-        missing = []
-        for version, abis in self.devices.iteritems():
-            for abi, device in abis.iteritems():
-                if device is None:
-                    missing.append('android-{} {}'.format(version, abi))
-        return missing
-
-    def get_versions(self):
-        return self.devices.keys()
-
-    def get_abis(self, version):
-        return self.devices[version].keys()
-
-
-def get_device_abis(properties):
-    # 64-bit devices list their ABIs differently than 32-bit devices. Check all
-    # the possible places for stashing ABI info and merge them.
-    abi_properties = [
-        'ro.product.cpu.abi',
-        'ro.product.cpu.abi2',
-        'ro.product.cpu.abilist',
-    ]
-    abis = set()
-    for abi_prop in abi_properties:
-        if abi_prop in properties:
-            abis.update(properties[abi_prop].split(','))
-
-    return sorted(list(abis))
-
-
-def get_device_details(serial):
-    import adb  # pylint: disable=import-error
-    props = adb.get_device(serial).get_props()
-    name = props['ro.product.name']
-    version = int(props['ro.build.version.sdk'])
-    supported_abis = get_device_abis(props)
-    build_id = props['ro.build.id']
-    is_emulator = props.get('ro.build.characteristics') == 'emulator'
-    return Device(serial, name, version, build_id, supported_abis, is_emulator)
-
-
-def find_devices(sought_devices):
-    """Detects connected devices and returns a set for testing.
-
-    We get a list of devices by scanning the output of `adb devices`. We want
-    to run the tests for the cross product of the following configurations:
-
-    ABIs: {armeabi, armeabi-v7a, arm64-v8a, mips, mips64, x86, x86_64}
-    Platform versions: {android-10, android-16, android-21}
-    Toolchains: {clang, gcc}
-
-    Note that not all ABIs are available for every platform version. There are
-    no 64-bit ABIs before android-21, and there were no MIPS ABIs for
-    android-10.
-    """
-    if distutils.spawn.find_executable('adb') is None:
-        raise RuntimeError('Could not find adb.')
-
-    # We could get the device name from `adb devices -l`, but we need to
-    # getprop to find other details anyway, and older devices don't report
-    # their names properly (nakasi on android-16, for example).
-    p = subprocess.Popen(['adb', 'devices'], stdout=subprocess.PIPE)
-    out, _ = p.communicate()
-    if p.returncode != 0:
-        raise RuntimeError('Failed to get list of devices from adb.')
-
-    # The first line of `adb devices` just says "List of attached devices", so
-    # skip that.
-    fleet = DeviceFleet(sought_devices)
-    for line in out.split('\n')[1:]:
-        if not line.strip():
-            continue
-
-        serial, _ = re.split(r'\s+', line, maxsplit=1)
-
-        if 'offline' in line:
-            print('Ignoring offline device: ' + serial)
-            continue
-        if 'unauthorized' in line:
-            print('Ignoring unauthorized device: ' + serial)
-            continue
-
-        device = get_device_details(serial)
-        print('Found device {}'.format(device))
-        fleet.add_device(device)
-
-    return fleet
 
 
 def parse_args():
@@ -284,7 +133,7 @@ def main():
     with open(args.config) as test_config_file:
         test_config = yaml.load(test_config_file)
 
-    fleet = find_devices(test_config['devices'])
+    fleet = ndk.test.devices.find_devices(test_config['devices'])
     print('Test configuration:')
     for version in sorted(fleet.get_versions()):
         print('\tandroid-{}:'.format(version))
