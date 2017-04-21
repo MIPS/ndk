@@ -53,8 +53,9 @@ def logger():
     return logging.getLogger(__name__)
 
 
-def _get_jobs_arg():
-    return '-j{}'.format(multiprocessing.cpu_count() * 2)
+def _get_jobs_args():
+    cpus = multiprocessing.cpu_count()
+    return ['-j{}'.format(cpus), '-l{}'.format(cpus)]
 
 
 def _make_subtest_name(test, case):
@@ -815,7 +816,7 @@ def _run_build_sh_test(test, build_dir, test_dir, ndk_build_flags, abi,
                        platform, toolchain):
     _prep_build_dir(test_dir, build_dir)
     with util.cd(build_dir):
-        build_cmd = ['bash', 'build.sh', _get_jobs_arg()] + ndk_build_flags
+        build_cmd = ['bash', 'build.sh'] + _get_jobs_args() + ndk_build_flags
         test_env = dict(os.environ)
         if abi is not None:
             test_env['APP_ABI'] = abi
@@ -833,11 +834,8 @@ def _run_ndk_build_test(test, build_dir, test_dir, ndk_build_flags, abi,
                         platform, toolchain):
     _prep_build_dir(test_dir, build_dir)
     with util.cd(build_dir):
-        args = [
-            'APP_ABI=' + abi,
-            'NDK_TOOLCHAIN_VERSION=' + toolchain,
-            _get_jobs_arg(),
-        ]
+        args = ['APP_ABI=' + abi, 'NDK_TOOLCHAIN_VERSION=' + toolchain]
+        args.extend(_get_jobs_args())
         if platform is not None:
             args.append('APP_PLATFORM=android-{}'.format(platform))
         rc, out = ndkbuild.build(args + ndk_build_flags)
@@ -894,8 +892,8 @@ def _run_cmake_build_test(test, build_dir, test_dir, cmake_flags, abi,
     rc, out = util.call_output(['cmake'] + cmake_flags + args, env=env)
     if rc != 0:
         return Failure(test, out)
-    rc, out = util.call_output(['cmake', '--build', objs_dir,
-                                '--', _get_jobs_arg()], env=env)
+    rc, out = util.call_output(
+        ['cmake', '--build', objs_dir, '--'] + _get_jobs_args(), env=env)
     if rc != 0:
         return Failure(test, out)
     return Success(test)
