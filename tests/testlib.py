@@ -620,9 +620,10 @@ class UnexpectedSuccess(TestResult):
 
 
 class Test(object):
-    def __init__(self, name, test_dir):
+    def __init__(self, name, test_dir, config):
         self.name = name
         self.test_dir = test_dir
+        self.config = config
 
     @property
     def is_flaky(self):
@@ -633,6 +634,9 @@ class Test(object):
 
     def run(self, out_dir, test_filters):
         raise NotImplementedError
+
+    def __str__(self):
+        return '{} [{}]'.format(self.name, self.config)
 
 
 def _prep_build_dir(src_dir, out_dir):
@@ -913,9 +917,7 @@ def _run_cmake_build_test(test, build_dir, test_dir, cmake_flags, abi,
 
 class BuildTest(Test):
     def __init__(self, name, test_dir, config):
-        super(BuildTest, self).__init__(name, test_dir)
-
-        self.config = config
+        super(BuildTest, self).__init__(name, test_dir, config)
 
         if self.api is None:
             raise ValueError
@@ -1169,14 +1171,12 @@ def is_text_busy(out):
 
 class DeviceTest(Test):
     def __init__(self, name, test_dir, config):
-        super(DeviceTest, self).__init__(name, test_dir)
-
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
         config = DeviceConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
             config.verbose, config.force_deprecated_headers, config.device,
             config.device_api, config.skip_run)
-        self.config = config
+        super(DeviceTest, self).__init__(name, test_dir, config)
 
     @property
     def abi(self):
@@ -1360,8 +1360,7 @@ class CMakeDeviceTest(DeviceTest):
 
 class DeviceRunTest(Test):
     def __init__(self, name, test_dir, case_name, device_dir, config):
-        super(DeviceRunTest, self).__init__(name, test_dir)
-        self.config = config
+        super(DeviceRunTest, self).__init__(name, test_dir, config)
         self.case_name = case_name
         self.device_dir = device_dir
 
@@ -1467,12 +1466,10 @@ def get_xunit_reports(xunit_file, config):
 
 class LibcxxTest(Test):
     def __init__(self, name, test_dir, config):
-        super(LibcxxTest, self).__init__(name, test_dir)
-
         if config.api is None:
             config.api = ndk.abis.min_api_for_abi(config.abi)
 
-        self.config = config
+        super(LibcxxTest, self).__init__(name, test_dir, config)
 
     @property
     def abi(self):
@@ -1666,8 +1663,7 @@ class XunitResult(Test):
     already handled for us by the libc++ test runner.
     """
     def __init__(self, name, test_dir, config):
-        super(XunitResult, self).__init__(name, test_dir)
-        self.config = config
+        super(XunitResult, self).__init__(name, test_dir, config)
 
     def run(self, _out_dir, _test_filters):
         raise NotImplementedError
