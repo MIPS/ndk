@@ -1014,8 +1014,7 @@ class PythonBuildTest(BuildTest):
         assert self.ndk_build_flags is not None
 
     def get_build_dir(self, out_dir):
-        return os.path.join(
-            out_dir, 'build/test.py', str(self.config), self.name)
+        return os.path.join(out_dir, 'test.py', str(self.config), self.name)
 
     def run(self, out_dir, _):
         build_dir = self.get_build_dir(out_dir)
@@ -1042,8 +1041,7 @@ class ShellBuildTest(BuildTest):
         super(ShellBuildTest, self).__init__(name, test_dir, config)
 
     def get_build_dir(self, out_dir):
-        return os.path.join(
-            out_dir, 'build/build.sh', str(self.config), self.name)
+        return os.path.join(out_dir, 'build.sh', str(self.config), self.name)
 
     def run(self, out_dir, _):
         build_dir = self.get_build_dir(out_dir)
@@ -1125,8 +1123,7 @@ class NdkBuildTest(BuildTest):
         super(NdkBuildTest, self).__init__(name, test_dir, config)
 
     def get_build_dir(self, out_dir):
-        return os.path.join(
-            out_dir, 'build/ndk-build', str(self.config), self.name)
+        return os.path.join(out_dir, 'ndk-build', str(self.config), self.name)
 
     def run(self, out_dir, _):
         build_dir = self.get_build_dir(out_dir)
@@ -1146,8 +1143,7 @@ class CMakeBuildTest(BuildTest):
         super(CMakeBuildTest, self).__init__(name, test_dir, config)
 
     def get_build_dir(self, out_dir):
-        return os.path.join(
-            out_dir, 'build/cmake', str(self.config), self.name)
+        return os.path.join(out_dir, 'cmake', str(self.config), self.name)
 
     def run(self, out_dir, _):
         build_dir = self.get_build_dir(out_dir)
@@ -1312,8 +1308,7 @@ class NdkBuildDeviceTest(DeviceTest):
         return 'ndk-tests'
 
     def get_build_dir(self, out_dir):
-        return os.path.join(
-            out_dir, 'device/ndk-build', str(self.config), self.name)
+        return os.path.join(out_dir, 'ndk-build', str(self.config), self.name)
 
     def run(self, out_dir, test_filters):
         print('Building device test with ndk-build: {}'.format(self.name))
@@ -1348,8 +1343,7 @@ class CMakeDeviceTest(DeviceTest):
         return 'cmake-tests'
 
     def get_build_dir(self, out_dir):
-        return os.path.join(
-            out_dir, 'device/cmake', str(self.config), self.name)
+        return os.path.join(out_dir, 'cmake', str(self.config), self.name)
 
     def run(self, out_dir, test_filters):
         print('Building device test with cmake: {}'.format(self.name))
