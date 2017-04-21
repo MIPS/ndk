@@ -34,6 +34,9 @@ import xml.etree.ElementTree
 import build.lib.build_support
 import ndk.abis
 import ndk.test.report
+from ndk.test.result import (Success, Failure, Skipped, ExpectedFailure,
+                             UnexpectedSuccess)
+import ndk.test.spec
 import ndk.workqueue as wq
 import tests.filters as filters
 import tests.ndk as ndkbuild
@@ -81,65 +84,7 @@ class TestScanner(object):
         raise NotImplementedError
 
 
-class BuildConfiguration(object):
-    def __init__(self, abi, api, toolchain, force_pie, verbose,
-                 force_deprecated_headers):
-        self.abi = abi
-        self.api = api
-        self.toolchain = toolchain
-        self.force_pie = force_pie
-        self.verbose = verbose
-        self.force_deprecated_headers = force_deprecated_headers
-
-    def __eq__(self, other):
-        if self.abi != other.abi:
-            return False
-        if self.api != other.api:
-            return False
-        if self.toolchain != other.toolchain:
-            return False
-        if self.force_pie != other.force_pie:
-            return False
-        if self.verbose != other.verbose:
-            return False
-        if self.force_deprecated_headers != other.force_deprecated_headers:
-            return False
-        return True
-
-    def __str__(self):
-        pie_option = 'default-pie'
-        if self.force_pie:
-            pie_option = 'force-pie'
-
-        headers_option = 'unified-headers'
-        if self.force_deprecated_headers:
-            headers_option = 'deprecated-headers'
-
-        return '{}-{}-{}-{}-{}'.format(
-            self.abi, self.api, self.toolchain, pie_option, headers_option)
-
-    def get_extra_ndk_build_flags(self):
-        extra_flags = []
-        if self.force_pie:
-            extra_flags.append('APP_PIE=true')
-        if self.verbose:
-            extra_flags.append('V=1')
-        if self.force_deprecated_headers:
-            extra_flags.append('APP_DEPRECATED_HEADERS=true')
-        return extra_flags
-
-    def get_extra_cmake_flags(self):
-        extra_flags = []
-        if self.force_pie:
-            extra_flags.append('-DANDROID_PIE=TRUE')
-        if self.verbose:
-            extra_flags.append('-DCMAKE_VERBOSE_MAKEFILE=ON')
-        if self.force_deprecated_headers:
-            extra_flags.append('-DANDROID_DEPRECATED_HEADERS=ON')
-        return extra_flags
-
-
-class DeviceConfiguration(BuildConfiguration):
+class DeviceConfiguration(ndk.test.spec.BuildConfiguration):
     def __init__(self, abi, api, toolchain, force_pie, verbose,
                  force_deprecated_headers, device, device_api, skip_run):
         super(DeviceConfiguration, self).__init__(
@@ -166,12 +111,13 @@ class DeviceConfiguration(BuildConfiguration):
 
 
 class BuildTestScanner(TestScanner):
-    def __init__(self):
+    def __init__(self, dist=True):
+        self.dist = dist
         self.build_configurations = set()
 
     def add_build_configuration(self, abi, api, toolchain, force_pie, verbose,
                                 force_deprecated_headers):
-        self.build_configurations.add(BuildConfiguration(
+        self.build_configurations.add(ndk.test.spec.BuildConfiguration(
             abi, api, toolchain, force_pie, verbose, force_deprecated_headers))
 
     def find_tests(self, path, name):
@@ -211,13 +157,13 @@ class BuildTestScanner(TestScanner):
     def make_ndk_build_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
-            tests.append(NdkBuildTest(name, path, config))
+            tests.append(NdkBuildTest(name, path, config, self.dist))
         return tests
 
     def make_cmake_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
-            tests.append(CMakeBuildTest(name, path, config))
+            tests.append(CMakeBuildTest(name, path, config, self.dist))
         return tests
 
 
@@ -260,32 +206,29 @@ class DeviceTestScanner(TestScanner):
 class LibcxxTestScanner(TestScanner):
     ALL_TESTS = []
 
-    def __init__(self):
-        self.device_configurations = set()
-        LibcxxTestScanner.find_all_libcxx_tests()
+    def __init__(self, ndk_path):
+        self.build_configurations = set()
+        LibcxxTestScanner.find_all_libcxx_tests(ndk_path)
 
-    def add_device_configuration(self, abi, api, toolchain, force_pie,
-                                 verbose, force_deprecated_headers, device,
-                                 device_api, skip_run):
-        self.device_configurations.add(DeviceConfiguration(
-            abi, api, toolchain, force_pie, verbose, force_deprecated_headers,
-            device, device_api, skip_run))
+    def add_build_configuration(self, abi, api, toolchain, force_pie,
+                                verbose, force_deprecated_headers):
+        self.build_configurations.add(ndk.test.spec.BuildConfiguration(
+            abi, api, toolchain, force_pie, verbose, force_deprecated_headers))
 
     def find_tests(self, path, name):
         tests = []
-        for config in self.device_configurations:
+        for config in self.build_configurations:
             tests.append(LibcxxTest('libc++', path, config))
         return tests
 
     @classmethod
-    def find_all_libcxx_tests(cls):
+    def find_all_libcxx_tests(cls, ndk_path):
         # If we instantiate multiple LibcxxTestScanners, we still only need to
         # initialize this once. We only create these in the main thread, so
         # there's no risk of race.
         if len(cls.ALL_TESTS) != 0:
             return
 
-        ndk_path = os.environ['NDK']
         test_base_dir = os.path.join(
             ndk_path, 'sources/cxx-stl/llvm-libc++/test')
 
@@ -315,13 +258,14 @@ def _fixup_negative_test(result):
         return result
 
 
-def _run_test(suite, test, out_dir, test_filters):
+def _run_test(suite, test, obj_dir, dist_dir, test_filters):
     """Runs a given test according to the given filters.
 
     Args:
         suite: Name of the test suite the test belongs to.
         test: The test to be run.
-        out_dir: Out directory for building tests.
+        obj_dir: Out directory for intermediate build artifacts.
+        dist_dir: Out directory for build artifacts needed for running.
         test_filters: Filters to apply when running tests.
 
     Returns: Tuple of (suite, TestResult, [Test]). The [Test] element is a list
@@ -336,7 +280,7 @@ def _run_test(suite, test, out_dir, test_filters):
         return suite, Skipped(test, message), []
 
     try:
-        result, additional_tests = test.run(out_dir, test_filters)
+        result, additional_tests = test.run(obj_dir, dist_dir, test_filters)
         if test.is_negative_test():
             result = _fixup_negative_test(result)
         config, bug = test.check_broken()
@@ -422,7 +366,7 @@ def get_libcxx_test_filter(failing_libcxx_reports):
     return filters.TestFilter(libcxx_test_filters)
 
 
-def restart_flaky_tests(report, workqueue, out_dir, test_filters):
+def restart_flaky_tests(report, workqueue, obj_dir, dist_dir, test_filters):
     """Finds and restarts any failing flaky tests."""
     rerun_tests, libcxx_tests = get_rerun_tests(report)
     num_flaky_failures = len(rerun_tests) + len(libcxx_tests)
@@ -436,7 +380,7 @@ def restart_flaky_tests(report, workqueue, out_dir, test_filters):
     for flaky_report in rerun_tests:
         workqueue.add_task(
             _run_test, flaky_report.suite,
-            flaky_report.result.test, out_dir, test_filters)
+            flaky_report.result.test, obj_dir, dist_dir, test_filters)
 
     if len(libcxx_tests) > 0:
         libcxx_test_dir = build.lib.build_support.ndk_path('tests/libc++')
@@ -445,8 +389,7 @@ def restart_flaky_tests(report, workqueue, out_dir, test_filters):
         rerun_test = LibcxxTest(
             'libc++', libcxx_test_dir, config)
         workqueue.add_task(
-            _run_test, 'libc++', rerun_test, out_dir,
-            libcxx_filter)
+            _run_test, 'libc++', rerun_test, obj_dir, dist_dir, libcxx_filter)
 
 
 class TestRunner(object):
@@ -481,7 +424,7 @@ class TestRunner(object):
                         dup_suite, dup_test, suite, test))
             self.build_dirs[build_dir] = (suite, test)
 
-    def run(self, out_dir, test_filters):
+    def run(self, obj_dir, dist_dir, test_filters):
         workqueue = wq.WorkQueue()
         try:
             for suite, tests in self.tests.items():
@@ -492,22 +435,27 @@ class TestRunner(object):
                 random.shuffle(tests)
                 for test in tests:
                     workqueue.add_task(
-                        _run_test, suite, test, out_dir, test_filters)
+                        _run_test, suite, test, obj_dir, dist_dir,
+                        test_filters)
 
             report = ndk.test.report.Report()
-            self.wait_for_results(report, workqueue, out_dir, test_filters)
+            self.wait_for_results(
+                report, workqueue, obj_dir, dist_dir, test_filters)
 
             # adb can be very flaky under the high load we throw at the device.
             # If we have failures on device tests, retry those tests.
-            restart_flaky_tests(report, workqueue, out_dir, test_filters)
-            self.wait_for_results(report, workqueue, out_dir, test_filters)
+            restart_flaky_tests(
+                report, workqueue, obj_dir, dist_dir, test_filters)
+            self.wait_for_results(
+                report, workqueue, obj_dir, dist_dir, test_filters)
 
             return report
         finally:
             workqueue.terminate()
             workqueue.join()
 
-    def wait_for_results(self, report, workqueue, out_dir, test_filters):
+    def wait_for_results(self, report, workqueue, obj_dir, dist_dir,
+                         test_filters):
         while not workqueue.finished():
             suite, result, additional_tests = workqueue.get_result()
             # Filtered test. Skip them entirely to avoid polluting
@@ -519,110 +467,9 @@ class TestRunner(object):
             assert result.passed() or len(additional_tests) == 0
             for test in additional_tests:
                 workqueue.add_task(
-                    _run_test, suite, test, out_dir, test_filters)
+                    _run_test, suite, test, obj_dir, dist_dir, test_filters)
             report.add_result(suite, result)
             self.printer.print_result(result)
-
-
-class TestResult(object):
-    def __init__(self, test):
-        self.test = test
-
-    def __repr__(self):
-        return self.to_string(colored=False)
-
-    def passed(self):
-        raise NotImplementedError
-
-    def failed(self):
-        raise NotImplementedError
-
-    def to_string(self, colored=False):
-        raise NotImplementedError
-
-
-class Failure(TestResult):
-    def __init__(self, test, message):
-        super(Failure, self).__init__(test)
-        self.message = message
-
-    def passed(self):
-        return False
-
-    def failed(self):
-        return True
-
-    def to_string(self, colored=False):
-        label = util.maybe_color('FAIL', 'red', colored)
-        return '{} {} [{}]: {}'.format(
-            label, self.test.name, self.test.config, self.message)
-
-
-class Success(TestResult):
-    def passed(self):
-        return True
-
-    def failed(self):
-        return False
-
-    def to_string(self, colored=False):
-        label = util.maybe_color('PASS', 'green', colored)
-        return '{} {} [{}]'.format(label, self.test.name, self.test.config)
-
-
-class Skipped(TestResult):
-    def __init__(self, test, reason):
-        super(Skipped, self).__init__(test)
-        self.reason = reason
-
-    def passed(self):
-        return False
-
-    def failed(self):
-        return False
-
-    def to_string(self, colored=False):
-        label = util.maybe_color('SKIP', 'yellow', colored)
-        return '{} {} [{}]: {}'.format(
-            label, self.test.name, self.test.config, self.reason)
-
-
-class ExpectedFailure(TestResult):
-    def __init__(self, test, broken_config, bug):
-        super(ExpectedFailure, self).__init__(test)
-        self.broken_config = broken_config
-        self.bug = bug
-
-    def passed(self):
-        return True
-
-    def failed(self):
-        return False
-
-    def to_string(self, colored=False):
-        label = util.maybe_color('KNOWN FAIL', 'yellow', colored)
-        return '{} {} [{}]: known failure for {} ({})'.format(
-            label, self.test.name, self.test.config, self.broken_config,
-            self.bug)
-
-
-class UnexpectedSuccess(TestResult):
-    def __init__(self, test, broken_config, bug):
-        super(UnexpectedSuccess, self).__init__(test)
-        self.broken_config = broken_config
-        self.bug = bug
-
-    def passed(self):
-        return False
-
-    def failed(self):
-        return True
-
-    def to_string(self, colored=False):
-        label = util.maybe_color('SHOULD FAIL', 'red', colored)
-        return '{} {} [{}]: unexpected success for {} ({})'.format(
-            label, self.test.name, self.test.config, self.broken_config,
-            self.bug)
 
 
 class Test(object):
@@ -638,7 +485,7 @@ class Test(object):
     def get_test_config(self):
         return TestConfig.from_test_dir(self.test_dir)
 
-    def run(self, out_dir, test_filters):
+    def run(self, obj_dir, dist_dir, test_filters):
         raise NotImplementedError
 
     def __str__(self):
@@ -852,11 +699,15 @@ def _run_build_sh_test(test, build_dir, test_dir, ndk_build_flags, abi,
             return Failure(test, out)
 
 
-def _run_ndk_build_test(test, build_dir, test_dir, ndk_build_flags, abi,
-                        platform, toolchain):
-    _prep_build_dir(test_dir, build_dir)
-    with util.cd(build_dir):
-        args = ['APP_ABI=' + abi, 'NDK_TOOLCHAIN_VERSION=' + toolchain]
+def _run_ndk_build_test(test, obj_dir, dist_dir, test_dir, ndk_build_flags,
+                        abi, platform, toolchain):
+    _prep_build_dir(test_dir, obj_dir)
+    with util.cd(obj_dir):
+        args = [
+            'APP_ABI=' + abi,
+            'NDK_TOOLCHAIN_VERSION=' + toolchain,
+            'NDK_LIBS_OUT=' + dist_dir,
+        ]
         args.extend(_get_jobs_args())
         if platform is not None:
             args.append('APP_PLATFORM=android-{}'.format(platform))
@@ -867,9 +718,9 @@ def _run_ndk_build_test(test, build_dir, test_dir, ndk_build_flags, abi,
             return Failure(test, out)
 
 
-def _run_cmake_build_test(test, build_dir, test_dir, cmake_flags, abi,
+def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, cmake_flags, abi,
                           platform, toolchain):
-    _prep_build_dir(test_dir, build_dir)
+    _prep_build_dir(test_dir, obj_dir)
 
     # Add prebuilts to PATH.
     prebuilts_host_tag = build.lib.build_support.get_default_host() + '-x86'
@@ -890,12 +741,12 @@ def _run_cmake_build_test(test, build_dir, test_dir, cmake_flags, abi,
 
     toolchain_file = os.path.join(os.environ['NDK'], 'build', 'cmake',
                                   'android.toolchain.cmake')
-    objs_dir = os.path.join(build_dir, 'objs', abi)
-    libs_dir = os.path.join(build_dir, 'libs', abi)
+    objs_dir = os.path.join(obj_dir, abi)
+    libs_dir = os.path.join(dist_dir, abi)
     if toolchain != 'clang':
         toolchain = 'gcc'
     args = [
-        '-H' + build_dir,
+        '-H' + obj_dir,
         '-B' + objs_dir,
         '-DCMAKE_TOOLCHAIN_FILE=' + toolchain_file,
         '-DANDROID_ABI=' + abi,
@@ -958,7 +809,7 @@ class BuildTest(Test):
             flags = []
         return flags + self.get_extra_cmake_flags()
 
-    def run(self, out_dir, _):
+    def run(self, obj_dir, dist_dir, _test_filters):
         raise NotImplementedError
 
     def check_broken(self):
@@ -997,7 +848,7 @@ class PythonBuildTest(BuildTest):
         api = config.api
         if api is None:
             api = build.lib.build_support.minimum_platform_level(config.abi)
-        config = BuildConfiguration(
+        config = ndk.test.spec.BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
             config.verbose, config.force_deprecated_headers)
         super(PythonBuildTest, self).__init__(name, test_dir, config)
@@ -1020,10 +871,10 @@ class PythonBuildTest(BuildTest):
         assert self.ndk_build_flags is not None
 
     def get_build_dir(self, out_dir):
-        return os.path.join(out_dir, 'test.py', str(self.config), self.name)
+        return os.path.join(out_dir, str(self.config), 'test.py', self.name)
 
-    def run(self, out_dir, _):
-        build_dir = self.get_build_dir(out_dir)
+    def run(self, obj_dir, _dist_dir, _test_filters):
+        build_dir = self.get_build_dir(obj_dir)
         logger().info('Building test: %s', self.name)
         _prep_build_dir(self.test_dir, build_dir)
         with util.cd(build_dir):
@@ -1041,16 +892,16 @@ class ShellBuildTest(BuildTest):
         api = config.api
         if api is None:
             api = build.lib.build_support.minimum_platform_level(config.abi)
-        config = BuildConfiguration(
+        config = ndk.test.spec.BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
             config.verbose, config.force_deprecated_headers)
         super(ShellBuildTest, self).__init__(name, test_dir, config)
 
     def get_build_dir(self, out_dir):
-        return os.path.join(out_dir, 'build.sh', str(self.config), self.name)
+        return os.path.join(out_dir, str(self.config), 'build.sh', self.name)
 
-    def run(self, out_dir, _):
-        build_dir = self.get_build_dir(out_dir)
+    def run(self, obj_dir, _dist_dir, _test_filters):
+        build_dir = self.get_build_dir(obj_dir)
         logger().info('Building test: %s', self.name)
         if os.name == 'nt':
             reason = 'build.sh tests are not supported on Windows'
@@ -1113,49 +964,67 @@ def _get_or_infer_app_platform(platform_from_user, test_dir, abi):
     if platform_from_user is not None:
         return platform_from_user
 
+    minimum_version = build.lib.build_support.minimum_platform_level(abi)
     platform_from_application_mk = _platform_from_application_mk(test_dir)
     if platform_from_application_mk is not None:
-        return platform_from_application_mk
+        if platform_from_application_mk >= minimum_version:
+            return platform_from_application_mk
 
-    return build.lib.build_support.minimum_platform_level(abi)
+    return minimum_version
 
 
 class NdkBuildTest(BuildTest):
-    def __init__(self, name, test_dir, config):
+    def __init__(self, name, test_dir, config, dist):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
-        config = BuildConfiguration(
+        config = ndk.test.spec.BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
             config.verbose, config.force_deprecated_headers)
         super(NdkBuildTest, self).__init__(name, test_dir, config)
+        self.dist = dist
+
+    def get_dist_dir(self, obj_dir, dist_dir):
+        if self.dist:
+            return self.get_build_dir(dist_dir)
+        else:
+            return os.path.join(self.get_build_dir(obj_dir), 'dist')
 
     def get_build_dir(self, out_dir):
-        return os.path.join(out_dir, 'ndk-build', str(self.config), self.name)
+        return os.path.join(out_dir, str(self.config), 'ndk-build', self.name)
 
-    def run(self, out_dir, _):
-        build_dir = self.get_build_dir(out_dir)
+    def run(self, obj_dir, dist_dir, _test_filters):
         logger().info('Building test: %s', self.name)
+        obj_dir = self.get_build_dir(obj_dir)
+        dist_dir = self.get_dist_dir(obj_dir, dist_dir)
         result = _run_ndk_build_test(
-            self, build_dir, self.test_dir, self.ndk_build_flags,
+            self, obj_dir, dist_dir, self.test_dir, self.ndk_build_flags,
             self.abi, self.platform, self.toolchain)
         return result, []
 
 
 class CMakeBuildTest(BuildTest):
-    def __init__(self, name, test_dir, config):
+    def __init__(self, name, test_dir, config, dist):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
-        config = BuildConfiguration(
+        config = ndk.test.spec.BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
             config.verbose, config.force_deprecated_headers)
         super(CMakeBuildTest, self).__init__(name, test_dir, config)
+        self.dist = dist
+
+    def get_dist_dir(self, obj_dir, dist_dir):
+        if self.dist:
+            return self.get_build_dir(dist_dir)
+        else:
+            return os.path.join(self.get_build_dir(obj_dir), 'dist')
 
     def get_build_dir(self, out_dir):
-        return os.path.join(out_dir, 'cmake', str(self.config), self.name)
+        return os.path.join(out_dir, str(self.config), 'cmake', self.name)
 
-    def run(self, out_dir, _):
-        build_dir = self.get_build_dir(out_dir)
+    def run(self, obj_dir, dist_dir, _test_filters):
+        obj_dir = self.get_build_dir(obj_dir)
+        dist_dir = self.get_dist_dir(obj_dir, dist_dir)
         logger().info('Building test: %s', self.name)
         result = _run_cmake_build_test(
-            self, build_dir, self.test_dir, self.cmake_flags, self.abi,
+            self, obj_dir, dist_dir, self.test_dir, self.cmake_flags, self.abi,
             self.platform, self.toolchain)
         return result, []
 
@@ -1223,7 +1092,7 @@ class DeviceTest(Test):
     def is_negative_test(self):
         return False
 
-    def run(self, out_dir, test_filters):
+    def run(self, obj_dir, dist_dir, test_filters):
         raise NotImplementedError
 
     def get_device_subdir(self):
@@ -1283,10 +1152,10 @@ class DeviceTest(Test):
 
         return test_cases
 
-    def get_additional_tests(self, build_dir, test_filters):
+    def get_additional_tests(self, dist_dir, test_filters):
         additional_tests = []
-        self.copy_test_to_device(build_dir, test_filters)
-        for exe in self.get_test_executables(build_dir, test_filters):
+        self.copy_test_to_device(dist_dir, test_filters)
+        for exe in self.get_test_executables(dist_dir, test_filters):
             name = _make_subtest_name(self.name, exe)
             run_test = DeviceRunTest(
                 name, self.test_dir, exe, self.get_device_dir(), self.config)
@@ -1312,21 +1181,22 @@ class NdkBuildDeviceTest(DeviceTest):
         return 'ndk-tests'
 
     def get_build_dir(self, out_dir):
-        return os.path.join(out_dir, 'ndk-build', str(self.config), self.name)
+        return os.path.join(out_dir, str(self.config), 'ndk-build', self.name)
 
-    def run(self, out_dir, test_filters):
+    def run(self, obj_dir, dist_dir, test_filters):
         logger().info('Building device test with ndk-build: %s', self.name)
-        build_dir = self.get_build_dir(out_dir)
-        build_result = _run_ndk_build_test(self, build_dir, self.test_dir,
-                                           self.ndk_build_flags, self.abi,
-                                           self.platform, self.toolchain)
+        obj_dir = self.get_build_dir(obj_dir)
+        dist_dir = self.get_build_dir(dist_dir)
+        build_result = _run_ndk_build_test(
+            self, obj_dir, dist_dir, self.test_dir, self.ndk_build_flags,
+            self.abi, self.platform, self.toolchain)
         if not build_result.passed():
             return build_result, []
 
         if self.skip_run:
             return build_result, []
 
-        return build_result, self.get_additional_tests(build_dir, test_filters)
+        return build_result, self.get_additional_tests(dist_dir, test_filters)
 
 
 class CMakeDeviceTest(DeviceTest):
@@ -1347,21 +1217,22 @@ class CMakeDeviceTest(DeviceTest):
         return 'cmake-tests'
 
     def get_build_dir(self, out_dir):
-        return os.path.join(out_dir, 'cmake', str(self.config), self.name)
+        return os.path.join(out_dir, str(self.config), 'cmake', self.name)
 
-    def run(self, out_dir, test_filters):
+    def run(self, obj_dir, dist_dir, test_filters):
         logger().info('Building device test with cmake: %s', self.name)
-        build_dir = self.get_build_dir(out_dir)
-        build_result = _run_cmake_build_test(self, build_dir, self.test_dir,
-                                             self.cmake_flags, self.abi,
-                                             self.platform, self.toolchain)
+        obj_dir = self.get_build_dir(obj_dir)
+        dist_dir = self.get_build_dir(dist_dir)
+        build_result = _run_cmake_build_test(
+            self, obj_dir, dist_dir, self.test_dir, self.cmake_flags, self.abi,
+            self.platform, self.toolchain)
         if not build_result.passed():
             return build_result, []
 
         if self.skip_run:
             return build_result, []
 
-        return build_result, self.get_additional_tests(build_dir, test_filters)
+        return build_result, self.get_additional_tests(dist_dir, test_filters)
 
 
 class DeviceRunTest(Test):
@@ -1411,7 +1282,7 @@ class DeviceRunTest(Test):
     def is_negative_test(self):
         return False
 
-    def run(self, out_dir, test_filters):
+    def run(self, _obj_dir, _dist_dir, _test_filters):
         cmd = 'cd {} && LD_LIBRARY_PATH={} ./{} 2>&1'.format(
             self.device_dir, self.device_dir, self.case_name)
         for _ in range(8):
@@ -1493,27 +1364,26 @@ class LibcxxTest(Test):
     def force_deprecated_headers(self):
         return self.config.force_deprecated_headers
 
-    @property
-    def device(self):
-        return self.config.device
-
-    @property
-    def device_api(self):
-        return self.config.device_api
-
-    @property
-    def skip_run(self):
-        return self.config.skip_run
-
     def get_build_dir(self, out_dir):
-        return os.path.join(out_dir, 'libcxx', str(self.config), self.name)
+        return os.path.join(out_dir, str(self.config), 'libcxx', self.name)
 
-    def run(self, out_dir, test_filters):
-        xunit_output = os.path.join(out_dir, 'xunit.xml')
+    def run(self, obj_dir, dist_dir, test_filters):
+        build_dir = self.get_build_dir(dist_dir)
+
+        if not os.path.exists(build_dir):
+            os.makedirs(build_dir)
+
+        xunit_output = os.path.join(build_dir, 'xunit.xml')
         ndk_path = os.environ['NDK']
-        libcxx_subpath = 'sources/cxx-stl/llvm-libc++/test'
+        libcxx_subpath = 'sources/cxx-stl/llvm-libc++'
+        libcxx_path = os.path.join(ndk_path, libcxx_subpath)
+        libcxx_so_path = os.path.join(
+            libcxx_path, 'libs', self.config.abi, 'libc++_shared.so')
+        libcxx_test_path = os.path.join(libcxx_path, 'test')
+        shutil.copy2(libcxx_so_path, build_dir)
+
         cmd = [
-            'python', '../test_libcxx.py',
+            'python', 'test_libcxx.py',
             '--abi', self.abi,
             '--platform', str(self.api),
             '--xunit-xml-output=' + xunit_output,
@@ -1526,13 +1396,16 @@ class LibcxxTest(Test):
             # wouldn't be clear if something had hung.
             '--no-progress-bar',
             '--show-all',
+            '--build-only',
+
+            '--out-dir', build_dir,
         ]
+
+        if self.config.force_pie or self.abi in ndk.abis.LP64_ABIS:
+            cmd.append('--pie')
 
         if self.force_deprecated_headers:
             cmd.append('--deprecated-headers')
-
-        if self.skip_run:
-            cmd.append('--build-only')
 
         # The libc++ test runner's filters are path based. Assemble the path to
         # the test based on the late_filters (early filters for a libc++ test
@@ -1544,7 +1417,7 @@ class LibcxxTest(Test):
 
             _, _, path = filter_pattern.partition('.')
             if not os.path.isabs(path):
-                path = os.path.join(ndk_path, libcxx_subpath, path)
+                path = os.path.join(libcxx_test_path, path)
 
             # If we have a filter like "libc++.std", we'll run everything in
             # std, but all our XunitReport "tests" will be filtered out.  Make
@@ -1569,6 +1442,17 @@ class LibcxxTest(Test):
             if logger().isEnabledFor(logging.INFO):
                 stdout = None
             subprocess.call(cmd, stdout=stdout)
+
+        for root, _, files in os.walk(libcxx_test_path):
+            for test_file in files:
+                if not test_file.endswith('.dat'):
+                    continue
+                test_relpath = os.path.relpath(root, libcxx_test_path)
+                dest_dir = os.path.join(build_dir, test_relpath)
+                if not os.path.exists(dest_dir):
+                    continue
+
+                shutil.copy2(os.path.join(root, test_file), dest_dir)
 
         # We create a bunch of fake tests that report the status of each
         # individual test in the xunit report.
@@ -1675,7 +1559,7 @@ class XunitResult(Test):
     def __init__(self, name, test_dir, config):
         super(XunitResult, self).__init__(name, test_dir, config)
 
-    def run(self, _out_dir, _test_filters):
+    def run(self, _out_dir, _dist_dir, _test_filters):
         raise NotImplementedError
 
     @property
@@ -1693,11 +1577,6 @@ class XunitResult(Test):
             self.config.abi, self.config.api, self.config.toolchain, name)
         if config is not None:
             return config, bug
-
-        if not self.config.skip_run:
-            return self.get_test_config().run_broken(
-                self.config.abi, self.config.device_api, self.config.toolchain,
-                name)
         return None, None
 
     def check_unsupported(self):
@@ -1708,7 +1587,7 @@ class XunitResult(Test):
 
 
 class XunitSuccess(XunitResult):
-    def run(self, _out_dir, _test_filters):
+    def run(self, _out_dir, _dist_dir, _test_filters):
         return Success(self), []
 
 
@@ -1717,5 +1596,5 @@ class XunitFailure(XunitResult):
         super(XunitFailure, self).__init__(name, test_dir, config)
         self.text = text
 
-    def run(self, _out_dir, _test_filters):
+    def run(self, _out_dir, _dist_dir, _test_filters):
         return Failure(self, self.text), []

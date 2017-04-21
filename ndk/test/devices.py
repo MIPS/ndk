@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2016 The Android Open Source Project
+# Copyright (C) 2017 The Android Open Source Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,27 +19,102 @@ import logging
 import re
 import subprocess
 
+try:
+    import adb  # pylint: disable=import-error
+except ImportError:
+    import site
+    from build.lib.build_support import android_path
+    site.addsitedir(android_path('development/python-packages'))
+    import adb  # pylint: disable=import-error
+
 
 def logger():
     """Returns the module logger."""
     return logging.getLogger(__name__)
 
 
-class Device(object):
+class Device(adb.AndroidDevice):
     """A device to be used for testing."""
-    def __init__(self, serial, name, version, build_id, abis, is_release,
-                 is_emulator):
-        self.serial = serial
-        self.name = name
-        self.version = version
-        self.build_id = build_id
-        self.abis = abis
-        self.is_release = is_release
-        self.is_emulator = is_emulator
+    # pylint: disable=super-on-old-class
+    # pylint: disable=no-member
+    def __init__(self, serial):
+        super(Device, self).__init__(serial)
+        self._cached_properties = None
+
+    def get_cached_properties(self):
+        """Returns a cached copy of the device's system properties."""
+        if self._cached_properties is None:
+            self._cached_properties = self.get_props()
+        return self._cached_properties
+
+    @property
+    def name(self):
+        return self.get_cached_properties()['ro.product.name']
+
+    @property
+    def version(self):
+        return int(self.get_cached_properties()['ro.build.version.sdk'])
+
+    @property
+    def abis(self):
+        """Returns a list of ABIs supported by the device."""
+        # 64-bit devices list their ABIs differently than 32-bit devices. Check
+        # all the possible places for stashing ABI info and merge them.
+        abi_properties = [
+            'ro.product.cpu.abi',
+            'ro.product.cpu.abi2',
+            'ro.product.cpu.abilist',
+        ]
+        abis = set()
+        for abi_prop in abi_properties:
+            if abi_prop in self.get_cached_properties():
+                abis.update(self.get_cached_properties()[abi_prop].split(','))
+
+        return sorted(list(abis))
+
+    @property
+    def build_id(self):
+        return self.get_cached_properties()['ro.build.id']
+
+    @property
+    def is_release(self):
+        codename = self.get_cached_properties()['ro.build.version.codename']
+        return codename == 'REL'
+
+    @property
+    def is_emulator(self):
+        chars = self.get_cached_properties()['ro.build.characteristics']
+        return chars == 'emulator'
+
+    def can_run_build_config(self, config):
+        if self.version < config.api:
+            # Device is too old for this test.
+            return False
+
+        # PIE is enabled by default iff our target version is 16 or newer.
+        is_pie = config.force_pie or config.api >= 16
+        if not is_pie and self.supports_pie:
+            # Don't bother running non-PIE tests on anything that supports PIE.
+            return False
+        elif is_pie and not self.supports_pie:
+            # Can't run PIE on devices older than android-16.
+            return False
+
+        if config.abi not in self.abis:
+            return False
+
+        return True
+
+    @property
+    def supports_pie(self):
+        return self.version >= 16
 
     def __str__(self):
         return 'android-{} {} {} {}'.format(
             self.version, self.name, self.serial, self.build_id)
+
+    def __eq__(self, other):
+        return self.serial == other.serial
 
 
 class DeviceFleet(object):
@@ -91,8 +166,21 @@ class DeviceFleet(object):
             if not current_device.is_release and device.is_release:
                 self.devices[device.version][abi] = device
 
+    def get_unique_devices(self):
+        devices = set()
+        for version in self.get_versions():
+            for abi in self.get_abis(version):
+                device = self.get_device(version, abi)
+                if device is not None:
+                    devices.add(device)
+        return devices
+
     def get_device(self, version, abi):
         """Returns the device associated with the given API and ABI."""
+        if version not in self.devices:
+            return None
+        if abi not in self.devices[version]:
+            return None
         return self.devices[version][abi]
 
     def get_missing(self):
@@ -113,45 +201,8 @@ class DeviceFleet(object):
         return self.devices[version].keys()
 
 
-def get_device_abis(properties):
-    """Returns a list of ABIs supported by the device."""
-    # 64-bit devices list their ABIs differently than 32-bit devices. Check all
-    # the possible places for stashing ABI info and merge them.
-    abi_properties = [
-        'ro.product.cpu.abi',
-        'ro.product.cpu.abi2',
-        'ro.product.cpu.abilist',
-    ]
-    abis = set()
-    for abi_prop in abi_properties:
-        if abi_prop in properties:
-            abis.update(properties[abi_prop].split(','))
-
-    return sorted(list(abis))
-
-
-def get_device_details(serial):
-    """Returns a Device for the given serial number."""
-    import adb  # pylint: disable=import-error
-    props = adb.get_device(serial).get_props()
-    name = props['ro.product.name']
-    version = int(props['ro.build.version.sdk'])
-    supported_abis = get_device_abis(props)
-    build_id = props['ro.build.id']
-    is_release = props.get('ro.build.version.codename') == 'REL'
-    is_emulator = props.get('ro.build.characteristics') == 'emulator'
-    return Device(
-        serial, name, version, build_id, supported_abis, is_release,
-        is_emulator)
-
-
-def find_devices(sought_devices):
-    """Detects connected devices and returns a set for testing.
-
-    We get a list of devices by scanning the output of `adb devices` and
-    matching that with the list of desired test configurations specified by
-    `sought_devices`.
-    """
+def get_all_attached_devices():
+    """Returns a list of all connected devices."""
     if distutils.spawn.find_executable('adb') is None:
         raise RuntimeError('Could not find adb.')
 
@@ -165,7 +216,7 @@ def find_devices(sought_devices):
 
     # The first line of `adb devices` just says "List of attached devices", so
     # skip that.
-    fleet = DeviceFleet(sought_devices)
+    devices = []
     for line in out.split('\n')[1:]:
         if not line.strip():
             continue
@@ -179,8 +230,22 @@ def find_devices(sought_devices):
             logger().info('Ignoring unauthorized device: %s', serial)
             continue
 
-        device = get_device_details(serial)
+        device = Device(serial)
         logger().info('Found device %s', device)
+        devices.append(device)
+
+    return devices
+
+
+def find_devices(sought_devices):
+    """Detects connected devices and returns a set for testing.
+
+    We get a list of devices by scanning the output of `adb devices` and
+    matching that with the list of desired test configurations specified by
+    `sought_devices`.
+    """
+    fleet = DeviceFleet(sought_devices)
+    for device in get_all_attached_devices():
         fleet.add_device(device)
 
     return fleet

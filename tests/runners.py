@@ -236,7 +236,7 @@ def run_single_configuration(ndk_path, out_dir, printer, abi, toolchain,
         runner.add_suite('libc++', 'libc++', libcxx_scanner)
 
     test_filters = tests.filters.TestFilter.from_string(test_filter)
-    report = runner.run(out_dir, test_filters)
+    report = runner.run(out_dir, out_dir, test_filters)
     return report
 
 
