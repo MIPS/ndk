@@ -23,6 +23,7 @@ import logging
 import multiprocessing
 import os
 import posixpath
+import random
 import re
 import shutil
 import subprocess
@@ -484,6 +485,11 @@ class TestRunner(object):
         workqueue = wq.WorkQueue()
         try:
             for suite, tests in self.tests.items():
+                # Each test configuration was expanded when each test was
+                # discovered, so the current order has all the largest tests
+                # right next to each other. Spread them out to try to avoid
+                # having too many heavy builds happening simultaneously.
+                random.shuffle(tests)
                 for test in tests:
                     workqueue.add_task(
                         _run_test, suite, test, out_dir, test_filters)
