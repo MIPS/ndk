@@ -22,6 +22,23 @@ import build.lib.build_support as build_support
 import config
 
 
+def path_in_out(dirname, out_dir=None):
+    """Returns a path within the out directory."
+
+    Args:
+        dirname: Name of the directory.
+        out_dir: Optional base out directory. Inferred from $OUT_DIR if not
+                 supplied. If None and $OUT_DIR is not set, will use ../out
+                 relative to the NDK git project.
+
+    Returns:
+        Absolute path to the created directory.
+    """
+    if out_dir is None:
+        out_dir = build_support.get_out_dir()
+    return os.path.join(out_dir, dirname)
+
+
 def get_install_path(out_dir=None):
     """Returns the built NDK install path.
 
@@ -39,10 +56,8 @@ def get_install_path(out_dir=None):
     Returns:
         Directory that the built NDK should be installed to.
     """
-    if out_dir is None:
-        out_dir = build_support.get_out_dir()
     release_name = 'android-ndk-{}'.format(config.release)
-    return os.path.join(out_dir, release_name)
+    return path_in_out(release_name, out_dir)
 
 
 @contextlib.contextmanager
@@ -64,9 +79,7 @@ def temp_dir_in_out(dirname, out_dir=None):
     Raises:
         RuntimeError: The requested directory already exists.
     """
-    if out_dir is None:
-        out_dir = build_support.get_out_dir()
-    path = os.path.join(out_dir, dirname)
+    path = path_in_out(dirname, out_dir)
     if os.path.exists(path):
         raise RuntimeError('Directory already exists: ' + path)
 
