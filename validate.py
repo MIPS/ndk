@@ -19,6 +19,7 @@ from __future__ import print_function
 
 import argparse
 import distutils.spawn
+import logging
 import os
 import re
 import shutil
@@ -219,6 +220,9 @@ def parse_args():
     parser.add_argument(
         '--config', type=os.path.realpath, default='qa_config.yaml',
         help='Path to the config file describing the test run.')
+    parser.add_argument(
+        '-v', '--verbose', action='count', default=0,
+        help='Increase log level. Defaults to logging.WARNING.')
 
     return parser.parse_args()
 
@@ -254,6 +258,11 @@ def main():
         ndk.debug.register_trace_handler(signal.SIGUSR2)
 
     args = parse_args()
+
+    log_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
+    verbosity = min(args.verbose, len(log_levels) - 1)
+    log_level = log_levels[verbosity]
+    logging.basicConfig(level=log_level)
 
     os.chdir(THIS_DIR)
 
