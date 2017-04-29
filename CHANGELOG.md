@@ -32,6 +32,12 @@ NDK
 
  * `awk` is no longer in the NDK. We've replaced all uses of awk with Python.
 
+Clang
+=====
+
+ * Clang has been updated to build 3957855. This is built from Clang 5.0 SVN at
+   r300080.
+
 libc++
 ======
 
