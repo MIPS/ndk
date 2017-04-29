@@ -56,6 +56,8 @@ TARGET_CFLAGS := \
     -Wno-unused-command-line-argument \
     -no-canonical-prefixes \
 
+TARGET_CFLAGS += -fintegrated-as
+
 # Always enable debug info. We strip binaries when needed.
 TARGET_CFLAGS += -g
 
