@@ -50,6 +50,5 @@ Known Issues
 ------------
 
  * This is not intended to be a comprehensive list of all outstanding bugs.
- * Gradle does not yet support unified headers.
  * gabi++ (and therefore stlport) binaries can segfault when built for armeabi:
    https://github.com/android-ndk/ndk/issues/374.
