@@ -254,7 +254,7 @@ def _install_file(src_file, dst_file):
 class Clang(ndk.builds.Module):
     name = 'clang'
     path = 'toolchains/llvm/prebuilt/{host}'
-    version = 'clang-3957855'
+    version = 'clang-3960126'
 
     def get_prebuilt_path(self, host):
         # The 32-bit Windows Clang is a part of the 64-bit Clang package in

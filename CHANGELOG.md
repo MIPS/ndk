@@ -35,7 +35,7 @@ NDK
 Clang
 =====
 
- * Clang has been updated to build 3957855. This is built from Clang 5.0 SVN at
+ * Clang has been updated to build 3960126. This is built from Clang 5.0 SVN at
    r300080.
 
 libc++
