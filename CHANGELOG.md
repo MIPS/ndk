@@ -35,8 +35,10 @@ NDK
 Clang
 =====
 
- * Clang has been updated to build 3957855. This is built from Clang 5.0 SVN at
+ * Clang has been updated to build 3960126. This is built from Clang 5.0 SVN at
    r300080.
+ * Clang now supports OpenMP (except on MIPS/MIPS64):
+   https://github.com/android-ndk/ndk/issues/9.
 
 libc++
 ======
@@ -48,8 +50,5 @@ Known Issues
 ------------
 
  * This is not intended to be a comprehensive list of all outstanding bugs.
- * Gradle does not yet support unified headers.
- * Clang does not yet support OpenMP:
-   https://github.com/android-ndk/ndk/issues/9.
  * gabi++ (and therefore stlport) binaries can segfault when built for armeabi:
    https://github.com/android-ndk/ndk/issues/374.
