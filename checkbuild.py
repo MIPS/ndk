@@ -308,6 +308,13 @@ class Clang(ndk.builds.Module):
             os.rename(os.path.join(install_path, 'bin/clang++.real'),
                       os.path.join(install_path, 'bin/clang++'))
 
+        if args.system == 'darwin':
+            # The Clang driver is dumb and looks for LLVMgold.so regardless of
+            # platform.
+            libs_path = os.path.join(install_path, 'lib64')
+            os.rename(os.path.join(libs_path, 'LLVMgold.dylib'),
+                      os.path.join(libs_path, 'LLVMgold.so'))
+
 
 def get_gcc_prebuilt_path(host):
     rel_prebuilt_path = 'prebuilts/ndk/current/toolchains/{}'.format(host)
@@ -353,7 +360,7 @@ class Gcc(ndk.builds.Module):
 
             clang_libs = build_support.android_path(
                 'prebuilts/ndk/current/toolchains', host_tag, 'llvm/lib64')
-            llvmgold = os.path.join(clang_libs, 'LLVMgold.so')
+            llvmgold = os.path.join(clang_libs, 'LLVMgold' + so)
             libcxx = os.path.join(clang_libs, 'libc++' + so)
             libllvm = os.path.join(clang_libs, 'libLLVM' + so)
 
