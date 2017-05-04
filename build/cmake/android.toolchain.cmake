@@ -499,7 +499,7 @@ elseif(ANDROID_STL MATCHES "^c\\+\\+_")
 	set(ANDROID_STL_PREFIX llvm-libc++)
 	if(ANDROID_ABI MATCHES "^armeabi")
 		list(APPEND ANDROID_LINKER_FLAGS
-			-Wl,--exclude-libs,libunwind.a)
+			-Wl,--exclude-libs,libunwind.a -Wl,--exclude-libs,libgcc.a)
 	endif()
 	list(APPEND ANDROID_COMPILER_FLAGS_CXX
 		-std=c++11)
