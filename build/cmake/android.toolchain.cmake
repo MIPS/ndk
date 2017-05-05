@@ -265,6 +265,9 @@ set(ANDROID_COMPILER_FLAGS_RELEASE)
 set(ANDROID_LINKER_FLAGS)
 set(ANDROID_LINKER_FLAGS_EXE)
 
+# Don't re-export libgcc symbols in every binary.
+list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libgcc.a)
+
 # STL.
 set(ANDROID_STL_STATIC_LIBRARIES)
 set(ANDROID_STL_SHARED_LIBRARIES)
@@ -498,8 +501,7 @@ elseif(ANDROID_STL MATCHES "^gnustl_")
 elseif(ANDROID_STL MATCHES "^c\\+\\+_")
 	set(ANDROID_STL_PREFIX llvm-libc++)
 	if(ANDROID_ABI MATCHES "^armeabi")
-		list(APPEND ANDROID_LINKER_FLAGS
-			-Wl,--exclude-libs,libunwind.a -Wl,--exclude-libs,libgcc.a)
+		list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libunwind.a)
 	endif()
 	list(APPEND ANDROID_COMPILER_FLAGS_CXX
 		-std=c++11)
