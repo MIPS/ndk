@@ -307,9 +307,8 @@ def main():
     with ndk.paths.temp_dir_in_out('validate-out') as out_dir:
         import tests.runners
         good, details = tests.runners.run_for_fleet(
-            args.ndk, fleet, out_dir, args.log_dir, args.filter,
-            args.platforms, args.abis, args.toolchains, headers_configs,
-            args.suites, use_color)
+            args.ndk, fleet, out_dir, args.filter, args.platforms, args.abis,
+            args.toolchains, headers_configs, args.suites, use_color)
 
     print_aggregate_details(details, use_color)
 

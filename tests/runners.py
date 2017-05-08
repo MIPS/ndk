@@ -244,28 +244,25 @@ def get_headers_text(deprecated_headers):
     return 'deprecated' if deprecated_headers else 'unified'
 
 
-def run_tests(ndk_path, device, abi, toolchain, out_dir, log_dir, test_filter,
-              force_deprecated_headers, suites):
-    print('Running {} {} tests with {} headers for {}... '.format(
-        toolchain, abi, get_headers_text(force_deprecated_headers), device),
-        end='')
+def run_tests(ndk_path, device, abi, toolchain, out_dir, test_filter,
+              force_deprecated_headers, suites, use_color):
+    test_desc = '{} {} tests with {} headers for {}'.format(
+        toolchain, abi, get_headers_text(force_deprecated_headers), device)
+    print('Running {}... '.format(test_desc))
     sys.stdout.flush()
 
-    toolchain_name = 'gcc' if toolchain == '4.9' else toolchain
-    log_file_name = '{}-{}-{}.log'.format(toolchain_name, abi, device.version)
-    with open(os.path.join(log_dir, log_file_name), 'w') as log_file:
-        printer = tests.printers.FilePrinter(log_file)
-        report = run_single_configuration(
-            ndk_path, out_dir, printer, abi, toolchain,
-            device_serial=device.serial, test_filter=test_filter,
-            force_deprecated_headers=force_deprecated_headers, suites=suites)
-        print('PASS' if report.successful else 'FAIL')
-        return report
+    printer = tests.printers.StdoutPrinter(use_color=use_color, quiet=True)
+    report = run_single_configuration(
+        ndk_path, out_dir, printer, abi, toolchain,
+        device_serial=device.serial, test_filter=test_filter,
+        force_deprecated_headers=force_deprecated_headers, suites=suites)
+    print('{} {}'.format(
+        'PASS' if report.successful else 'FAIL', test_desc))
+    return report
 
 
-def run_for_fleet(ndk_path, fleet, out_dir, log_dir, test_filter,
-                  versions, abis, toolchains, headers_configs, suites,
-                  use_color=False):
+def run_for_fleet(ndk_path, fleet, out_dir, test_filter, versions, abis,
+                  toolchains, headers_configs, suites, use_color=False):
     # Note that we are duplicating some testing here.
     #
     # * The build tests only vary per-device by the PIE configuration, so we
@@ -308,8 +305,8 @@ def run_for_fleet(ndk_path, fleet, out_dir, log_dir, test_filter,
         details[config_name] = None
 
         report = run_tests(
-            ndk_path, device, abi, toolchain, out_dir, log_dir,
-            test_filter, deprecated_headers, suites)
+            ndk_path, device, abi, toolchain, out_dir, test_filter,
+            deprecated_headers, suites, use_color)
         pass_label = tests.util.maybe_color('PASS', 'green', use_color)
         fail_label = tests.util.maybe_color('FAIL', 'red', use_color)
         results.append('{}: {}'.format(

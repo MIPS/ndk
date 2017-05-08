@@ -40,12 +40,15 @@ class Printer(object):
 
 
 class FilePrinter(Printer):
-    def __init__(self, to_file, use_color=False, show_all=False):
+    def __init__(self, to_file, use_color=False, show_all=False, quiet=False):
         self.file = to_file
         self.use_color = use_color
         self.show_all = show_all
+        self.quiet = quiet
 
     def print_result(self, result):
+        if self.quiet and not result.failed():
+            return
         print(result.to_string(colored=self.use_color), file=self.file)
 
     def print_summary(self, report):
@@ -63,5 +66,6 @@ class FilePrinter(Printer):
 
 
 class StdoutPrinter(FilePrinter):
-    def __init__(self, use_color=False, show_all=False):
-        super(StdoutPrinter, self).__init__(sys.stdout, use_color, show_all)
+    def __init__(self, use_color=False, show_all=False, quiet=False):
+        super(StdoutPrinter, self).__init__(
+            sys.stdout, use_color, show_all, quiet)
