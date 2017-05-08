@@ -1018,7 +1018,7 @@ class PythonBuildTest(BuildTest):
 
     def run(self, out_dir, _):
         build_dir = self.get_build_dir(out_dir)
-        print('Building test: {}'.format(self.name))
+        logger().info('Building test: %s', self.name)
         _prep_build_dir(self.test_dir, build_dir)
         with util.cd(build_dir):
             module = imp.load_source('test', 'test.py')
@@ -1045,7 +1045,7 @@ class ShellBuildTest(BuildTest):
 
     def run(self, out_dir, _):
         build_dir = self.get_build_dir(out_dir)
-        print('Building test: {}'.format(self.name))
+        logger().info('Building test: %s', self.name)
         if os.name == 'nt':
             reason = 'build.sh tests are not supported on Windows'
             return Skipped(self, reason), []
@@ -1127,7 +1127,7 @@ class NdkBuildTest(BuildTest):
 
     def run(self, out_dir, _):
         build_dir = self.get_build_dir(out_dir)
-        print('Building test: {}'.format(self.name))
+        logger().info('Building test: %s', self.name)
         result = _run_ndk_build_test(
             self, build_dir, self.test_dir, self.ndk_build_flags,
             self.abi, self.platform, self.toolchain)
@@ -1147,7 +1147,7 @@ class CMakeBuildTest(BuildTest):
 
     def run(self, out_dir, _):
         build_dir = self.get_build_dir(out_dir)
-        print('Building test: {}'.format(self.name))
+        logger().info('Building test: %s', self.name)
         result = _run_cmake_build_test(
             self, build_dir, self.test_dir, self.cmake_flags, self.abi,
             self.platform, self.toolchain)
@@ -1234,7 +1234,7 @@ class DeviceTest(Test):
         if not os.path.isdir(abi_dir):
             raise RuntimeError('No libraries for {}'.format(self.abi))
 
-        print('Pushing {} to {}...'.format(abi_dir, self.get_device_dir()))
+        logger().info('Pushing %s to %s...', abi_dir, self.get_device_dir())
         self.device.push(abi_dir, self.get_device_dir())
         for test_file in os.listdir(abi_dir):
             if test_file in ('gdbserver', 'gdb.setup'):
@@ -1309,7 +1309,7 @@ class NdkBuildDeviceTest(DeviceTest):
         return os.path.join(out_dir, 'ndk-build', str(self.config), self.name)
 
     def run(self, out_dir, test_filters):
-        print('Building device test with ndk-build: {}'.format(self.name))
+        logger().info('Building device test with ndk-build: %s', self.name)
         build_dir = self.get_build_dir(out_dir)
         build_result = _run_ndk_build_test(self, build_dir, self.test_dir,
                                            self.ndk_build_flags, self.abi,
@@ -1344,7 +1344,7 @@ class CMakeDeviceTest(DeviceTest):
         return os.path.join(out_dir, 'cmake', str(self.config), self.name)
 
     def run(self, out_dir, test_filters):
-        print('Building device test with cmake: {}'.format(self.name))
+        logger().info('Building device test with cmake: %s', self.name)
         build_dir = self.get_build_dir(out_dir)
         build_result = _run_cmake_build_test(self, build_dir, self.test_dir,
                                              self.cmake_flags, self.abi,
@@ -1558,7 +1558,11 @@ class LibcxxTest(Test):
         # test runner. If that happens in test_libcxx.py or in LIT, the xunit
         # output will not be valid and we'll fail get_xunit_reports and raise
         # an exception anyway.
-        subprocess.call(cmd)
+        with open('/dev/null', 'w') as dev_null:
+            stdout = dev_null
+            if logger().isEnabledFor(logging.INFO):
+                stdout = None
+            subprocess.call(cmd, stdout=stdout)
 
         # We create a bunch of fake tests that report the status of each
         # individual test in the xunit report.
