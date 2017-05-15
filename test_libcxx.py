@@ -17,6 +17,7 @@
 """Runs the libc++ test suite."""
 import argparse
 import os
+import shutil
 import site
 import subprocess
 
@@ -94,20 +95,20 @@ def main():
         'external/llvm/utils/lit/lit.py')
 
     replacements = [
-        ('ABI', args.abi),
-        ('API', args.platform),
-        ('ARCH', arch),
-        ('HOST_TAG', host_tag),
-        ('TOOLCHAIN', toolchain),
-        ('TRIPLE', triple),
-        ('USE_PIE', use_pie),
+        ('abi', args.abi),
+        ('api', args.platform),
+        ('arch', arch),
+        ('host_tag', host_tag),
+        ('toolchain', toolchain),
+        ('triple', triple),
+        ('use_pie', use_pie),
     ]
-    sed_args = ['sed']
-    for key, repl in replacements:
-        sed_args.extend(['-e', 's:%{}%:{}:g'.format(key, repl)])
-    sed_args.append(os.path.join(libcxx_dir, 'test/lit.ndk.cfg.in'))
-    with open(os.path.join(libcxx_dir, 'test/lit.site.cfg'), 'w') as cfg_file:
-        subprocess.check_call(sed_args, stdout=cfg_file)
+    lit_cfg_args = []
+    for key, value in replacements:
+        lit_cfg_args.append('--param={}={}'.format(key, value))
+
+    shutil.copy2(os.path.join(libcxx_dir, 'test/lit.ndk.cfg.in'),
+                 os.path.join(libcxx_dir, 'test/lit.site.cfg'))
 
     default_test_path = os.path.join(libcxx_dir, 'test')
     have_filter_args = False
@@ -126,7 +127,7 @@ def main():
     lit_args = [
         lit_path, '-sv', '--param=device_dir=' + device_dir,
         '--param=unified_headers={}'.format(not args.deprecated_headers),
-    ] + extra_args
+    ] + lit_cfg_args + extra_args
 
     if args.build_only:
         lit_args.append('--param=build_only=True')
