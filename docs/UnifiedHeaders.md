@@ -3,19 +3,18 @@ Unified Headers
 
 [Issue #120](https://github.com/android-ndk/ndk/issues/120)
 
-Currently, we have a set of libc headers for each API version. In many cases
-these headers are incorrect. Many expose APIs that didn't exist, and others
-don't expose APIs that did.
+Before NDK r14, we had a set of libc headers for each API version. In many cases
+these headers were incorrect. Many exposed APIs that didn't exist, and others
+didn't expose APIs that did.
 
-Over the last few months we've done unified these into a single set of headers.
-This single header path will be used for *every* platform level. API level
-guards are handled with `#ifdef`. These headers can be found in
-[prebuilts/ndk/headers].
+In NDK r14 (as an opt in feature) we unified these into a single set of headers.
+In r15 these are used by default. This single header path is used for *every*
+platform level. API level guards are handled with `#ifdef`.  These headers can
+be found in [prebuilts/ndk/headers].
 
-Unified headers are built directly from the Android platform, so they will no
-longer be out of date or incorrect (or at the very least, any bugs in the NDK
-headers will also be a bug in the platform headers, which means we're much more
-likely to find them).
+Unified headers are built directly from the Android platform, so they be up to
+date and correct (or at the very least, any bugs in the NDK headers will also be
+a bug in the platform headers, which means we're much more likely to find them).
 
 [prebuilts/ndk/headers]: https://android.googlesource.com/platform/prebuilts/ndk/+/master/headers/
 
@@ -23,8 +22,17 @@ likely to find them).
 Known Issues
 ------------
 
+ * Some third-party projects have incorrect feature checks for things like
+   `epoll_create1`. These are not bugs in the NDK, but rather need to be fixed
+   in those projects. Boost and libev are projects that we know are affected by
+   this. We'll be sending some patches to those projects soon. See [bug 302] and
+   [bug 394].
  * Standalone toolchains using GCC are not supported out of the box. To use GCC,
-   pass `-D__ANDROID_API__=$API` when compiling.
+   pass `-D__ANDROID_API__=$API` when compiling. Note: this is not something we
+   will be fixing.
+
+[bug 302]: https://github.com/android-ndk/ndk/issues/302
+[bug 394]: https://github.com/android-ndk/ndk/issues/394
 
 
 Using Unified Headers
