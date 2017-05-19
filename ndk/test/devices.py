@@ -27,12 +27,14 @@ def logger():
 
 class Device(object):
     """A device to be used for testing."""
-    def __init__(self, serial, name, version, build_id, abis, is_emulator):
+    def __init__(self, serial, name, version, build_id, abis, is_release,
+                 is_emulator):
         self.serial = serial
         self.name = name
         self.version = version
         self.build_id = build_id
         self.abis = abis
+        self.is_release = is_release
         self.is_emulator = is_emulator
 
     def __str__(self):
@@ -84,6 +86,11 @@ class DeviceFleet(object):
             if current_device.is_emulator and not device.is_emulator:
                 self.devices[device.version][abi] = device
 
+            # Trust release builds over pre-release builds, but don't block
+            # pre-release because sometimes that's all there is.
+            if not current_device.is_release and device.is_release:
+                self.devices[device.version][abi] = device
+
     def get_device(self, version, abi):
         """Returns the device associated with the given API and ABI."""
         return self.devices[version][abi]
@@ -131,8 +138,11 @@ def get_device_details(serial):
     version = int(props['ro.build.version.sdk'])
     supported_abis = get_device_abis(props)
     build_id = props['ro.build.id']
+    is_release = props.get('ro.build.version.codename') == 'REL'
     is_emulator = props.get('ro.build.characteristics') == 'emulator'
-    return Device(serial, name, version, build_id, supported_abis, is_emulator)
+    return Device(
+        serial, name, version, build_id, supported_abis, is_release,
+        is_emulator)
 
 
 def find_devices(sought_devices):
