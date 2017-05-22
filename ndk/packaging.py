@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 """NDK packaging APIs."""
+from __future__ import absolute_import
+
 import os
 import shutil
 import subprocess

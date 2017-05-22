@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 """Helper functions for NDK build and test paths."""
+from __future__ import absolute_import
+
 import contextlib
 import os
 import shutil
