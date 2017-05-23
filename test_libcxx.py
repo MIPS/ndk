@@ -52,11 +52,17 @@ def parse_args():
         '--deprecated-headers', action='store_true', default=False,
         help='Use NDK deprecated headers.')
     parser.add_argument(
+        '--pie', action='store_true', default=False,
+        help='Force building with PIE.')
+    parser.add_argument(
         '-t', '--timeout', default=300, type=int,
         help='Per-test timeout in seconds.')
     parser.add_argument(
         '--build-only', action='store_true',
         help='Build tests only. Skip run and do not use adb.')
+
+    parser.add_argument(
+        '--out-dir', type=os.path.realpath, help='Build output directory.')
 
     parser.add_argument(
         '--ndk', type=os.path.realpath, help='Path to NDK under test.')
@@ -72,7 +78,6 @@ def main():
 
     libcxx_dir = os.path.join(args.ndk, 'sources/cxx-stl/llvm-libc++')
     device_dir = '/data/local/tmp/libcxx'
-    use_pie = True
     if not args.build_only:
         # We need to do this here rather than at the top because we load the
         # module from a path that is given on the command line. We load it from
@@ -82,9 +87,6 @@ def main():
         import adb  # pylint: disable=import-error
         device = adb.get_device()
         prep_device(device, libcxx_dir, device_dir, args.abi)
-        device_api_level = int(device.get_prop('ro.build.version.sdk'))
-        if device_api_level < 16:
-            use_pie = False
 
     arch = build.lib.build_support.abi_to_arch(args.abi)
     host_tag = find_host_tag(args.ndk)
@@ -101,7 +103,8 @@ def main():
         ('host_tag', host_tag),
         ('toolchain', toolchain),
         ('triple', triple),
-        ('use_pie', use_pie),
+        ('use_pie', args.pie),
+        ('build_dir', args.out_dir),
     ]
     lit_cfg_args = []
     for key, value in replacements:

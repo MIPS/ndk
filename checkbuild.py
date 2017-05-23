@@ -23,10 +23,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import argparse
-import collections
 import distutils.spawn
 import inspect
-import itertools
 import logging
 import multiprocessing
 import os
@@ -37,13 +35,18 @@ import sys
 import tempfile
 import textwrap
 import traceback
+import yaml
 
 import config
 import build.lib.build_support as build_support
 import ndk.builds
 import ndk.notify
 import ndk.paths
+import ndk.test.builder
+import ndk.test.spec
 import ndk.workqueue
+
+import tests.printers
 
 from ndk.builds import common_build_args, invoke_build, invoke_external_build
 
@@ -148,10 +151,8 @@ def make_test_report(reports, use_color):
     return os.linesep.join(lines)
 
 
-def test_ndk(out_dir, dist_dir, args):
-    """Runs the host-only tests on the just built NDK.
-
-    Only runs the tests for Clang due to resource constraints.
+def build_ndk_tests(out_dir, dist_dir, args):
+    """Builds the NDK tests.
 
     Args:
         out_dir: Build output directory.
@@ -164,55 +165,41 @@ def test_ndk(out_dir, dist_dir, args):
     # The packaging step extracts all the modules to a known directory for
     # packaging. This directory is not cleaned up after packaging, so we can
     # reuse that for testing.
-    test_dir = ndk.paths.get_install_path(out_dir)
+    ndk_dir = ndk.paths.get_install_path(out_dir)
+    test_out_dir = os.path.join(out_dir, 'tests')
 
-    test_env = dict(os.environ)
-    test_env['NDK'] = test_dir
+    site.addsitedir(os.path.join(ndk_dir, 'python-packages'))
 
-    abis = build_support.ALL_ABIS
+    test_options = ndk.test.spec.TestOptions(
+       ndk_dir, test_out_dir, verbose_build=True, skip_run=True, clean=True)
+
+    printer = tests.printers.StdoutPrinter()
+    with open(os.path.realpath('qa_config.yaml')) as config_file:
+        test_config = yaml.load(config_file)
+
     if args.arch is not None:
-        abis = build_support.arch_to_abis(args.arch)
+        test_config['abis'] = build_support.arch_to_abis(args.arch)
 
-    use_color = sys.stdin.isatty() and os.name != 'nt'
-    reports = collections.OrderedDict()
+    test_spec = ndk.test.builder.test_spec_from_config(test_config)
+    builder = ndk.test.builder.TestBuilder(
+        test_spec, test_options, printer)
 
-    site.addsitedir(os.path.join(test_dir, 'python-packages'))
-    import tests.runners
-    import tests.printers
+    report = builder.build()
+    printer.print_summary(report)
 
-    configurations = itertools.product(
-        abis,
-        ['clang'],  # Toolchains to test. Don't bother with GCC.
-        [False, True],  # Force deprecated headers.
-    )
-
-    for abi, toolchain, force_deprecated_headers in configurations:
-        if force_deprecated_headers:
-            force_deprecated_headers_str = 'deprecated headers'
-        else:
-            force_deprecated_headers_str = 'unified headers'
-
-        cfg = ' '.join([abi, toolchain, force_deprecated_headers_str])
-        test_out_dir = os.path.join(out_dir, 'test', abi)
-        reports[cfg] = tests.runners.run_single_configuration(
-            test_dir, test_out_dir,
-            tests.printers.StdoutPrinter(use_color=use_color),
-            abi, toolchain, skip_run=True,
-            force_deprecated_headers=force_deprecated_headers)
-
-    all_pass = all([r.successful for r in reports.values()])
-    if not all_pass:
-        test_report = make_test_report(reports, use_color)
-        print(test_report)
+    if report.successful:
+        print('Packaging tests...')
+        package_path = os.path.join(dist_dir, 'ndk-tests')
+        _make_tar_package(package_path, out_dir, 'tests/dist')
+    else:
+        # Write out the result to logs/build_error.log so we can find the
+        # failure easily on the build server.
         log_path = os.path.join(dist_dir, 'logs/build_error.log')
         with open(log_path, 'a') as error_log:
-            error_log.write(test_report)
+            error_log_printer = tests.printers.FilePrinter(error_log)
+            error_log_printer.print_summary(report)
 
-    print('Results:')
-    for test_config, report in reports.iteritems():
-        success_text = 'PASS' if report.successful else 'FAIL'
-        print('{}: {}'.format(test_config, success_text))
-    return all_pass
+    return report.successful
 
 
 def install_file(file_name, src_dir, dst_dir):
@@ -1268,7 +1255,7 @@ def main():
     test_timer = build_support.Timer()
     with test_timer:
         if args.test:
-            good = test_ndk(out_dir, dist_dir, args)
+            good = build_ndk_tests(out_dir, dist_dir, args)
             print()  # Blank line between test results and timing data.
 
     total_timer.finish()
