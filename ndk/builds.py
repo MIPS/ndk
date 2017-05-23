@@ -17,6 +17,8 @@
 
 Note: this isn't the ndk-build API, but the API for building the NDK itself.
 """
+from __future__ import absolute_import
+
 import ntpath
 import os
 import shutil

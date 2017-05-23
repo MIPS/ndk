@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 """Defines WorkQueue for delegating asynchronous work to subprocesses."""
+from __future__ import absolute_import
+
 import collections
 import logging
 import multiprocessing
