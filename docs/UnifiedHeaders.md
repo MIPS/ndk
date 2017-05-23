@@ -16,7 +16,7 @@ Unified headers are built directly from the Android platform, so they be up to
 date and correct (or at the very least, any bugs in the NDK headers will also be
 a bug in the platform headers, which means we're much more likely to find them).
 
-[prebuilts/ndk/headers]: https://android.googlesource.com/platform/prebuilts/ndk/+/master/headers/
+[prebuilts/ndk/headers]: https://android.googlesource.com/platform/prebuilts/ndk/+/dev/platform/sysroot/usr/include
 
 
 Known Issues
