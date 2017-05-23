@@ -15,6 +15,7 @@
 #
 from __future__ import print_function
 
+import os
 import sys
 
 import tests.util as util
@@ -40,11 +41,14 @@ class Printer(object):
 
 
 class FilePrinter(Printer):
-    def __init__(self, to_file, use_color=False, show_all=False, quiet=False):
+    def __init__(self, to_file, use_color=None, show_all=False, quiet=False):
         self.file = to_file
         self.use_color = use_color
         self.show_all = show_all
         self.quiet = quiet
+
+        if self.use_color is None:
+            self.use_color = to_file.isatty() and os.name != 'nt'
 
     def print_result(self, result):
         if self.quiet and not result.failed():
@@ -66,6 +70,6 @@ class FilePrinter(Printer):
 
 
 class StdoutPrinter(FilePrinter):
-    def __init__(self, use_color=False, show_all=False, quiet=False):
+    def __init__(self, use_color=None, show_all=False, quiet=False):
         super(StdoutPrinter, self).__init__(
             sys.stdout, use_color, show_all, quiet)
