@@ -23,6 +23,7 @@ import os
 import posixpath
 import random
 import site
+import subprocess
 import sys
 import time
 import yaml
@@ -322,21 +323,33 @@ def clear_test_directories(workqueue, fleet):
         workqueue.get_result()
 
 
-def push_tests_to_device(src_dir, dest_dir, config, device):
+def adb_has_feature(feature):
+    cmd = ['adb', 'host-features']
+    logger().info('check_output "%s"', ' '.join(cmd))
+    output = subprocess.check_output(cmd)
+    features_line = output.splitlines()[-1]
+    features = features_line.split(',')
+    return feature in features
+
+
+def push_tests_to_device(src_dir, dest_dir, config, device, use_sync):
     print('Pushing {} tests to {}.'.format(config, device))
     logger().info('%s: mkdir %s', device.name, dest_dir)
     device.shell_nocheck(['mkdir', dest_dir])
-    logger().info('%s: push --sync %s %s', device.name, src_dir, dest_dir)
-    device.push(src_dir, dest_dir, sync=True)
+    logger().info(
+        '%s: push%s %s %s', device.name, ' --sync' if use_sync else '',
+        src_dir, dest_dir)
+    device.push(src_dir, dest_dir, sync=use_sync)
 
 
-def push_tests_to_devices(workqueue, test_dir, devices_for_config):
+def push_tests_to_devices(workqueue, test_dir, devices_for_config, use_sync):
     for config, devices in devices_for_config.items():
         src_dir = os.path.join(test_dir, str(config))
         dest_dir = DEVICE_TEST_BASE_DIR
         for device in devices:
             workqueue.add_task(
-                push_tests_to_device, src_dir, dest_dir, config, device)
+                push_tests_to_device, src_dir, dest_dir, config, device,
+                use_sync)
 
     while not workqueue.finished():
         workqueue.get_result()
@@ -608,7 +621,9 @@ def main():
     try:
         if args.clean_device:
             clear_test_directories(workqueue, fleet)
-        push_tests_to_devices(workqueue, test_dist_dir, devices_for_config)
+        can_use_sync = adb_has_feature('push_sync')
+        push_tests_to_devices(
+            workqueue, test_dist_dir, devices_for_config, can_use_sync)
 
         # Shuffle the test runs to distribute the load more evenly. These are
         # ordered by (build config, device, test), so most of the tests running
