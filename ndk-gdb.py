@@ -685,7 +685,7 @@ def main():
     gdbrunner.start_gdbserver(
         device, None, gdbserver_path,
         target_pid=pid, run_cmd=None, debug_socket=debug_socket,
-        port=args.port, user=pkg_name)
+        port=args.port, run_as_cmd=["run-as", pkg_name])
 
     gdb_path = os.path.join(ndk_bin_path(), "gdb")
 
