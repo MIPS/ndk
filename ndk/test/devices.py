@@ -86,6 +86,10 @@ class Device(adb.AndroidDevice):
         chars = self.get_cached_properties()['ro.build.characteristics']
         return chars == 'emulator'
 
+    @property
+    def is_debuggable(self):
+        return int(self.get_cached_properties()['ro.debuggable']) != 0
+
     def can_run_build_config(self, config):
         if self.version < config.api:
             # Device is too old for this test.
@@ -101,6 +105,38 @@ class Device(adb.AndroidDevice):
             return False
 
         if config.abi not in self.abis:
+            return False
+
+        return True
+
+    def can_use_asan(self):
+        # ASAN is currently only supported for 32-bit ARM and x86...
+        asan_abis = {
+            'armeabi',
+            'armeabi-v7a',
+            'x86'
+        }
+
+        if not asan_abis.intersection(set(self.abis)):
+            logger().info('Cannot use ASAN: no ASAN supported ABIs (%s)',
+                          ', '.join(sorted(list(asan_abis))))
+            return False
+
+        # On KitKat and newer...
+        if self.version < 19:
+            logger().info('Cannot use ASAN: device is too old '
+                          '(is android-%s, minimum android-19)', self.version)
+            return False
+
+        # On rooted devices.
+        if not self.is_debuggable:
+            logger().info('Cannot use ASAN: device must be rooted')
+            return False
+
+        # Fugu's system image doesn't have enough space left for even the ASAN
+        # library.
+        if self.name == 'fugu':
+            logger().info('Cannot use ASAN: system partition full')
             return False
 
         return True

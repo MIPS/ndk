@@ -355,6 +355,33 @@ def push_tests_to_devices(workqueue, test_dir, devices_for_config, use_sync):
         workqueue.get_result()
 
 
+def setup_asan_for_device(ndk_path, device):
+    path = os.path.join(
+        ndk_path, 'toolchains/llvm/prebuilt', ndk.hosts.get_host_tag(ndk_path),
+        'bin/asan_device_setup')
+    cmd = [path, '--device', device.serial]
+    logger().info('%s: asan_device_setup', device.name)
+    try:
+        # Use check_output to keep the call quiet unless something goes wrong.
+        subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as ex:
+        logger().exception('asan_device_setup failed')
+        raise ex
+
+
+def perform_asan_setup(workqueue, ndk_path, devices):
+    # asan_device_setup is a shell script, so no asan there.
+    if os.name == 'nt':
+        return
+
+    for device in devices:
+        if device.can_use_asan():
+            workqueue.add_task(setup_asan_for_device, ndk_path, device)
+
+    while not workqueue.finished():
+        workqueue.get_result()
+
+
 def run_test(test):
     return test.run()
 
@@ -616,6 +643,11 @@ def main():
         logger().warning('No device found for %s.', config)
     test_runs = create_test_runs(test_groups, devices_for_config)
 
+    all_used_devices = []
+    for devices in devices_for_config.values():
+        all_used_devices.extend(devices)
+    all_used_devices = sorted(list(set(all_used_devices)))
+
     report = ndk.test.report.Report()
     workqueue = ndk.workqueue.WorkQueue()
     try:
@@ -624,6 +656,8 @@ def main():
         can_use_sync = adb_has_feature('push_sync')
         push_tests_to_devices(
             workqueue, test_dist_dir, devices_for_config, can_use_sync)
+
+        perform_asan_setup(workqueue, args.ndk, all_used_devices)
 
         # Shuffle the test runs to distribute the load more evenly. These are
         # ordered by (build config, device, test), so most of the tests running

@@ -15,9 +15,12 @@
 # limitations under the License.
 #
 """Interface to NDK build information."""
+from __future__ import absolute_import
+
 import os
 import sys
 
+import ndk.hosts
 import tests.util as util
 
 
@@ -25,25 +28,12 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 NDK_ROOT = os.path.realpath(os.path.join(THIS_DIR, '..'))
 
 
-def get_host_tag():
-    if sys.platform.startswith('linux'):
-        return 'linux-x86_64'
-    elif sys.platform == 'darwin':
-        return 'darwin-x86_64'
-    elif sys.platform == 'win32':
-        host_tag = 'windows-x86_64'
-        test_path = os.path.join(os.environ['NDK'], 'prebuilt', host_tag)
-        if not os.path.exists(test_path):
-            host_tag = 'windows'
-        return host_tag
-
-
 def get_tool(tool):
     ext = ''
     if sys.platform == 'win32':
         ext = '.exe'
 
-    host_tag = get_host_tag()
+    host_tag = ndk.hosts.get_host_tag(os.environ['NDK'])
     prebuilt_path = os.path.join(os.environ['NDK'], 'prebuilt', host_tag)
     return os.path.join(prebuilt_path, 'bin', tool) + ext
 
