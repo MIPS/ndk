@@ -424,7 +424,7 @@ gen_crt_objects ()
             dump "ERROR: Could not generate $DST_FILE from $SRC_DIR/$SRC_FILE"
             exit 1
         fi
-        if [ \( `$CHECK_NOTE` \) -a \( "`which readelf`" != "" \) ]; then
+        if [ \( "$CHECK_NOTE" == "true" \) -a \( "`which readelf`" != "" \) ]; then
             readelf --notes $DST_DIR/$DST_FILE | grep -q Android
             if [ $? != 0 ]; then
                 dump "ERROR: Generated $DST_DIR/$DST_FILE doesn't have our ELF note"
