@@ -169,7 +169,7 @@ class DeviceFleet(object):
         """
         self.devices = {}
         for api, abis in test_configurations.items():
-            self.devices[api] = {abi: None for abi in abis}
+            self.devices[int(api)] = {abi: None for abi in abis}
 
     def add_device(self, device):
         """Fills a fleet device slot with a device, if appropriate."""

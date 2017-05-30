@@ -18,6 +18,7 @@
 from __future__ import print_function
 
 import argparse
+import json
 import logging
 import os
 import posixpath
@@ -26,7 +27,6 @@ import site
 import subprocess
 import sys
 import time
-import yaml
 
 import build.lib.build_support
 import ndk.paths
@@ -474,7 +474,7 @@ def restart_flaky_tests(report, workqueue):
 
 def get_config_dict(config, abis, toolchains, headers, pie):
     with open(config) as test_config_file:
-        test_config = yaml.load(test_config_file)
+        test_config = json.load(test_config_file)
     if abis is not None:
         test_config['abis'] = abis
     if toolchains is not None:
@@ -516,7 +516,7 @@ def parse_args():
         '--pie', action='append', choices=(True, False), type=str_to_bool,
         help='Test only the given PIE configurations.')
     config_options.add_argument(
-        '--config', type=os.path.realpath, default='qa_config.yaml',
+        '--config', type=os.path.realpath, default='qa_config.json',
         help='Path to the config file describing the test run.')
 
     build_options = parser.add_argument_group('Build Options')

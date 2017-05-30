@@ -17,10 +17,10 @@
 from __future__ import absolute_import
 
 import itertools
+import json
 import logging
 import os
 import shutil
-import yaml
 
 import build.lib.build_support
 import ndk.abis
@@ -123,7 +123,7 @@ class TestBuilder(object):
     @classmethod
     def from_config_file(cls, config_path, test_options, printer):
         with open(config_path) as test_config_file:
-            test_config = yaml.load(test_config_file)
+            test_config = json.load(test_config_file)
         spec = test_spec_from_config(test_config)
         return cls(spec, test_options, printer)
 

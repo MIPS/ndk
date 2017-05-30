@@ -25,6 +25,7 @@ from __future__ import print_function
 import argparse
 import distutils.spawn
 import inspect
+import json
 import logging
 import multiprocessing
 import os
@@ -35,7 +36,6 @@ import sys
 import tempfile
 import textwrap
 import traceback
-import yaml
 
 import config
 import build.lib.build_support as build_support
@@ -174,8 +174,8 @@ def build_ndk_tests(out_dir, dist_dir, args):
        ndk_dir, test_out_dir, verbose_build=True, skip_run=True, clean=True)
 
     printer = tests.printers.StdoutPrinter()
-    with open(os.path.realpath('qa_config.yaml')) as config_file:
-        test_config = yaml.load(config_file)
+    with open(os.path.realpath('qa_config.json')) as config_file:
+        test_config = json.load(config_file)
 
     if args.arch is not None:
         test_config['abis'] = build_support.arch_to_abis(args.arch)
