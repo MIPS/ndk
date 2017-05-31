@@ -5,6 +5,4 @@ import sys
 def build_unsupported(_abi, _api, toolchain):
     if sys.platform == 'win32':
         return sys.platform
-    if toolchain != 'clang':
-        return toolchain
     return None

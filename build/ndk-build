@@ -61,6 +61,7 @@ fi
 
 PROJECT_PATH=
 PROJECT_PATH_NEXT=
+NDK_ANALYZER_OUT=
 for opt; do
     if [ -z "$PROJECT_PATH" -a "$PROJECT_PATH_NEXT" = "yes" ] ; then
         PROJECT_PATH=$opt
@@ -78,6 +79,9 @@ for opt; do
             ;;
           NDK_ANALYZE=*)
             NDK_ANALYZE=0
+            ;;
+          NDK_ANALYZER_OUT=*)
+            NDK_ANALYZER_OUT=${opt#NDK_ANALYZER_OUT=}
             ;;
           NDK_TOOLCHAIN_VERSION=*)
             NDK_TOOLCHAIN_VERSION=${opt#NDK_TOOLCHAIN_VERSION=}
@@ -264,6 +268,7 @@ if [ "$NDK_ANALYZE" = 1 ]; then
     for ABI in $APP_ABIS; do
         TOOLCHAIN_PREFIX=`get_build_var_for_abi TOOLCHAIN_PREFIX $ABI`
         LLVM_PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/$HOST_TAG
+        ANALYZER_OUT=`get_build_var NDK_APP_ANALYZER_OUT`
 
         if [ "$TOOLCHAIN" = "clang" ]; then
             ANALYZER_CC=$LLVM_PATH/bin/clang
@@ -273,11 +278,17 @@ if [ "$NDK_ANALYZE" = 1 ]; then
             ANALYZER_CXX=${TOOLCHAIN_PREFIX}g++
         fi
 
+        ANALYZER_OUT_FLAG=
+        if [ -n "$NDK_ANALYZER_OUT" ]; then
+            ANALYZER_OUT_FLAG="-o $NDK_ANALYZER_OUT/$ABI"
+        fi
+
         perl $LLVM_PATH/tools/scan-build/bin/scan-build \
             --use-analyzer $LLVM_PATH/bin/${ABI}/analyzer \
             --use-cc $ANALYZER_CC \
             --use-c++ $ANALYZER_CXX \
             --status-bugs \
+            $ANALYZER_OUT_FLAG \
             $GNUMAKE -f $PROGDIR/core/build-local.mk "$@" APP_ABI=$ABI
     done
 else
