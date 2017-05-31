@@ -23,7 +23,7 @@ built fresh from AOSP.
 
 The test runner will look for any attached devices that match the
 requirements listed in the `devices` section of the test configuration file (see
-[qa\_config.yaml] for the defaults, or use `--config` to choose your own). Each
+[qa\_config.json] for the defaults, or use `--config` to choose your own). Each
 test will be run on all devices compatible with that test.
 
 The full QA configuration takes roughly 20 minutes to run (Z840 Linux host,
@@ -33,7 +33,7 @@ The tests can be rebuilt without running `checkbuild.py` (which is necessary in
 the case of not having a full NDK checkout, as you might when running the
 Windows tests on a release from the build server) with `run_tests.py --rebuild`.
 
-[qa\_config.yaml]: ../qa_config.yaml
+[qa\_config.json]: ../qa_config.json
 [README.md]: ../README.md
 
 
@@ -46,8 +46,8 @@ thousands of test executables (each test is built in 84 different configurations
 at time of writing). The set of configurations built can be restricted in two
 ways.
 
-First, `run_tests.py --config myconfig.yaml` will use an alternate test
-configuration file (the default is `qa_config.yaml`).
+First, `run_tests.py --config myconfig.json` will use an alternate test
+configuration file (the default is `qa_config.json`).
 
 Second, and simpler for a development workflow, the following flags can be used
 to restrict the configurations (the presence of any of these flags will override
