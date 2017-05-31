@@ -140,7 +140,32 @@ add your library to the `PUBLIC_SYSTEM_LIBRARIES` list in that file.
 
 [bionic/libc/Android.bp]: https://android.googlesource.com/platform/bionic/+/master/libc/Android.bp
 
+### Making sure it works
+
+The best way to make sure you've set everything up properly is to add a test to
+CTS. Make sure this test is built using the NDK (make sure `LOCAL_SDK_VERSION`
+is set, `sdk_version` if you're using Android.bp). If your test passes in CTS
+when it is built with the NDK, then everything has been set up properly.
+
+Note that without this step, it is possible that one of the above steps will
+have been done incorrectly and you wouldn't know without inspecting everything
+yourself. If the `ndk_library` rule ends up in an Android.bp that never gets
+parsed and there are no tests built with the NDK that use that library, your
+build will still pass.
+
 For NDK Developers
 ------------------
 
-TODO(danalbert): Figure out how these get into the NDK build process.
+The platform APIs reach the NDK via the "sysroot" and "platforms" modules in
+checkbuild.py. The sysroot currently is just the headers, whereas the libraries
+and CRT objects are in platforms (as are the deprecated headers).
+
+The sysroot module is copied from `prebuilts/ndk/platform/sysroot`. These
+prebuilts are updated with `prebuilts/ndk/update_platform.py`, which pulls NDK
+artifacts from the build servers.
+
+The platforms module is built partially from `prebuilts/ndk/platform/sysroot`
+and partially from `development/ndk/platforms`. The former contains the library
+stubs from the platform, and the latter contains the deprecated headers, the CRT
+objects, and static libraries. For more information on this process, see
+[Generating Sysroots](GeneratingSysroots.md).
