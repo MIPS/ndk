@@ -118,19 +118,28 @@ TARGET_LDLIBS := -lc -lm
 # the toolchain's setup.mk script.
 #
 
+LLVM_TOOLCHAIN_PREBUILT_ROOT := $(call get-toolchain-root,llvm)
+LLVM_TOOLCHAIN_PREFIX := $(LLVM_TOOLCHAIN_PREBUILT_ROOT)/bin/
+
 ifneq ($(findstring ccc-analyzer,$(CC)),)
-TARGET_CC       = $(CC)
+    TARGET_CC = $(CC)
+else ifeq ($(NDK_TOOLCHAIN_VERSION),clang)
+    TARGET_CC = $(LLVM_TOOLCHAIN_PREFIX)clang$(HOST_EXEEXT)
 else
-TARGET_CC       = $(TOOLCHAIN_PREFIX)gcc
+    TARGET_CC = $(TOOLCHAIN_PREFIX)gcc
 endif
+
 TARGET_CFLAGS   =
 TARGET_CONLYFLAGS =
 
 ifneq ($(findstring c++-analyzer,$(CXX)),)
-TARGET_CXX      = $(CXX)
+    TARGET_CXX = $(CXX)
+else ifeq ($(NDK_TOOLCHAIN_VERSION),clang)
+    TARGET_CXX = $(LLVM_TOOLCHAIN_PREFIX)clang++$(HOST_EXEEXT)
 else
-TARGET_CXX      = $(TOOLCHAIN_PREFIX)g++
+    TARGET_CXX = $(TOOLCHAIN_PREFIX)g++
 endif
+
 TARGET_CXXFLAGS = $(TARGET_CFLAGS) -fno-exceptions -fno-rtti
 
 TARGET_RS_CC    = $(RENDERSCRIPT_TOOLCHAIN_PREFIX)llvm-rs-cc

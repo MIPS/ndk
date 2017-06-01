@@ -260,13 +260,23 @@ if [ "$NDK_ANALYZE" = 1 ]; then
     }
 
     APP_ABIS=`get_build_var APP_ABI`
+    TOOLCHAIN=`get_build_var NDK_TOOLCHAIN_VERSION`
     for ABI in $APP_ABIS; do
         TOOLCHAIN_PREFIX=`get_build_var_for_abi TOOLCHAIN_PREFIX $ABI`
         LLVM_PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/$HOST_TAG
+
+        if [ "$TOOLCHAIN" = "clang" ]; then
+            ANALYZER_CC=$LLVM_PATH/bin/clang
+            ANALYZER_CXX=$LLVM_PATH/bin/clang++
+        else
+            ANALYZER_CC=${TOOLCHAIN_PREFIX}gcc
+            ANALYZER_CXX=${TOOLCHAIN_PREFIX}g++
+        fi
+
         perl $LLVM_PATH/tools/scan-build/bin/scan-build \
             --use-analyzer $LLVM_PATH/bin/${ABI}/analyzer \
-            --use-cc ${TOOLCHAIN_PREFIX}gcc \
-            --use-c++ ${TOOLCHAIN_PREFIX}g++ \
+            --use-cc $ANALYZER_CC \
+            --use-c++ $ANALYZER_CXX \
             --status-bugs \
             $GNUMAKE -f $PROGDIR/core/build-local.mk "$@" APP_ABI=$ABI
     done
