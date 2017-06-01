@@ -602,6 +602,8 @@ def main():
         report = build_tests(
             args.ndk, args.test_dir, args.clean, printer, test_config,
             args.filter)
+        if report.num_tests == 0:
+            sys.exit('Found no tests for filter {}.'.format(args.filter))
         printer.print_summary(report)
         if not report.successful:
             sys.exit(report.num_failed)
@@ -611,6 +613,12 @@ def main():
     # dict of {BuildConfiguration: [Test]}
     config_filter = ConfigFilter(test_config)
     test_groups = enumerate_tests(test_dist_dir, test_filter, config_filter)
+    if sum([len(tests) for tests in test_groups.values()]) == 0:
+        print('Found no tests in {} for filter {}.'.format(
+            test_dist_dir, args.filter))
+        # As long as we *built* some tests, not having anything to run isn't a
+        # failure.
+        sys.exit(not args.rebuild)
 
     if args.show_test_stats:
         print_test_stats(test_groups)
