@@ -134,8 +134,9 @@ $ python checkbuild.py --system windows  # Or windows64.
 ```
 
 `checkbuild.py` will also build all of the NDK tests. This takes about four
-times as long as building the NDK itself, so pass `--no-test` to skip building
-the tests. They can be built later with `python run_tests.py --rebuild`.
+times as long as building the NDK itself, so pass `--no-build-tests` to skip
+building the tests. They can be built later with `python run_tests.py
+--rebuild`.
 
 `checkbuild.py` also accepts a variety of other options to speed up local
 builds, namely `--arch` and `--module`.

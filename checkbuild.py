@@ -1372,14 +1372,14 @@ def parse_args():
 
     test_group = parser.add_mutually_exclusive_group()
     test_group.add_argument(
-        '--test', action='store_true', dest='test', default=True,
+        '--build-tests', action='store_true', dest='build_tests', default=True,
         help=textwrap.dedent("""\
-        Run host tests when finished. --package is required. Not supported
+        Build tests when finished. --package is required. Not supported
         when targeting Windows.
         """))
     test_group.add_argument(
-        '--no-test', action='store_false', dest='test',
-        help='Do not run host tests when finished.')
+        '--no-build-tests', action='store_false', dest='build_tests',
+        help='Skip building tests after building the NDK.')
 
     parser.add_argument(
         '--build-number', default='dev',
@@ -1541,7 +1541,7 @@ def main():
     good = True
     test_timer = ndk.timer.Timer()
     with test_timer:
-        if args.test:
+        if args.build_tests:
             good = build_ndk_tests(out_dir, dist_dir, args)
             print()  # Blank line between test results and timing data.
 
