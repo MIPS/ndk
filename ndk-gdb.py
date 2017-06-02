@@ -309,12 +309,13 @@ def dump_var(args, variable, abi=None):
     return make_output.splitlines()[0]
 
 
-def get_api_level(device_props):
+def get_api_level(device):
     # Check the device API level
-    if "ro.build.version.sdk" not in device_props:
+    try:
+        api_level = int(device.get_prop("ro.build.version.sdk"))
+    except ValueError:
         error("Failed to find target device's supported API level.\n"
               "ndk-gdb only supports devices running Android 2.2 or higher.")
-    api_level = int(device_props["ro.build.version.sdk"])
     if api_level < 8:
         error("ndk-gdb only supports devices running Android 2.2 or higher.\n"
               "(expected API level 8, actual: {})".format(api_level))
@@ -335,18 +336,17 @@ def fetch_abi(args):
     app_abis_msg = "Application ABIs: {}".format(", ".join(app_abis))
     log(app_abis_msg)
 
-    device_props = args.device.get_props()
-
     new_abi_props = ["ro.product.cpu.abilist"]
     old_abi_props = ["ro.product.cpu.abi", "ro.product.cpu.abi2"]
     abi_props = new_abi_props
-    if len(set(new_abi_props).intersection(device_props.keys())) == 0:
+    if args.device.get_prop("ro.product.cpu.abilist") == "":
         abi_props = old_abi_props
 
     device_abis = []
     for key in abi_props:
-        if key in device_props:
-            device_abis.extend(device_props[key].split(","))
+        value = args.device.get_prop(key)
+        if value != "":
+            device_abis.extend(value.split(","))
 
     device_abis_msg = "Device ABIs: {}".format(", ".join(device_abis))
     log(device_abis_msg)
@@ -379,7 +379,7 @@ def get_app_data_dir(args, package_name):
     # created with rwx------ permissions, preventing adbd from forwarding to
     # the gdbserver socket. To be safe, if we're on a device >= 24, always
     # chmod the directory.
-    if get_api_level(args.props) >= 24:
+    if get_api_level(args.device) >= 24:
         chmod_cmd = ["/system/bin/chmod", "a+x", data_dir]
         chmod_cmd = gdbrunner.get_run_as_cmd(package_name, chmod_cmd)
         (rc, _, _) = args.device.shell_nocheck(chmod_cmd)
@@ -417,7 +417,7 @@ def get_gdbserver_path(args, package_name, app_data_dir, arch):
 
     # Copy gdbserver into the data directory on M+, because selinux prevents
     # execution of binaries directly from /data/local/tmp.
-    if get_api_level(args.props) >= 23:
+    if get_api_level(args.device) >= 23:
         destination = "{}/{}-gdbserver".format(app_data_dir, arch)
         log("Copying gdbserver to {}.".format(destination))
         cmd = ["cat", remote_path, "|", "run-as", package_name,
@@ -606,8 +606,6 @@ def main():
     adb_version = subprocess.check_output(device.adb_cmd + ["version"])
     log("ADB command used: '{}'".format(" ".join(device.adb_cmd)))
     log("ADB version: {}".format(" ".join(adb_version.splitlines())))
-
-    args.props = device.get_props()
 
     project = find_project(args)
     if args.package_name:
