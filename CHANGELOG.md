@@ -16,6 +16,8 @@ Announcements
    **Note**: The deprecated headers will be removed in a future release, most
    likely r16. If they do not work for you, file bugs now.
 
+   For migration tips, see [Unified Headers Migration Notes].
+
  * GCC is no longer supported. It will not be removed from the NDK just yet, but
    is no longer receiving backports. It cannot be removed until after libc++ has
    become stable enough to be the default, as some parts of gnustl are still
@@ -26,6 +28,7 @@ Announcements
    set lower than android-14, android-14 will be used instead.
 
 [Unified Headers]: docs/UnifiedHeaders.md
+[Unified Headers Migration Notes]: docs/UnifiedHeadersMigration.md
 
 NDK
 ===
