@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-int sprintf(char *restrict s, const char *restrict fmt, ...)
+int sprintf(char *restrict s, const char *restrict fmt, ...) __overloadable
 {
 	int ret;
 	va_list ap;
