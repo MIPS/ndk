@@ -713,7 +713,7 @@ int vfprintf(FILE *restrict f, const char *restrict fmt, va_list ap)
 	return ret;
 }
 
-int vsnprintf(char *restrict s, size_t n, const char *restrict fmt, va_list ap)
+int vsnprintf(char *restrict s, size_t n, const char *restrict fmt, va_list ap) __overloadable
 {
         va_list ap2;
         int nl_type[NL_ARGMAX+1] = {0};

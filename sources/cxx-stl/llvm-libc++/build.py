@@ -52,9 +52,11 @@ def main(args):
         abis.extend(build_support.arch_to_abis(arch))
 
     ndk_build = build_support.ndk_path('build/ndk-build')
-    prebuilt_ndk = build_support.android_path('prebuilts/ndk/current')
-    platforms_root = os.path.join(prebuilt_ndk, 'platforms')
-    toolchains_root = os.path.join(prebuilt_ndk, 'toolchains')
+    prebuilt_ndk = build_support.android_path('prebuilts/ndk')
+    platform_prebuilts = os.path.join(prebuilt_ndk, 'platform')
+    platforms_root = os.path.join(prebuilt_ndk, 'current/platforms')
+    unified_sysroot_path = os.path.join(platform_prebuilts, 'sysroot')
+    toolchains_root = os.path.join(prebuilt_ndk, 'current/toolchains')
     libcxx_path = build_support.android_path('external/libcxx')
     obj_out = os.path.join(args.out_dir, 'libcxx/obj')
 
@@ -70,6 +72,7 @@ def main(args):
         'APP_ABI=' + ' '.join(abis),
 
         # Use the prebuilt platforms and toolchains.
+        'NDK_UNIFIED_SYSROOT_PATH=' + unified_sysroot_path,
         'NDK_PLATFORMS_ROOT=' + platforms_root,
         'NDK_TOOLCHAINS_ROOT=' + toolchains_root,
         'NDK_NEW_TOOLCHAINS_LAYOUT=true',
