@@ -84,9 +84,6 @@ int iswspace_l(wint_t, locale_t);
 int iswupper_l(wint_t, locale_t);
 int iswxdigit_l(wint_t, locale_t);
 
-int towlower_l(int, locale_t);
-int towupper_l(int, locale_t);
-
 #ifdef __cplusplus
 }  // extern "C"
 #endif

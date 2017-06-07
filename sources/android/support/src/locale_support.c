@@ -45,8 +45,7 @@
 //              invoke the platform APIs to implement proper handling.
 //
 
-///////////////////////////////////////////////////////////////////////
-// stdio.h declarations
+#if __ANDROID_API__ < 21
 
 int vasprintf_l(char** strp, locale_t l, const char* fmt, va_list args) {
     // Ignore locale.
@@ -98,15 +97,8 @@ int sscanf_l(const char* str, locale_t l, const char* fmt, ...) {
     return result;
 }
 
-///////////////////////////////////////////////////////////////////////
-// stdlib.h declarations
-
-long strtol_l(const char *nptr, char **endptr, int base, locale_t loc) {
-    return strtol(nptr, endptr, base);
-}
-
-unsigned long strtoul_l(const char *nptr, char **endptr, int base, locale_t loc) {
-    return strtoul(nptr, endptr, base);
+long double strtold_l (const char *nptr, char **endptr, locale_t loc) {
+    return strtold(nptr, endptr);
 }
 
 long long strtoll_l(const char *nptr, char **endptr, int base, locale_t loc) {
@@ -116,7 +108,22 @@ long long strtoll_l(const char *nptr, char **endptr, int base, locale_t loc) {
 unsigned long long strtoull_l(const char *nptr, char **endptr, int base, locale_t loc) {
     return strtoull(nptr, endptr, base);
 }
+#endif // __ANDROID_API__ < 21
 
-long double strtold_l (const char *nptr, char **endptr, locale_t loc) {
-    return strtold(nptr, endptr);
+#if __ANDROID_API__ < 26
+long strtol_l(const char *nptr, char **endptr, int base, locale_t loc) {
+    return strtol(nptr, endptr, base);
 }
+
+unsigned long strtoul_l(const char *nptr, char **endptr, int base, locale_t loc) {
+    return strtoul(nptr, endptr, base);
+}
+
+double strtod_l(const char* nptr, char** endptr, locale_t __unused locale) {
+  return strtod(nptr, endptr);
+}
+
+float strtof_l(const char* nptr, char** endptr, locale_t __unused locale) {
+  return strtof(nptr, endptr);
+}
+#endif // __ANDROID_API__ < 26
