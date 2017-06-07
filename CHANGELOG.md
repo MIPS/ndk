@@ -27,8 +27,12 @@ Announcements
    in the NDK is now Ice Cream Sandwich (android-14). If your `APP_PLATFORM` is
    set lower than android-14, android-14 will be used instead.
 
+ * The CMake toolchain file now supports building assembly code written in YASM
+   to run on x86 and x86-64 architectures. To learn more, see [YASM in CMake].
+
 [Unified Headers]: docs/UnifiedHeaders.md
 [Unified Headers Migration Notes]: docs/UnifiedHeadersMigration.md
+[YASM in CMake]: https://android-dot-devsite.googleplex.com/ndk/guides/cmake.html#yasm-cmake
 
 NDK
 ===
