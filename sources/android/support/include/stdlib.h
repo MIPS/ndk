@@ -28,37 +28,40 @@
 #ifndef NDK_ANDROID_SUPPORT_STDLIB_H
 #define NDK_ANDROID_SUPPORT_STDLIB_H
 
-// __LP64__
-
 #include_next <stdlib.h>
-
-#if !defined(__LP64__)
-
 #include <xlocale.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+__BEGIN_DECLS
 
-long long   strtoll(const char*, char**, int);
-long double strtold(const char*, char**);
+// These APIs made it in to L.
+#if __ANDROID_API__ < 21
+
 void _Exit(int);
-int                  mbtowc(wchar_t *pwc, const char *pmb, size_t max);
-long                 strtol_l(const char *nptr, char **endptr, int base, locale_t loc);
-unsigned long        strtoul_l(const char *nptr, char **endptr, int base, locale_t loc);
-long long            strtoll_l(const char *nptr, char **endptr, int base, locale_t loc);
-unsigned long long   strtoull_l(const char *nptr, char **endptr, int base, locale_t loc);
-long double          strtold_l(const char *nptr, char **endptr, locale_t loc);
+
+long double strtold(const char*, char**);
+long double strtold_l(const char* nptr, char** endptr, locale_t loc);
+long long strtoll_l(const char* nptr, char** endptr, int base, locale_t loc);
+unsigned long long strtoull_l(const char* nptr, char** endptr, int base,
+                              locale_t loc);
+
+int mbtowc(wchar_t* pwc, const char* pmb, size_t n);
 
 #if __ISO_C_VISIBLE >= 2011 || __cplusplus >= 201103L
 int at_quick_exit(void (*)(void));
 void quick_exit(int) __noreturn;
 #endif
 
-#ifdef __cplusplus
-}  // extern "C"
-#endif
+#endif // __ANDROID_API__ < 21
 
-#endif // !__LP64__
+// These APIs made it in to O.
+#if __ANDROID_API__ < 26
+double strtod_l(const char* nptr, char** endptr, locale_t locale);
+float strtof_l(const char* nptr, char** endptr, locale_t locale);
+long strtol_l(const char* nptr, char** endptr, int base, locale_t locale);
+unsigned long strtoul_l(const char* nptr, char** endptr, int base,
+                        locale_t locale);
+#endif // __ANDROID_API__ < 26
+
+__END_DECLS
 
 #endif  // NDK_ANDROID_SUPPORT_STDLIB_H
