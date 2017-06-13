@@ -30,6 +30,7 @@ import time
 
 import build.lib.build_support
 import ndk.paths
+import ndk.subprocess
 import ndk.test.builder
 import ndk.test.devices
 import ndk.test.report
@@ -355,18 +356,53 @@ def push_tests_to_devices(workqueue, test_dir, devices_for_config, use_sync):
         workqueue.get_result()
 
 
-def setup_asan_for_device(ndk_path, device):
+def disable_verity_and_wait_for_reboot(device):
+    if device.get_prop('ro.boot.veritymode') != 'enforcing':
+        return
+
+    logger().info('%s: root', device.name)
+    device.root()
+
+    logger().info('%s: disable-verity', device.name)
+    cmd = ['adb', '-s', device.serial, 'disable-verity']
+    # disable-verity doesn't set exit status
+    _, out = ndk.subprocess.call_output(cmd)
+    logger().info('%s: disable-verity:\n%s', device, out)
+    if 'disabled on /' not in out:
+        raise RuntimeError('{}: adb disable-verity failed:\n{}'.format(
+            device, out))
+
+    if 'reboot your device' in out:
+        logger().info('%s: reboot', device.name)
+        device.reboot()
+        logger().info('%s: wait-for-device', device.name)
+        device.wait()
+
+
+def asan_device_setup(ndk_path, device):
     path = os.path.join(
         ndk_path, 'toolchains/llvm/prebuilt', ndk.hosts.get_host_tag(ndk_path),
         'bin/asan_device_setup')
     cmd = [path, '--device', device.serial]
     logger().info('%s: asan_device_setup', device.name)
-    try:
-        # Use check_output to keep the call quiet unless something goes wrong.
-        subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError as ex:
-        logger().exception('asan_device_setup failed')
-        raise ex
+    # Use call_output to keep the call quiet unless something goes wrong.
+    result, out = ndk.subprocess.call_output(cmd)
+    if result != 0:
+        # The script sometimes fails on the first try >:(
+        logger().info(
+            '%s: asan_device_setup failed once, retrying', device.name)
+        result, out = ndk.subprocess.call_output(cmd)
+    if result != 0:
+        # The script sometimes fails on the first try >:(
+        result, out = ndk.subprocess.call_output(cmd)
+        raise RuntimeError('{}: asan_device_setup failed:\n{}'.format(
+            device, out))
+
+
+def setup_asan_for_device(ndk_path, device):
+    print('Performing ASAN setup for {}'.format(device))
+    disable_verity_and_wait_for_reboot(device)
+    asan_device_setup(ndk_path, device)
 
 
 def perform_asan_setup(workqueue, ndk_path, devices):

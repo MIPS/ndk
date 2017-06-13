@@ -14,14 +14,7 @@
 # limitations under the License.
 #
 import contextlib
-import logging
 import os
-import subprocess
-
-
-def logger():
-    """Returns the logger for this module."""
-    return logging.getLogger(__name__)
 
 
 def color_string(string, color):
@@ -46,37 +39,3 @@ def cd(path):
         yield
     finally:
         os.chdir(curdir)
-
-
-def _call_output_inner(cmd, *args, **kwargs):
-    """Does the real work of call_output.
-
-    This inner function does the real work and the outer function handles the
-    OS specific stuff (Windows needs to handle WindowsError, but that isn't
-    defined on non-Windows systems).
-    """
-    logger().info('Popen: %s', ' '.join(cmd))
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT, *args, **kwargs)
-    out, _ = proc.communicate()
-    return proc.returncode, out
-
-
-def call_output(cmd, *args, **kwargs):
-    """Invoke the specified command and return exit code and output.
-
-    This is the missing subprocess.call_output, which is the combination of
-    subprocess.call and subprocess.check_output. Like call, it returns an exit
-    code rather than raising an exception. Like check_output, it returns the
-    output of the program. Unlike check_output, it returns the output even on
-    failure.
-
-    Returns: Tuple of (exit_code, output).
-    """
-    if os.name == 'nt':
-        try:
-            return _call_output_inner(cmd, *args, **kwargs)
-        except WindowsError as error:  # pylint: disable=undefined-variable
-            return error.winerror, error.strerror
-    else:
-        return _call_output_inner(cmd, *args, **kwargs)

@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 """Defines API for presenting desktop notifications."""
+from __future__ import absolute_import
+
 import subprocess
 
 
