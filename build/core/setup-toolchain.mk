@@ -113,8 +113,6 @@ include $(NDK_TOOLCHAIN.$(TARGET_TOOLCHAIN).setup)
 # linking the generated target files properly.
 SYSROOT_BASE := $(NDK_PLATFORMS_ROOT)/$(TARGET_PLATFORM)/arch-$(TARGET_ARCH)
 SYSROOT_INC := $(SYSROOT_BASE)
-# Arch specific headers are already in the non-unified sysroot.
-SYSROOT_ARCH_INC_ARG :=
 
 # TODO(danalbert): Use the new libraries.
 # This still points at the old tree for the libraries. We need to either:
@@ -131,24 +129,22 @@ SYSROOT_ARCH_INC_ARG :=
 # things they actually don't).
 SYSROOT_LINK := $(SYSROOT_BASE)
 
-ifneq ($(APP_DEPRECATED_HEADERS),true)
-    ifndef NDK_UNIFIED_SYSROOT_PATH
-        NDK_UNIFIED_SYSROOT_PATH := $(NDK_ROOT)/sysroot
-    endif
-    SYSROOT_INC := $(NDK_UNIFIED_SYSROOT_PATH)
-
-    # The compiler driver doesn't check any arch specific include locations
-    # (though maybe we should add that). Architecture specific headers like asm/
-    # and machine/ are installed to an arch-$ARCH subdirectory of the sysroot.
-    header_triple_arm := arm-linux-androideabi
-    header_triple_arm64 := aarch64-linux-android
-    header_triple_mips := mipsel-linux-android
-    header_triple_mips64 := mips64el-linux-android
-    header_triple_x86 := i686-linux-android
-    header_triple_x86_64 := x86_64-linux-android
-    SYSROOT_ARCH_INC_ARG := \
-        -isystem $(SYSROOT_INC)/usr/include/$(header_triple_$(TARGET_ARCH))
+ifndef NDK_UNIFIED_SYSROOT_PATH
+    NDK_UNIFIED_SYSROOT_PATH := $(NDK_ROOT)/sysroot
 endif
+SYSROOT_INC := $(NDK_UNIFIED_SYSROOT_PATH)
+
+# The compiler driver doesn't check any arch specific include locations
+# (though maybe we should add that). Architecture specific headers like asm/
+# and machine/ are installed to an arch-$ARCH subdirectory of the sysroot.
+header_triple_arm := arm-linux-androideabi
+header_triple_arm64 := aarch64-linux-android
+header_triple_mips := mipsel-linux-android
+header_triple_mips64 := mips64el-linux-android
+header_triple_x86 := i686-linux-android
+header_triple_x86_64 := x86_64-linux-android
+SYSROOT_ARCH_INC_ARG := \
+    -isystem $(SYSROOT_INC)/usr/include/$(header_triple_$(TARGET_ARCH))
 
 clean-installed-binaries::
 

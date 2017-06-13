@@ -57,7 +57,6 @@ the matching entry in the config file, but otherwise the config file is obeyed):
 $ ./run_tests.py --rebuild \
     --abi armeabi-v7a \
     --toolchain clang \
-    --headers unified \
     --pie true
 ```
 
@@ -75,14 +74,13 @@ Test filters support wildcards (as implemented by Python's `fnmatch.fnmatch`).
 The filter flag may be combined with the build configuration flags.
 
 Putting this all together, a single test can be rebuilt and run for just
-armeabi-v7a, using only Clang, only unified headers, and only PIE executables
-with the following command:
+armeabi-v7a, using only Clang, and only PIE executables with the following
+command:
 
 ```bash
 $ ./run_tests.py --rebuild \
     --abi armeabi-v7a \
     --toolchain clang \
-    --headers unified \
     --pie true \
     --filter test-googletest-full
 ```

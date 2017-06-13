@@ -193,8 +193,7 @@ set(CMAKE_TRY_COMPILE_PLATFORM_VARIABLES
 	ANDROID_DISABLE_NO_EXECUTE
 	ANDROID_DISABLE_RELRO
 	ANDROID_DISABLE_FORMAT_STRING_CHECKS
-	ANDROID_CCACHE
-	ANDROID_DEPRECATED_HEADERS)
+	ANDROID_CCACHE)
 
 # Standard cross-compiling stuff.
 set(ANDROID TRUE)
@@ -308,49 +307,42 @@ endif()
 # https://cmake.org/cmake/help/v3.8/variable/CMAKE_FIND_ROOT_PATH.html
 #
 # In theory this should just be our sysroot, but since we don't have a single
-# sysroot that is correct for unified headers (there's only one set of headers,
-# but multiple locations for libraries that need to be handled differently).
-# Some day we'll want to move all the libraries into ${ANDROID_NDK}/sysroot, but
-# we'll need to make some fixes to Clang, various build systems, and possibly
-# CMake itself to get that working.
+# sysroot that is correct (there's only one set of headers, but multiple
+# locations for libraries that need to be handled differently).  Some day we'll
+# want to move all the libraries into ${ANDROID_NDK}/sysroot, but we'll need to
+# make some fixes to Clang, various build systems, and possibly CMake itself to
+# get that working.
 list(APPEND CMAKE_FIND_ROOT_PATH "${ANDROID_NDK}")
 
 # Sysroot.
-if(ANDROID_DEPRECATED_HEADERS)
-	set(CMAKE_SYSROOT
-		"${ANDROID_NDK}/platforms/${ANDROID_PLATFORM}/arch-${ANDROID_SYSROOT_ABI}")
-else()
-	set(CMAKE_SYSROOT "${ANDROID_NDK}/sysroot")
-	# The compiler driver doesn't check any arch specific include locations
-	# (though maybe we should add that). Architecture specific headers like asm/
-	# and machine/ are installed to an arch-$ARCH subdirectory of the sysroot.
-	list(APPEND ANDROID_COMPILER_FLAGS
-		"-isystem ${CMAKE_SYSROOT}/usr/include/${ANDROID_HEADER_TRIPLE}")
-	list(APPEND ANDROID_COMPILER_FLAGS
-		"-D__ANDROID_API__=${ANDROID_PLATFORM_LEVEL}")
+set(CMAKE_SYSROOT "${ANDROID_NDK}/sysroot")
+# The compiler driver doesn't check any arch specific include locations (though
+# maybe we should add that). Architecture specific headers like asm/ and
+# machine/ are installed to an arch-$ARCH subdirectory of the sysroot.
+list(APPEND ANDROID_COMPILER_FLAGS
+	"-isystem ${CMAKE_SYSROOT}/usr/include/${ANDROID_HEADER_TRIPLE}")
+list(APPEND ANDROID_COMPILER_FLAGS
+	"-D__ANDROID_API__=${ANDROID_PLATFORM_LEVEL}")
 
-	# We need different sysroots for linking and compiling when using unified
-	# headers, but cmake doesn't support that. Pass the sysroot flag manually when
-	# linking.
-	set(ANDROID_SYSTEM_LIBRARY_PATH
-		"${ANDROID_NDK}/platforms/${ANDROID_PLATFORM}/arch-${ANDROID_SYSROOT_ABI}")
-	list(APPEND ANDROID_LINKER_FLAGS "--sysroot ${ANDROID_SYSTEM_LIBRARY_PATH}")
+# We need different sysroots for linking and compiling, but cmake doesn't
+# support that. Pass the sysroot flag manually when linking.
+set(ANDROID_SYSTEM_LIBRARY_PATH
+	"${ANDROID_NDK}/platforms/${ANDROID_PLATFORM}/arch-${ANDROID_SYSROOT_ABI}")
+list(APPEND ANDROID_LINKER_FLAGS "--sysroot ${ANDROID_SYSTEM_LIBRARY_PATH}")
 
-	# find_library searches a handful of paths as described by
-	# https://cmake.org/cmake/help/v3.6/command/find_library.html. Before unified
-	# headers, we found NDK libraries in the CMAKE_SYSROOT. With unified headers,
-	# we don't have libraries in the CMAKE_SYSROOT any more. Set up
-	# CMAKE_SYSTEM_LIBRARY_PATH
-	# (https://cmake.org/cmake/help/v3.6/variable/CMAKE_SYSTEM_LIBRARY_PATH.html)
-	# instead.
-	#
-	# NB: The suffix is just lib here instead of dealing with lib64 because
-	# apparently CMake does some automatic rewriting of that? I've been testing
-	# by building my own CMake with a bunch of logging added, and that seems to be
-	# the case.
-	list(APPEND CMAKE_SYSTEM_LIBRARY_PATH
-		"${ANDROID_SYSTEM_LIBRARY_PATH}/usr/lib")
-endif()
+# find_library searches a handful of paths as described by
+# https://cmake.org/cmake/help/v3.6/command/find_library.html.  Since libraries
+# are per-API level and headers aren't, We don't have libraries in the
+# CMAKE_SYSROOT. Set up CMAKE_SYSTEM_LIBRARY_PATH
+# (https://cmake.org/cmake/help/v3.6/variable/CMAKE_SYSTEM_LIBRARY_PATH.html)
+# instead.
+#
+# NB: The suffix is just lib here instead of dealing with lib64 because
+# apparently CMake does some automatic rewriting of that? I've been testing by
+# building my own CMake with a bunch of logging added, and that seems to be the
+# case.
+list(APPEND CMAKE_SYSTEM_LIBRARY_PATH
+	"${ANDROID_SYSTEM_LIBRARY_PATH}/usr/lib")
 
 # Toolchain.
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL Linux)

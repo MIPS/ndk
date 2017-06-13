@@ -438,53 +438,6 @@ gen_crt_objects ()
     done
 }
 
-# $1: platform number
-# $2: architecture
-# $3: target NDK directory
-generate_api_level ()
-{
-    local API=$1
-    local ARCH=$2
-    local HEADER="platforms/android-$API/arch-$ARCH/usr/include/android/api-level.h"
-    log "Generating: $HEADER"
-    rm -f "$3/$HEADER"  # Remove symlink if any.
-    cat > "$3/$HEADER" <<EOF
-/*
- * Copyright (C) 2008 The Android Open Source Project
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *  * Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *  * Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
- * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- */
-#ifndef ANDROID_API_LEVEL_H
-#define ANDROID_API_LEVEL_H
-
-#define __ANDROID_API__ $API
-
-#endif /* ANDROID_API_LEVEL_H */
-EOF
-}
-
 # Copy platform sysroot into your destination
 #
 
@@ -530,44 +483,6 @@ for ARCH in $ARCHS; do
                 symlink_src_directory $PREV_SYSROOT_DST $SYSROOT_DST
             fi
         fi
-
-        # If this is the first destination directory, copy the common
-        # files from previous platform directories into this one.
-        # This helps copy the common headers from android-3 to android-8
-        # into the x86 and mips android-9 directories.
-        if [ -z "$PREV_SYSROOT_DST" ]; then
-            for OLD_PLATFORM in $PLATFORMS; do
-                if [ "$OLD_PLATFORM" = "$PLATFORM" ]; then
-                    break
-                fi
-                copy_src_directory platforms/android-$OLD_PLATFORM/include \
-                                   $SYSROOT_DST/include \
-                                   "common android-$OLD_PLATFORM headers"
-            done
-        fi
-
-        # There are two set of bionic headers: the original ones haven't been updated since
-        # gingerbread except for bug fixing, and the new ones in android-$FIRST_API64_LEVEL
-        # with 64-bit support.  Before the old bionic headers are deprecated/removed, we need
-        # to remove stale old headers when createing platform = $FIRST_API64_LEVEL
-        if [ "$PLATFORM" = "$FIRST_API64_LEVEL" ]; then
-            log "Removing stale bionic headers in \$DST/$SYSROOT_DST/include"
-            nonbionic_files="android EGL GLES GLES2 GLES3 KHR media OMXAL SLES jni.h thread_db.h zconf.h zlib.h"
-            if [ -d "$DSTDIR/$SYSROOT_DST/include/" ]; then
-                files=$(cd "$DSTDIR/$SYSROOT_DST/include/" && ls)
-                for file in $files; do
-                    if [ "$nonbionic_files" = "${nonbionic_files%%${file}*}" ]; then
-                        rm -rf "$DSTDIR/$SYSROOT_DST/include/$file"
-                    fi
-                done
-            fi
-        fi
-
-        # Now copy over all non-arch specific include files
-        copy_src_directory $PLATFORM_SRC/include $SYSROOT_DST/include "common system headers"
-        copy_src_directory $PLATFORM_SRC/arch-$ARCH/include $SYSROOT_DST/include "$ARCH system headers"
-
-        generate_api_level "$PLATFORM" "$ARCH" "$DSTDIR"
 
         # Copy the prebuilt static libraries.  We need full set for multilib compiler for some arch
         case "$ARCH" in
@@ -623,21 +538,10 @@ for ARCH in $ARCHS; do
 done
 
 if [ "$PACKAGE_DIR" ]; then
-    # Remove "duplicate" files for case-insensitive platforms.
-    if [ "$OPTION_CASE_INSENSITIVE" = "yes" ]; then
-        find "$DSTDIR/platforms" | sort -f | uniq -di | xargs rm
-    fi
-
     make_repo_prop "$DSTDIR/platforms"
 
     NOTICE="$DSTDIR/platforms/NOTICE"
-    cat "$ANDROID_BUILD_TOP/bionic/libc/NOTICE" >> $NOTICE
-    echo >> $NOTICE
-    cat "$ANDROID_BUILD_TOP/bionic/libm/NOTICE" >> $NOTICE
-    echo >> $NOTICE
-    cat "$ANDROID_BUILD_TOP/bionic/libdl/NOTICE" >> $NOTICE
-    echo >> $NOTICE
-    cat "$ANDROID_BUILD_TOP/bionic/libstdc++/NOTICE" >> $NOTICE
+    cp "$ANDROID_BUILD_TOP/bionic/libc/NOTICE" >> $NOTICE
 
     mkdir -p "$PACKAGE_DIR"
     fail_panic "Could not create package directory: $PACKAGE_DIR"

@@ -86,10 +86,10 @@ class TestScanner(object):
 
 
 class DeviceConfiguration(ndk.test.spec.BuildConfiguration):
-    def __init__(self, abi, api, toolchain, force_pie, verbose,
-                 force_deprecated_headers, device, device_api, skip_run):
+    def __init__(self, abi, api, toolchain, force_pie, verbose, device,
+                 device_api, skip_run):
         super(DeviceConfiguration, self).__init__(
-            abi, api, toolchain, force_pie, verbose, force_deprecated_headers)
+            abi, api, toolchain, force_pie, verbose)
         self.device = device
         self.device_api = device_api
         self.skip_run = skip_run
@@ -116,10 +116,9 @@ class BuildTestScanner(TestScanner):
         self.dist = dist
         self.build_configurations = set()
 
-    def add_build_configuration(self, abi, api, toolchain, force_pie, verbose,
-                                force_deprecated_headers):
+    def add_build_configuration(self, abi, api, toolchain, force_pie, verbose):
         self.build_configurations.add(ndk.test.spec.BuildConfiguration(
-            abi, api, toolchain, force_pie, verbose, force_deprecated_headers))
+            abi, api, toolchain, force_pie, verbose))
 
     def find_tests(self, path, name):
         # If we have a build.sh, that takes precedence over the Android.mk.
@@ -173,11 +172,10 @@ class DeviceTestScanner(TestScanner):
         self.device_configurations = set()
 
     def add_device_configuration(self, abi, api, toolchain, force_pie, verbose,
-                                 force_deprecated_headers, device, device_api,
-                                 skip_run):
+                                 device, device_api, skip_run):
         self.device_configurations.add(DeviceConfiguration(
-            abi, api, toolchain, force_pie, verbose, force_deprecated_headers,
-            device, device_api, skip_run))
+            abi, api, toolchain, force_pie, verbose, device, device_api,
+            skip_run))
 
     def find_tests(self, path, name):
         # If we have a build.sh, that takes precedence over the Android.mk.
@@ -211,10 +209,9 @@ class LibcxxTestScanner(TestScanner):
         self.build_configurations = set()
         LibcxxTestScanner.find_all_libcxx_tests(ndk_path)
 
-    def add_build_configuration(self, abi, api, toolchain, force_pie,
-                                verbose, force_deprecated_headers):
+    def add_build_configuration(self, abi, api, toolchain, force_pie, verbose):
         self.build_configurations.add(ndk.test.spec.BuildConfiguration(
-            abi, api, toolchain, force_pie, verbose, force_deprecated_headers))
+            abi, api, toolchain, force_pie, verbose))
 
     def find_tests(self, path, name):
         tests = []
@@ -852,7 +849,7 @@ class PythonBuildTest(BuildTest):
             api = build.lib.build_support.minimum_platform_level(config.abi)
         config = ndk.test.spec.BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
-            config.verbose, config.force_deprecated_headers)
+            config.verbose)
         super(PythonBuildTest, self).__init__(name, test_dir, config)
 
         if self.abi not in build.lib.build_support.ALL_ABIS:
@@ -896,7 +893,7 @@ class ShellBuildTest(BuildTest):
             api = build.lib.build_support.minimum_platform_level(config.abi)
         config = ndk.test.spec.BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
-            config.verbose, config.force_deprecated_headers)
+            config.verbose)
         super(ShellBuildTest, self).__init__(name, test_dir, config)
 
     def get_build_dir(self, out_dir):
@@ -980,7 +977,7 @@ class NdkBuildTest(BuildTest):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
         config = ndk.test.spec.BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
-            config.verbose, config.force_deprecated_headers)
+            config.verbose)
         super(NdkBuildTest, self).__init__(name, test_dir, config)
         self.dist = dist
 
@@ -1008,7 +1005,7 @@ class CMakeBuildTest(BuildTest):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
         config = ndk.test.spec.BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
-            config.verbose, config.force_deprecated_headers)
+            config.verbose)
         super(CMakeBuildTest, self).__init__(name, test_dir, config)
         self.dist = dist
 
@@ -1051,8 +1048,7 @@ class DeviceTest(Test):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
         config = DeviceConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
-            config.verbose, config.force_deprecated_headers, config.device,
-            config.device_api, config.skip_run)
+            config.verbose, config.device, config.device_api, config.skip_run)
         super(DeviceTest, self).__init__(name, test_dir, config)
 
     @property
@@ -1362,10 +1358,6 @@ class LibcxxTest(Test):
     def toolchain(self):
         return self.config.toolchain
 
-    @property
-    def force_deprecated_headers(self):
-        return self.config.force_deprecated_headers
-
     def get_build_dir(self, out_dir):
         return os.path.join(out_dir, str(self.config), 'libcxx', self.name)
 
@@ -1405,9 +1397,6 @@ class LibcxxTest(Test):
 
         if self.config.force_pie or self.abi in ndk.abis.LP64_ABIS:
             cmd.append('--pie')
-
-        if self.force_deprecated_headers:
-            cmd.append('--deprecated-headers')
 
         # The libc++ test runner's filters are path based. Assemble the path to
         # the test based on the late_filters (early filters for a libc++ test
@@ -1473,8 +1462,6 @@ class LibcxxTest(Test):
         # on it. The tests have never been 100% passing. We're going to only
         # enable it for a handful of configurations as support falls in to
         # place.
-        if self.force_deprecated_headers:
-            return 'legacy headers'
         if self.toolchain == '4.9':
             return '4.9'
 

@@ -21,41 +21,36 @@ import ndk.test.spec
 class BuildConfigurationTest(unittest.TestCase):
     def test_from_string(self):
         config = ndk.test.spec.BuildConfiguration.from_string(
-            'armeabi-14-clang-default-pie-unified-headers')
+            'armeabi-14-clang-default-pie')
         self.assertEqual('armeabi', config.abi)
         self.assertEqual(14, config.api)
         self.assertEqual('clang', config.toolchain)
         self.assertEqual(False, config.force_pie)
-        self.assertEqual(False, config.force_deprecated_headers)
 
         config = ndk.test.spec.BuildConfiguration.from_string(
-            'armeabi-v7a-14-gcc-force-pie-deprecated-headers')
+            'armeabi-v7a-14-gcc-force-pie')
         self.assertEqual('armeabi-v7a', config.abi)
         self.assertEqual(14, config.api)
         self.assertEqual('gcc', config.toolchain)
         self.assertEqual(True, config.force_pie)
-        self.assertEqual(True, config.force_deprecated_headers)
 
         config = ndk.test.spec.BuildConfiguration.from_string(
-            'arm64-v8a-21-clang-default-pie-unified-headers')
+            'arm64-v8a-21-clang-default-pie')
         self.assertEqual('arm64-v8a', config.abi)
         self.assertEqual(21, config.api)
         self.assertEqual('clang', config.toolchain)
         self.assertEqual(False, config.force_pie)
-        self.assertEqual(False, config.force_deprecated_headers)
 
         config = ndk.test.spec.BuildConfiguration.from_string(
-            'x86-14-clang-default-pie-unified-headers')
+            'x86-14-clang-default-pie')
         self.assertEqual('x86', config.abi)
         self.assertEqual(14, config.api)
         self.assertEqual('clang', config.toolchain)
         self.assertEqual(False, config.force_pie)
-        self.assertEqual(False, config.force_deprecated_headers)
 
         config = ndk.test.spec.BuildConfiguration.from_string(
-            'x86_64-21-clang-default-pie-unified-headers')
+            'x86_64-21-clang-default-pie')
         self.assertEqual('x86_64', config.abi)
         self.assertEqual(21, config.api)
         self.assertEqual('clang', config.toolchain)
         self.assertEqual(False, config.force_pie)
-        self.assertEqual(False, config.force_deprecated_headers)

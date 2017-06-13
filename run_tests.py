@@ -508,15 +508,13 @@ def restart_flaky_tests(report, workqueue):
         workqueue.add_task(run_test, report.result.test)
 
 
-def get_config_dict(config, abis, toolchains, headers, pie):
+def get_config_dict(config, abis, toolchains, pie):
     with open(config) as test_config_file:
         test_config = json.load(test_config_file)
     if abis is not None:
         test_config['abis'] = abis
     if toolchains is not None:
         test_config['toolchains'] = toolchains
-    if headers is not None:
-        test_config['headers'] = headers
     if pie is not None:
         test_config['pie'] = pie
     return test_config
@@ -545,9 +543,6 @@ def parse_args():
     config_options.add_argument(
         '--toolchain', action='append', choices=('clang', 'gcc'),
         help='Test only the given toolchains.')
-    config_options.add_argument(
-        '--headers', action='append', choices=('unified', 'deprecated'),
-        help='Test only the given header configurations.')
     config_options.add_argument(
         '--pie', action='append', choices=(True, False), type=str_to_bool,
         help='Test only the given PIE configurations.')
@@ -602,14 +597,12 @@ class ConfigFilter(object):
         self.config_tuples = list(itertools.product(
             test_spec.abis,
             test_spec.toolchains,
-            test_spec.headers_config,
             test_spec.pie_config))
 
     def filter(self, build_config):
         config_tuple = (
             build_config.abi,
             build_config.toolchain,
-            build_config.force_deprecated_headers,
             build_config.force_pie
         )
 
@@ -631,7 +624,7 @@ def main():
         sys.exit('Test directory does not exist: {}'.format(args.test_dir))
 
     test_config = get_config_dict(
-        args.config, args.abi, args.toolchain, args.headers, args.pie)
+        args.config, args.abi, args.toolchain, args.pie)
 
     printer = printers.StdoutPrinter(show_all=args.show_all)
     if args.rebuild:
