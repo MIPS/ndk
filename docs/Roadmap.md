@@ -18,31 +18,6 @@ have gone according to plan until then.
 [release schedule]: https://github.com/android-ndk/ndk/wiki#release-schedule
 
 
-NDK r15
--------
-
-Estimated release: Q2 2017
-
-### Android O APIs
-
-NDK r15 cooincides with the Android O preview releases. This release will
-contain the preview APIs for Android O, including AAudio, AHwardwareBuffer, and
-more.
-
-### Bugfix Release
-
-The work to coordinate with the platform on Android O consumes too much time for
-much feature work to happen in this release, so r15 will be a general bugfix
-release. The majority of the `libandroid_support` changes have been pushed into
-r16.
-
-### Default to unified headers
-
-NDK r15 will use unified headers by default. It will still be possible to opt-in
-to the old headers (though they will be less well supported in this release,
-particularly with libc++).
-
-
 NDK r16
 -------
 
