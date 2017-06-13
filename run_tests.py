@@ -683,6 +683,8 @@ def main():
         workqueue.terminate()
         workqueue.join()
 
+    sys.exit(not report.successful)
+
 
 if __name__ == '__main__':
     main()
