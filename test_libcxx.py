@@ -49,9 +49,6 @@ def parse_args():
         '-p', '--platform', required=True, type=int,
         help='API level to build against.')
     parser.add_argument(
-        '--deprecated-headers', action='store_true', default=False,
-        help='Use NDK deprecated headers.')
-    parser.add_argument(
         '--pie', action='store_true', default=False,
         help='Force building with PIE.')
     parser.add_argument(
@@ -129,7 +126,7 @@ def main():
 
     lit_args = [
         lit_path, '-sv', '--param=device_dir=' + device_dir,
-        '--param=unified_headers={}'.format(not args.deprecated_headers),
+        '--param=unified_headers=True',
     ] + lit_cfg_args + extra_args
 
     if args.build_only:

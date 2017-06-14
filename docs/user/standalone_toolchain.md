@@ -110,19 +110,6 @@ in a different directory by using `--package-dir`.
 
 For more options and details, use `--help`.
 
-### Unified Headers
-
-Unified headers are the up to date platform headers that are shipped alongside
-the deprecated headers in NDK r14:
-https://android.googlesource.com/platform/ndk/+/master/docs/UnifiedHeaders.md
-
-To use unified headers with standalone toolchains, pass `--unified-headers` when
-creating your toolchain.
-
-Note: Unified headers with standalone toolchains do not work as well for GCC.
-See the [r14 changelog] for a list of issues.
-
-[r14 changelog]: https://android.googlesource.com/platform/ndk/+/ndk-r14-release/CHANGELOG.md#Won_t-Fix
 
 Working with Clang
 ------------------

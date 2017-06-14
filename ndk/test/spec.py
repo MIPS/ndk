@@ -40,10 +40,9 @@ class TestOptions(object):
 
 class TestSpec(object):
     """Configuration for which tests should be run."""
-    def __init__(self, abis, toolchains, headers_config, pie_config, suites):
+    def __init__(self, abis, toolchains, pie_config, suites):
         self.abis = abis
         self.toolchains = toolchains
-        self.headers_config = headers_config
         self.pie_config = pie_config
         self.suites = suites
 
@@ -54,14 +53,12 @@ class BuildConfiguration(object):
     A TestSpec describes which BuildConfigurations should be included in a test
     run.
     """
-    def __init__(self, abi, api, toolchain, force_pie, verbose,
-                 force_deprecated_headers):
+    def __init__(self, abi, api, toolchain, force_pie, verbose):
         self.abi = abi
         self.api = api
         self.toolchain = toolchain
         self.force_pie = force_pie
         self.verbose = verbose
-        self.force_deprecated_headers = force_deprecated_headers
 
     def __eq__(self, other):
         if self.abi != other.abi:
@@ -74,8 +71,6 @@ class BuildConfiguration(object):
             return False
         if self.verbose != other.verbose:
             return False
-        if self.force_deprecated_headers != other.force_deprecated_headers:
-            return False
         return True
 
     def __str__(self):
@@ -83,12 +78,8 @@ class BuildConfiguration(object):
         if self.force_pie:
             pie_option = 'force-pie'
 
-        headers_option = 'unified-headers'
-        if self.force_deprecated_headers:
-            headers_option = 'deprecated-headers'
-
-        return '{}-{}-{}-{}-{}'.format(
-            self.abi, self.api, self.toolchain, pie_option, headers_option)
+        return '{}-{}-{}-{}'.format(
+            self.abi, self.api, self.toolchain, pie_option)
 
     def __hash__(self):
         return hash(str(self))
@@ -130,15 +121,7 @@ class BuildConfiguration(object):
         else:
             raise ValueError('Invalid PIE config:'.format(config_string))
 
-        if rest == 'unified-headers':
-            force_deprecated_headers = False
-        elif rest.startswith('deprecated-headers'):
-            force_deprecated_headers = True
-        else:
-            raise ValueError('Invalid headers config:'.format(config_string))
-
-        return BuildConfiguration(
-            abi, api, toolchain, force_pie, False, force_deprecated_headers)
+        return BuildConfiguration(abi, api, toolchain, force_pie, False)
 
     def get_extra_ndk_build_flags(self):
         extra_flags = []
@@ -146,8 +129,6 @@ class BuildConfiguration(object):
             extra_flags.append('APP_PIE=true')
         if self.verbose:
             extra_flags.append('V=1')
-        if self.force_deprecated_headers:
-            extra_flags.append('APP_DEPRECATED_HEADERS=true')
         return extra_flags
 
     def get_extra_cmake_flags(self):
@@ -156,6 +137,4 @@ class BuildConfiguration(object):
             extra_flags.append('-DANDROID_PIE=TRUE')
         if self.verbose:
             extra_flags.append('-DCMAKE_VERBOSE_MAKEFILE=ON')
-        if self.force_deprecated_headers:
-            extra_flags.append('-DANDROID_DEPRECATED_HEADERS=ON')
         return extra_flags

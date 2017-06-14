@@ -40,22 +40,10 @@ def test_spec_from_config(test_config):
     """Returns a TestSpec based on the test config file."""
     abis = test_config.get('abis', build.lib.build_support.ALL_ABIS)
     toolchains = test_config.get('toolchains', ['clang', '4.9'])
-    headers_configs = test_config.get('headers', ['unified', 'deprecated'])
     pie_configs = test_config.get('pie', [True, False])
     suites = test_config.get('suites', testlib.ALL_SUITES)
 
-    # Duplicate this so we don't modify the list in test_config.
-    headers_configs = list(headers_configs)
-    for i, headers_config in enumerate(headers_configs):
-        if headers_config == 'unified':
-            headers_configs[i] = False
-        elif headers_config == 'deprecated':
-            headers_configs[i] = True
-        else:
-            raise ValueError('Invalid headers config: ' + headers_config)
-
-    return ndk.test.spec.TestSpec(
-        abis, toolchains, headers_configs, pie_configs, suites)
+    return ndk.test.spec.TestSpec(abis, toolchains, pie_configs, suites)
 
 
 def build_test_runner(test_spec, test_options, printer):
@@ -64,13 +52,12 @@ def build_test_runner(test_spec, test_options, printer):
     build_configs = itertools.product(
         test_spec.abis,
         test_spec.toolchains,
-        test_spec.headers_config,
         test_spec.pie_config)
 
     scanner = testlib.BuildTestScanner()
     nodist_scanner = testlib.BuildTestScanner(dist=False)
     libcxx_scanner = testlib.LibcxxTestScanner(test_options.ndk_path)
-    for abi, toolchain, headers_config, pie_config in build_configs:
+    for abi, toolchain, pie_config in build_configs:
         if pie_config and abi in ndk.abis.LP64_ABIS:
             # We don't need to build both PIE configurations for LP64 ABIs
             # since all of them support PIE. Just build the default
@@ -82,24 +69,21 @@ def build_test_runner(test_spec, test_options, printer):
             None,  # Build API level, always default.
             toolchain,
             pie_config,
-            test_options.verbose_build,
-            headers_config)
+            test_options.verbose_build)
 
         nodist_scanner.add_build_configuration(
             abi,
             None,  # Build API level, always default.
             toolchain,
             pie_config,
-            test_options.verbose_build,
-            headers_config)
+            test_options.verbose_build)
 
         libcxx_scanner.add_build_configuration(
             abi,
             None,  # Build API level, always default.
             toolchain,
             pie_config,
-            test_options.verbose_build,
-            headers_config)
+            test_options.verbose_build)
 
     if 'build' in test_spec.suites:
         runner.add_suite('build', 'tests/build', nodist_scanner)
