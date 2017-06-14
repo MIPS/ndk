@@ -7,14 +7,17 @@ Before NDK r14, we had a set of libc headers for each API version. In many cases
 these headers were incorrect. Many exposed APIs that didn't exist, and others
 didn't expose APIs that did.
 
-In NDK r14 (as an opt in feature) we unified these into a single set of headers.
-In r15 these are used by default. In r16, the old headers have been removed.
-This single header path is used for *every* platform level. API level guards are
-handled with `#ifdef`. These headers can be found in [prebuilts/ndk/headers].
+In NDK r14 (as an opt in feature) we unified these into a single set of headers,
+called unified headers. This single header path is used for *every* platform
+level. API level guards are handled with `#ifdef`. These headers can be found in
+[prebuilts/ndk/headers].
 
-Unified headers are built directly from the Android platform, so they be up to
+Unified headers are built directly from the Android platform, so they are up to
 date and correct (or at the very least, any bugs in the NDK headers will also be
 a bug in the platform headers, which means we're much more likely to find them).
+
+In r15 unified headers are used by default. In r16, the old headers have been
+removed.
 
 [prebuilts/ndk/headers]: https://android.googlesource.com/platform/prebuilts/ndk/+/dev/platform/sysroot/usr/include
 
