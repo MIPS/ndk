@@ -72,25 +72,6 @@ class TestCase(object):
     def check_broken(self, device):
         raise NotImplementedError
 
-    def make_result(self, adb_result_tuple, device):
-        status, out, _ = adb_result_tuple
-        if status == 0:
-            result = ndk.test.result.Success(self)
-        else:
-            out = '\n'.join([str(device), out])
-            result = ndk.test.result.Failure(self, out)
-        return self.fixup_xfail(result, device)
-
-    def fixup_xfail(self, result, device):
-        config, bug = self.check_broken(device)
-        if config is not None:
-            if result.failed():
-                return ndk.test.result.ExpectedFailure(self, config, bug)
-            elif result.passed():
-                return ndk.test.result.UnexpectedSuccess(self, config, bug)
-            raise ValueError('Test result must have either failed or passed.')
-        return result
-
     def run(self, device):
         raise NotImplementedError
 
@@ -144,7 +125,7 @@ class BasicTestCase(TestCase):
         cmd = 'cd {} && LD_LIBRARY_PATH={} ./{} 2>&1'.format(
             self.device_dir, self.device_dir, self.executable)
         logger().info('%s: shell_nocheck "%s"', device.name, cmd)
-        return self.make_result(device.shell_nocheck([cmd]), device)
+        return device.shell_nocheck([cmd])
 
 
 class LibcxxTestCase(TestCase):
@@ -196,17 +177,12 @@ class LibcxxTestCase(TestCase):
         #     # Can't use +x because apparently old versions of Android
         #     # didn't support that...
         #     self.device.shell(['chmod', '777', file_path])
-        config = self.check_unsupported(device)
-        if config is not None:
-            message = 'test unsupported for {}'.format(config)
-            return ndk.test.result.Skipped(self, message)
-
         libcxx_so_dir = posixpath.join(
             DEVICE_TEST_BASE_DIR, str(self.config), 'libcxx/libc++')
         cmd = 'cd {} && LD_LIBRARY_PATH={} ./{} 2>&1'.format(
             self.device_dir, libcxx_so_dir, self.executable)
         logger().info('%s: shell_nocheck "%s"', device.name, cmd)
-        return self.make_result(device.shell_nocheck([cmd]), device)
+        return device.shell_nocheck([cmd])
 
 
 class TestRun(object):
@@ -215,8 +191,43 @@ class TestRun(object):
         self.test_case = test_case
         self.device = device
 
+    @property
+    def name(self):
+        return self.test_case.name
+
+    @property
+    def build_system(self):
+        return self.test_case.build_system
+
+    @property
+    def config(self):
+        return self.test_case.config
+
+    def make_result(self, adb_result_tuple):
+        status, out, _ = adb_result_tuple
+        if status == 0:
+            result = ndk.test.result.Success(self)
+        else:
+            out = '\n'.join([str(self.device), out])
+            result = ndk.test.result.Failure(self, out)
+        return self.fixup_xfail(result)
+
+    def fixup_xfail(self, result):
+        config, bug = self.test_case.check_broken(self.device)
+        if config is not None:
+            if result.failed():
+                return ndk.test.result.ExpectedFailure(self, config, bug)
+            elif result.passed():
+                return ndk.test.result.UnexpectedSuccess(self, config, bug)
+            raise ValueError('Test result must have either failed or passed.')
+        return result
+
     def run(self):
-        return self.test_case.run(self.device)
+        config = self.test_case.check_unsupported(self.device)
+        if config is not None:
+            message = 'test unsupported for {}'.format(config)
+            return ndk.test.result.Skipped(self, message)
+        return self.make_result(self.test_case.run(self.device))
 
 
 def build_tests(ndk_dir, out_dir, clean, printer, config, test_filter):
@@ -490,6 +501,12 @@ def flake_filter(result):
     if 'Did not receive exit status from test.' in result.message:
         return True
 
+    # These libc++ tests expect to complete in a specific amount of time,
+    # and commonly fail under high load.
+    name = result.test.name
+    if 'libc++/libcxx/thread' in name or 'libc++/std/thread' in name:
+        return True
+
     return False
 
 
@@ -505,7 +522,7 @@ def restart_flaky_tests(report, workqueue):
 
     for flaky_report in rerun_tests:
         logger().warning('Flaky test failure: %s', flaky_report.result)
-        workqueue.add_task(run_test, report.result.test)
+        workqueue.add_task(run_test, flaky_report.result.test)
 
 
 def get_config_dict(config, abis, toolchains, pie):
