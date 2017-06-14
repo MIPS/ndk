@@ -66,6 +66,7 @@ android_support_sources := \
     src/musl-stdio/vsprintf.c \
     src/musl-stdio/vwprintf.c \
     src/musl-stdio/wprintf.c \
+    src/posix_memalign.cpp \
     src/stdio/stdio_impl.c \
     src/stdio/strtod.c \
     src/stdio/vfprintf.c \

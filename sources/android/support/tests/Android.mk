@@ -6,6 +6,7 @@ LOCAL_MODULE := android_support_unittests
 LOCAL_SRC_FILES := \
   ctype_test.cpp \
   math_test.cpp \
+  posix_memalign_test.cpp \
   stdio_test.cpp \
   wchar_test.cpp \
 
