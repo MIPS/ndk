@@ -39,56 +39,73 @@ class Device(adb.AndroidDevice):
     # pylint: disable=no-member
     def __init__(self, serial):
         super(Device, self).__init__(serial)
-        self._cached_properties = None
+        self._did_cache = False
+        self._cached_abis = None
+        self._ro_build_characteristics = None
+        self._ro_build_id = None
+        self._ro_build_version_sdk = None
+        self._ro_build_version_codename = None
+        self._ro_debuggable = None
+        self._ro_product_name = None
 
-    def get_cached_properties(self):
+    def cache_properties(self):
         """Returns a cached copy of the device's system properties."""
-        if self._cached_properties is None:
-            self._cached_properties = self.get_props()
-        return self._cached_properties
+        if not self._did_cache:
+            self._ro_build_characteristics = self.get_prop('ro.build.characteristics')
+            self._ro_build_id = self.get_prop('ro.build.id')
+            self._ro_build_version_sdk = self.get_prop('ro.build.version.sdk')
+            self._ro_build_version_codename = self.get_prop('ro.build.version.codename')
+            self._ro_debuggable = self.get_prop('ro.debuggable')
+            self._ro_product_name = self.get_prop('ro.product.name')
+            self._did_cache = True
+        return self
 
     @property
     def name(self):
-        return self.get_cached_properties()['ro.product.name']
+        return self.cache_properties()._ro_product_name
 
     @property
     def version(self):
-        return int(self.get_cached_properties()['ro.build.version.sdk'])
+        return int(self.cache_properties()._ro_build_version_sdk)
 
     @property
     def abis(self):
         """Returns a list of ABIs supported by the device."""
-        # 64-bit devices list their ABIs differently than 32-bit devices. Check
-        # all the possible places for stashing ABI info and merge them.
-        abi_properties = [
-            'ro.product.cpu.abi',
-            'ro.product.cpu.abi2',
-            'ro.product.cpu.abilist',
-        ]
-        abis = set()
-        for abi_prop in abi_properties:
-            if abi_prop in self.get_cached_properties():
-                abis.update(self.get_cached_properties()[abi_prop].split(','))
+        if self._cached_abis is None:
+            # 64-bit devices list their ABIs differently than 32-bit devices. Check
+            # all the possible places for stashing ABI info and merge them.
+            abi_properties = [
+                'ro.product.cpu.abi',
+                'ro.product.cpu.abi2',
+                'ro.product.cpu.abilist',
+            ]
+            abis = set()
+            for abi_prop in abi_properties:
+                value = self.get_prop(abi_prop)
+                if value is not None:
+                    abis.update(value.split(','))
 
-        return sorted(list(abis))
+            _cached_abis = sorted(list(abis))
+
+        return _cached_abis
 
     @property
     def build_id(self):
-        return self.get_cached_properties()['ro.build.id']
+        return self.cache_properties()._ro_build_id
 
     @property
     def is_release(self):
-        codename = self.get_cached_properties()['ro.build.version.codename']
+        codename = self.cache_properties()._ro_build_version_codename
         return codename == 'REL'
 
     @property
     def is_emulator(self):
-        chars = self.get_cached_properties()['ro.build.characteristics']
+        chars = self.cache_properties()._ro_build_characteristics
         return chars == 'emulator'
 
     @property
     def is_debuggable(self):
-        return int(self.get_cached_properties()['ro.debuggable']) != 0
+        return int(self.cache_properties()._ro_debuggable) != 0
 
     def can_run_build_config(self, config):
         if self.version < config.api:
