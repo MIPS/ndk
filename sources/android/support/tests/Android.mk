@@ -1,25 +1,17 @@
 LOCAL_PATH := $(call my-dir)
 
-# Module declaration for the 'minitest' unit-test
-# library. Note that it provides a main() implementation.
-include $(CLEAR_VARS)
-LOCAL_MODULE := minitest
-LOCAL_SRC_FILES := minitest/minitest.cc
-LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)
-include $(BUILD_STATIC_LIBRARY)
-
 # Module declaration for the unit test program.
 include $(CLEAR_VARS)
 LOCAL_MODULE := android_support_unittests
 LOCAL_SRC_FILES := \
-  ctype_unittest.cc \
-  math_unittest.cc \
-  stdio_unittest.cc \
-  wchar_unittest.cc
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/../include
+  ctype_test.cpp \
+  math_test.cpp \
+  stdio_test.cpp \
+  wchar_test.cpp \
 
-LOCAL_STATIC_LIBRARIES := android_support minitest
+LOCAL_STATIC_LIBRARIES := android_support googletest_static googletest_main
+LOCAL_LDLIBS := -latomic
 include $(BUILD_EXECUTABLE)
 
-# Include the android_support module definitions.
 $(call import-module,android/support)
+$(call import-module,third_party/googletest)

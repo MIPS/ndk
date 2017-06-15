@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <wchar.h>
 
-#include <minitest/minitest.h>
+#include <gtest/gtest.h>
 
 namespace {
 
@@ -39,22 +39,22 @@ TEST(wchar, wchar_limits) {
 
 TEST(wchar, wcschr) {
   static const wchar_t kString[] = L"abcda";
-  EXPECT_EQ(kString + 0, wcschr(kString, L'a'));
-  EXPECT_EQ(kString + 1, wcschr(kString, L'b'));
-  EXPECT_EQ(kString + 2, wcschr(kString, L'c'));
-  EXPECT_EQ(kString + 3, wcschr(kString, L'd'));
-  EXPECT_FALSE(wcschr(kString, L'e'));
-  EXPECT_EQ(kString + 5, wcschr(kString, L'\0'));
+  ASSERT_EQ(kString + 0, wcschr(kString, L'a'));
+  ASSERT_EQ(kString + 1, wcschr(kString, L'b'));
+  ASSERT_EQ(kString + 2, wcschr(kString, L'c'));
+  ASSERT_EQ(kString + 3, wcschr(kString, L'd'));
+  ASSERT_FALSE(wcschr(kString, L'e'));
+  ASSERT_EQ(kString + 5, wcschr(kString, L'\0'));
 }
 
 TEST(wchar, wcsrchr) {
   static const wchar_t kString[] = L"abcda";
-  EXPECT_EQ(kString + 4, wcsrchr(kString, L'a'));
-  EXPECT_EQ(kString + 1, wcsrchr(kString, L'b'));
-  EXPECT_EQ(kString + 2, wcsrchr(kString, L'c'));
-  EXPECT_EQ(kString + 3, wcsrchr(kString, L'd'));
-  EXPECT_FALSE(wcsrchr(kString, L'e'));
-  EXPECT_EQ(kString + 5, wcsrchr(kString, L'\0'));
+  ASSERT_EQ(kString + 4, wcsrchr(kString, L'a'));
+  ASSERT_EQ(kString + 1, wcsrchr(kString, L'b'));
+  ASSERT_EQ(kString + 2, wcsrchr(kString, L'c'));
+  ASSERT_EQ(kString + 3, wcsrchr(kString, L'd'));
+  ASSERT_FALSE(wcsrchr(kString, L'e'));
+  ASSERT_EQ(kString + 5, wcsrchr(kString, L'\0'));
 }
 
 TEST(wchar, wcstof) {
@@ -69,16 +69,14 @@ TEST(wchar, wcstof) {
         { L"0.2", 0.2, 3 },
         { L"-0.2", -0.2, 4 },
         { L"-3.1415926535", -3.1415926535, 13 },
-        { L"+1e+100", 1e100, 7 },
+        { L"+1e+100", static_cast<float>(1e100), 7 },
         { L"0x10000.80", 65536.50, 10 },
     };
     for (size_t n = 0; n < ARRAY_SIZE(kData); ++n) {
         const char* text = to_cstr(kData[n].input);
         wchar_t* end;
-        TEST_TEXT << text;
-        EXPECT_EQ(kData[n].expected, wcstof(kData[n].input, &end));
-        TEST_TEXT << text;
-        EXPECT_EQ(kData[n].expected_len, (int)(end - kData[n].input));
+        ASSERT_EQ(kData[n].expected, wcstof(kData[n].input, &end)) << text;
+        ASSERT_EQ(kData[n].expected_len, (int)(end - kData[n].input)) << text;
     }
 }
 
@@ -101,10 +99,8 @@ TEST(wchar, wcstod) {
     for (size_t n = 0; n < ARRAY_SIZE(kData); ++n) {
         const char* text = to_cstr(kData[n].input);
         wchar_t* end;
-        TEST_TEXT << text;
-        EXPECT_EQ(kData[n].expected, wcstod(kData[n].input, &end));
-        TEST_TEXT << text;
-        EXPECT_EQ(kData[n].expected_len, (int)(end - kData[n].input));
+        ASSERT_EQ(kData[n].expected, wcstod(kData[n].input, &end)) << text;
+        ASSERT_EQ(kData[n].expected_len, (int)(end - kData[n].input)) << text;
     }
 }
 
@@ -127,10 +123,8 @@ TEST(wchar, wcstold) {
     for (size_t n = 0; n < ARRAY_SIZE(kData); ++n) {
         const char* text = to_cstr(kData[n].input);
         wchar_t* end;
-        TEST_TEXT << text;
-        EXPECT_EQ(kData[n].expected, wcstold(kData[n].input, &end));
-        TEST_TEXT << text;
-        EXPECT_EQ(kData[n].expected_len, (int)(end - kData[n].input));
+        ASSERT_EQ(kData[n].expected, wcstold(kData[n].input, &end)) << text;
+        ASSERT_EQ(kData[n].expected_len, (int)(end - kData[n].input)) << text;
     }
 }
 
@@ -153,10 +147,8 @@ TEST(wchar, wcstol) {
     for (size_t n = 0; n < ARRAY_SIZE(kData); ++n) {
         const char* text = to_cstr(kData[n].input);
         wchar_t* end;
-        TEST_TEXT << text;
-        EXPECT_EQ(kData[n].expected, wcstol(kData[n].input, &end, kData[n].base));
-        TEST_TEXT << text;
-        EXPECT_EQ(kData[n].expected_len, (int)(end - kData[n].input));
+        ASSERT_EQ(kData[n].expected, wcstol(kData[n].input, &end, kData[n].base)) << text;
+        ASSERT_EQ(kData[n].expected_len, (int)(end - kData[n].input)) << text;
     }
 }
 
@@ -179,10 +171,8 @@ TEST(wchar, wcstoul) {
     for (size_t n = 0; n < ARRAY_SIZE(kData); ++n) {
         const char* text = to_cstr(kData[n].input);
         wchar_t* end;
-        TEST_TEXT << text;
-        EXPECT_EQ(kData[n].expected, wcstoul(kData[n].input, &end, kData[n].base));
-        TEST_TEXT << text;
-        EXPECT_EQ(kData[n].expected_len, (int)(end - kData[n].input));
+        ASSERT_EQ(kData[n].expected, wcstoul(kData[n].input, &end, kData[n].base)) << text;
+        ASSERT_EQ(kData[n].expected_len, (int)(end - kData[n].input)) << text;
     }
 }
 
@@ -205,10 +195,8 @@ TEST(wchar, wcstoll) {
     for (size_t n = 0; n < ARRAY_SIZE(kData); ++n) {
         const char* text = to_cstr(kData[n].input);
         wchar_t* end;
-        TEST_TEXT << text;
-        EXPECT_EQ(kData[n].expected, wcstoll(kData[n].input, &end, kData[n].base));
-        TEST_TEXT << text;
-        EXPECT_EQ(kData[n].expected_len, (int)(end - kData[n].input));
+        ASSERT_EQ(kData[n].expected, wcstoll(kData[n].input, &end, kData[n].base)) << text;
+        ASSERT_EQ(kData[n].expected_len, (int)(end - kData[n].input)) << text;
     }
 }
 
@@ -231,9 +219,7 @@ TEST(wchar, wcstoull) {
     for (size_t n = 0; n < ARRAY_SIZE(kData); ++n) {
         const char* text = to_cstr(kData[n].input);
         wchar_t* end;
-        TEST_TEXT << text;
-        EXPECT_EQ(kData[n].expected, wcstoull(kData[n].input, &end, kData[n].base));
-        TEST_TEXT << text;
-        EXPECT_EQ(kData[n].expected_len, (int)(end - kData[n].input));
+        ASSERT_EQ(kData[n].expected, wcstoull(kData[n].input, &end, kData[n].base)) << text;
+        ASSERT_EQ(kData[n].expected_len, (int)(end - kData[n].input)) << text;
     }
 }
