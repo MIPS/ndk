@@ -51,9 +51,11 @@ android_support_c_includes += \
 android_support_cflags += \
     -include freebsd-compat.h \
     -D_BSD_SOURCE \
+    -D__BIONIC_BUILD_FOR_ANDROID_SUPPORT \
 
 android_support_sources := \
     $(BIONIC_PATH)/libc/bionic/c32rtomb.cpp \
+    $(BIONIC_PATH)/libc/bionic/locale.cpp \
     $(BIONIC_PATH)/libc/bionic/mbrtoc32.cpp \
     $(BIONIC_PATH)/libc/bionic/mbstate.cpp \
     $(BIONIC_PATH)/libc/bionic/wchar.cpp \
@@ -106,11 +108,6 @@ android_support_sources := \
 
 # These are old sources that should be purged/rewritten/taken from bionic.
 android_support_sources += \
-    src/locale/duplocale.c \
-    src/locale/freelocale.c \
-    src/locale/localeconv.c \
-    src/locale/newlocale.c \
-    src/locale/uselocale.c \
     src/wchar_support.c \
     src/wcstox/floatscan.c \
     src/wcstox/intscan.c \
