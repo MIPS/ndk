@@ -3,6 +3,12 @@ LOCAL_PATH := $(call my-dir)
 android_support_c_includes := $(LOCAL_PATH)/include
 
 ifneq ($(filter $(NDK_KNOWN_DEVICE_ABI64S),$(TARGET_ARCH_ABI)),)
+    is_lp64 := true
+else
+    is_lp64 :=
+endif
+
+ifeq ($(is_lp64),true)
 # 64-bit ABIs
 android_support_sources := \
     src/locale_support.c \
@@ -42,36 +48,9 @@ android_support_sources := \
     src/musl-math/frexp.c \
     src/musl-math/frexpf.c \
     src/musl-math/frexpl.c \
-    src/musl-multibyte/btowc.c \
-    src/musl-multibyte/internal.c \
-    src/musl-multibyte/mblen.c \
-    src/musl-multibyte/mbrlen.c \
-    src/musl-multibyte/mbrtowc.c \
-    src/musl-multibyte/mbsinit.c \
-    src/musl-multibyte/mbsnrtowcs.c \
-    src/musl-multibyte/mbsrtowcs.c \
-    src/musl-multibyte/mbstowcs.c \
-    src/musl-multibyte/mbtowc.c \
-    src/musl-multibyte/wcrtomb.c \
-    src/musl-multibyte/wcsnrtombs.c \
-    src/musl-multibyte/wcsrtombs.c \
-    src/musl-multibyte/wcstombs.c \
-    src/musl-multibyte/wctob.c \
-    src/musl-multibyte/wctomb.c \
-    src/musl-stdio/printf.c \
-    src/musl-stdio/snprintf.c \
-    src/musl-stdio/sprintf.c \
-    src/musl-stdio/swprintf.c \
-    src/musl-stdio/vprintf.c \
-    src/musl-stdio/vsprintf.c \
-    src/musl-stdio/vwprintf.c \
-    src/musl-stdio/wprintf.c \
     src/posix_memalign.cpp \
-    src/stdio/stdio_impl.c \
-    src/stdio/strtod.c \
-    src/stdio/vfprintf.c \
-    src/stdio/vfwprintf.c \
     src/stdlib_support.c \
+    src/swprintf.cpp \
     src/wchar_support.c \
     src/wcstox/floatscan.c \
     src/wcstox/intscan.c \
@@ -103,13 +82,22 @@ include $(PREBUILT_STATIC_LIBRARY)
 
 else # Building
 
+BIONIC_PATH := ../../../../bionic
+
 # This is only available as a static library for now.
 include $(CLEAR_VARS)
 LOCAL_MODULE := android_support
 LOCAL_SRC_FILES := $(android_support_sources)
 LOCAL_C_INCLUDES := $(android_support_c_includes)
-LOCAL_CFLAGS += -Drestrict=__restrict__ -ffunction-sections -fdata-sections -fvisibility=hidden
-LOCAL_CPPFLAGS += -fvisibility-inlines-hidden
+LOCAL_CFLAGS := \
+    -Drestrict=__restrict__ \
+    -ffunction-sections \
+    -fdata-sections \
+    -fvisibility=hidden \
+
+LOCAL_CPPFLAGS := \
+    -fvisibility-inlines-hidden \
+    -std=c++11 \
 
 # These Clang warnings are triggered by the Musl sources. The code is fine,
 # but we don't want to modify it. TODO(digit): This is potentially dangerous,
@@ -125,6 +113,18 @@ LOCAL_CFLAGS += \
 endif
 
 LOCAL_EXPORT_C_INCLUDES := $(android_support_c_includes)
+
+ifneq ($(is_lp64),true)
+LOCAL_SRC_FILES += \
+    $(BIONIC_PATH)/libc/bionic/c32rtomb.cpp \
+    $(BIONIC_PATH)/libc/bionic/mbstate.cpp \
+    $(BIONIC_PATH)/libc/bionic/mbrtoc32.cpp \
+    $(BIONIC_PATH)/libc/bionic/wchar.cpp \
+    $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/locale/mbtowc.c \
+
+LOCAL_C_INCLUDES += $(BIONIC_PATH)/libc
+endif
+
 include $(BUILD_STATIC_LIBRARY)
 
 endif # Prebuilt/building
