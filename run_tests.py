@@ -27,6 +27,7 @@ import site
 import subprocess
 import sys
 import time
+import traceback
 
 import build.lib.build_support
 import ndk.paths
@@ -49,6 +50,14 @@ DEVICE_TEST_BASE_DIR = '/data/local/tmp/tests'
 def logger():
     """Returns the module logger."""
     return logging.getLogger(__name__)
+
+
+def shell_nocheck_wrap_errors(device, cmd):
+    """Invokes device.shell_nocheck and wraps exceptions as failed commands."""
+    try:
+        return device.shell_nocheck(cmd)
+    except RuntimeError as ex:
+        return 1, traceback.format_exc(ex), ''
 
 
 # TODO: Extract a common interface from this and testlib.Test for the printer.
@@ -125,7 +134,7 @@ class BasicTestCase(TestCase):
         cmd = 'cd {} && LD_LIBRARY_PATH={} ./{} 2>&1'.format(
             self.device_dir, self.device_dir, self.executable)
         logger().info('%s: shell_nocheck "%s"', device.name, cmd)
-        return device.shell_nocheck([cmd])
+        return shell_nocheck_wrap_errors(device, [cmd])
 
 
 class LibcxxTestCase(TestCase):
@@ -182,7 +191,7 @@ class LibcxxTestCase(TestCase):
         cmd = 'cd {} && LD_LIBRARY_PATH={} ./{} 2>&1'.format(
             self.device_dir, libcxx_so_dir, self.executable)
         logger().info('%s: shell_nocheck "%s"', device.name, cmd)
-        return device.shell_nocheck([cmd])
+        return shell_nocheck_wrap_errors(device, [cmd])
 
 
 class TestRun(object):
