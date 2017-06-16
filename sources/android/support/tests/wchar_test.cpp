@@ -24,17 +24,7 @@ const char* to_cstr(const wchar_t* wcs) {
 }
 
 TEST(wchar, wchar_limits) {
-  ASSERT_EQ(sizeof(__WCHAR_TYPE__), sizeof(wchar_t));
-  ASSERT_EQ(sizeof(int), sizeof(wint_t));
-#ifdef __arm__
-  ASSERT_GT(wchar_t(0), wchar_t(-1));
-  ASSERT_EQ(wchar_t(0), WCHAR_MIN);
-  ASSERT_EQ(wchar_t(0xffffffff), WCHAR_MAX);
-#else
-  ASSERT_LT(wchar_t(0), wchar_t(-1));
-  ASSERT_EQ(wchar_t(0x80000000), WCHAR_MIN);
-  ASSERT_EQ(wchar_t(0x7fffffff), WCHAR_MAX);
-#endif
+  ASSERT_LT(WCHAR_MIN, WCHAR_MAX);
 }
 
 TEST(wchar, wcschr) {

@@ -5,22 +5,22 @@
 TEST(math, nexttoward) {
     double x = 2.0;
     ASSERT_EQ(x, nexttoward(x, (long double)x));
-    ASSERT_GT(x, nexttoward(x, (long double)(x * 2.)));
-    ASSERT_LT(x, nexttoward(x, (long double)(x - 1.0)));
+    ASSERT_LT(x, nexttoward(x, (long double)(x * 2.)));
+    ASSERT_GT(x, nexttoward(x, (long double)(x - 1.0)));
 }
 
 TEST(math, nexttowardf) {
     float x = 2.0;
     ASSERT_EQ(x, nexttowardf(x, (long double)x));
-    ASSERT_GT(x, nexttowardf(x, (long double)(x * 2.)));
-    ASSERT_LT(x, nexttowardf(x, (long double)(x - 1.0)));
+    ASSERT_LT(x, nexttowardf(x, (long double)(x * 2.)));
+    ASSERT_GT(x, nexttowardf(x, (long double)(x - 1.0)));
 }
 
 TEST(math, nexttowardl) {
     long double x = 2.0;
     ASSERT_EQ(x, nexttowardl(x, x));
-    ASSERT_GT(x, nexttowardl(x, x * 2.));
-    ASSERT_LT(x, nexttowardl(x, x - 1.0));
+    ASSERT_LT(x, nexttowardl(x, x * 2.));
+    ASSERT_GT(x, nexttowardl(x, x - 1.0));
 }
 
 // These functions are not exported on x86 before API level 18!
