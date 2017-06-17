@@ -507,7 +507,7 @@ def flake_filter(result):
         return False
 
     # adb might return no text at all under high load.
-    if 'Did not receive exit status from test.' in result.message:
+    if 'Could not find exit status in shell output.' in result.message:
         return True
 
     # These libc++ tests expect to complete in a specific amount of time,
