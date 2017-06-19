@@ -10,7 +10,6 @@ LOCAL_SRC_FILES := \
   wchar_test.cpp \
 
 LOCAL_STATIC_LIBRARIES := android_support googletest_static googletest_main
-LOCAL_LDLIBS := -latomic
 include $(BUILD_EXECUTABLE)
 
 $(call import-module,android/support)
