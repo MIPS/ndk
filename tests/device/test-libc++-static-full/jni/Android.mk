@@ -8,11 +8,6 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(libcxx-test-path)/$$(__test).pass.cpp
 LOCAL_MODULE := $$(subst /,___,$$(__test))
 
-# armeabi and mips needs libatomic to provide "__atomic_is_lock_free"
-ifneq (,$(filter armeabi mips,$(TARGET_ARCH_ABI)))
-LOCAL_LDLIBS += -latomic
-endif
-
 # Enable RTTI and exception handling for some tests
 LOCAL_CPP_FEATURES := rtti exceptions
 

@@ -30,7 +30,10 @@ TARGET_NO_UNDEFINED_LDFLAGS := -Wl,--no-undefined
 TARGET-get-linker-objects-and-libraries = \
     $(call host-path, $1) \
     $(call link-whole-archives,$3) \
-    $(call host-path, $2) $(PRIVATE_LIBGCC) $(call host-path, $4) \
+    $(call host-path, $2) \
+    $(PRIVATE_LIBGCC) \
+    $(PRIVATE_LIBATOMIC) \
+    $(call host-path, $4) \
 
 
 # These flags are used to enforce the NX (no execute) security feature in the
@@ -110,6 +113,7 @@ cmd-strip = $(PRIVATE_STRIP) --strip-unneeded $(call host-path,$1)
 cmd-add-gnu-debuglink = $(PRIVATE_OBJCOPY) --add-gnu-debuglink=$(strip $(call host-path,$2)) $(call host-path,$1)
 
 TARGET_LIBGCC = -lgcc -Wl,--exclude-libs,libgcc.a
+TARGET_LIBATOMIC = -latomic -Wl,--exclude-libs,libatomic.a
 TARGET_LDLIBS := -lc -lm
 
 #

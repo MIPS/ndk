@@ -65,6 +65,10 @@ implementations for atomic operations.
 
 The actual symbol here might be anything prefixed with `__atomic_`.
 
+Note that ndk-build, cmake, and libc++ standalone toolchains handle this for
+you. For non libc++ standalone toolchains or a different build system, you may
+need to do this manually.
+
 
 Using Mismatched Prebuilt Libraries
 -----------------------------------

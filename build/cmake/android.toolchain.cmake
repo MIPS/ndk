@@ -266,6 +266,7 @@ set(ANDROID_LINKER_FLAGS_EXE)
 
 # Don't re-export libgcc symbols in every binary.
 list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libgcc.a)
+list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libatomic.a)
 
 # STL.
 set(ANDROID_STL_STATIC_LIBRARIES)
@@ -521,11 +522,7 @@ foreach(library ${ANDROID_STL_SHARED_LIBRARIES})
 	list(APPEND ANDROID_CXX_STANDARD_LIBRARIES
 		"${ANDROID_NDK}/sources/cxx-stl/${ANDROID_STL_PREFIX}/libs/${ANDROID_ABI}/lib${library}.so")
 endforeach()
-if(ANDROID_ABI STREQUAL armeabi AND NOT ANDROID_STL MATCHES "^(none|system)$")
-	list(APPEND ANDROID_CXX_STANDARD_LIBRARIES
-		-latomic)
-endif()
-set(CMAKE_C_STANDARD_LIBRARIES_INIT "-lm")
+set(CMAKE_C_STANDARD_LIBRARIES_INIT "-lgcc -latomic -lm")
 set(CMAKE_CXX_STANDARD_LIBRARIES_INIT "${CMAKE_C_STANDARD_LIBRARIES_INIT}")
 if(ANDROID_CXX_STANDARD_LIBRARIES)
 	string(REPLACE ";" "\" \"" ANDROID_CXX_STANDARD_LIBRARIES "\"${ANDROID_CXX_STANDARD_LIBRARIES}\"")
