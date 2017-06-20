@@ -647,7 +647,10 @@ def main():
     site.addsitedir(python_packages)
 
     if not os.path.exists(args.test_dir):
-        sys.exit('Test directory does not exist: {}'.format(args.test_dir))
+        if args.rebuild:
+            os.makedirs(args.test_dir)
+        else:
+            sys.exit('Test directory does not exist: {}'.format(args.test_dir))
 
     test_config = get_config_dict(
         args.config, args.abi, args.toolchain, args.pie)
