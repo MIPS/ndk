@@ -61,7 +61,8 @@ def make_standalone_toolchain(arch, api, extra_args, install_dir):
     return rc == 0, out
 
 
-def test_standalone_toolchain(arch, toolchain, install_dir, test_source):
+def test_standalone_toolchain(arch, toolchain, install_dir, test_source,
+                              flags):
     if toolchain == '4.9':
         triple = build.lib.build_support.arch_to_triple(arch)
         # x86 toolchain names are dumb: http://b/25800583
@@ -73,6 +74,7 @@ def test_standalone_toolchain(arch, toolchain, install_dir, test_source):
 
     compiler = os.path.join(install_dir, 'bin', compiler_name)
     cmd = [compiler, test_source, '-Wl,--no-undefined', '-Wl,--fatal-warnings']
+    cmd += flags
     if os.name == 'nt':
         # The Windows equivalent of exec doesn't know file associations so it
         # tries to load the batch file as an executable. Invoke it with cmd.
@@ -81,7 +83,7 @@ def test_standalone_toolchain(arch, toolchain, install_dir, test_source):
     return rc == 0, out
 
 
-def run_test(abi, api, toolchain, test_source, extra_args):
+def run_test(abi, api, toolchain, test_source, extra_args, flags):
     arch = build.lib.build_support.abi_to_arch(abi)
 
     install_dir = tempfile.mkdtemp()
@@ -91,6 +93,6 @@ def run_test(abi, api, toolchain, test_source, extra_args):
         if not success:
             return success, out
         return test_standalone_toolchain(
-            arch, toolchain, install_dir, test_source)
+            arch, toolchain, install_dir, test_source, flags)
     finally:
         shutil.rmtree(install_dir)
