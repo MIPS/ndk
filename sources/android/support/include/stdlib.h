@@ -33,6 +33,10 @@
 
 __BEGIN_DECLS
 
+#if __ANDROID_API__ < 16
+int posix_memalign(void** memptr, size_t alignment, size_t size);
+#endif
+
 // These APIs made it in to L.
 #if __ANDROID_API__ < 21
 
