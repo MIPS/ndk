@@ -18,4 +18,4 @@ import ndk.testing.standalone_toolchain
 
 def run_test(abi, api, toolchain, _build_flags):
     return ndk.testing.standalone_toolchain.run_test(
-        abi, api, toolchain, 'foo.cpp', ['--stl=gnustl'])
+        abi, api, toolchain, 'foo.cpp', ['--stl=gnustl'], [])
