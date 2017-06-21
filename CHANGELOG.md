@@ -28,11 +28,12 @@ Announcements
    set lower than android-14, android-14 will be used instead.
 
  * The CMake toolchain file now supports building assembly code written in YASM
-   to run on x86 and x86-64 architectures. To learn more, see [YASM in CMake].
+   to run on x86 and x86-64 architectures. To learn more, see this documentation
+   for [YASM in CMake].
 
 [Unified Headers]: docs/UnifiedHeaders.md
 [Unified Headers Migration Notes]: docs/UnifiedHeadersMigration.md
-[YASM in CMake]: https://android-dot-devsite.googleplex.com/ndk/guides/cmake.html#yasm-cmake
+[YASM in CMake]: https://developer.android.com/ndk/guides/cmake.html#yasm-cmake
 
 NDK
 ===
