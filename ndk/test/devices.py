@@ -37,7 +37,7 @@ class Device(adb.AndroidDevice):
     """A device to be used for testing."""
     # pylint: disable=super-on-old-class
     # pylint: disable=no-member
-    def __init__(self, serial):
+    def __init__(self, serial, precache=False):
         super(Device, self).__init__(serial)
         self._did_cache = False
         self._cached_abis = None
@@ -48,32 +48,25 @@ class Device(adb.AndroidDevice):
         self._ro_debuggable = None
         self._ro_product_name = None
 
+        if precache:
+            self.cache_properties()
+
     def cache_properties(self):
         """Returns a cached copy of the device's system properties."""
         if not self._did_cache:
-            self._ro_build_characteristics = self.get_prop('ro.build.characteristics')
+            self._ro_build_characteristics = self.get_prop(
+                'ro.build.characteristics')
             self._ro_build_id = self.get_prop('ro.build.id')
             self._ro_build_version_sdk = self.get_prop('ro.build.version.sdk')
-            self._ro_build_version_codename = self.get_prop('ro.build.version.codename')
+            self._ro_build_version_codename = self.get_prop(
+                'ro.build.version.codename')
             self._ro_debuggable = self.get_prop('ro.debuggable')
             self._ro_product_name = self.get_prop('ro.product.name')
             self._did_cache = True
-        return self
 
-    @property
-    def name(self):
-        return self.cache_properties()._ro_product_name
-
-    @property
-    def version(self):
-        return int(self.cache_properties()._ro_build_version_sdk)
-
-    @property
-    def abis(self):
-        """Returns a list of ABIs supported by the device."""
-        if self._cached_abis is None:
-            # 64-bit devices list their ABIs differently than 32-bit devices. Check
-            # all the possible places for stashing ABI info and merge them.
+            # 64-bit devices list their ABIs differently than 32-bit devices.
+            # Check all the possible places for stashing ABI info and merge
+            # them.
             abi_properties = [
                 'ro.product.cpu.abi',
                 'ro.product.cpu.abi2',
@@ -85,27 +78,45 @@ class Device(adb.AndroidDevice):
                 if value is not None:
                     abis.update(value.split(','))
 
-            _cached_abis = sorted(list(abis))
+            self._cached_abis = sorted(list(abis))
 
-        return _cached_abis
+    @property
+    def name(self):
+        self.cache_properties()
+        return self._ro_product_name
+
+    @property
+    def version(self):
+        self.cache_properties()
+        return int(self._ro_build_version_sdk)
+
+    @property
+    def abis(self):
+        """Returns a list of ABIs supported by the device."""
+        self.cache_properties()
+        return self._cached_abis
 
     @property
     def build_id(self):
-        return self.cache_properties()._ro_build_id
+        self.cache_properties()
+        return self._ro_build_id
 
     @property
     def is_release(self):
-        codename = self.cache_properties()._ro_build_version_codename
+        self.cache_properties()
+        codename = self._ro_build_version_codename
         return codename == 'REL'
 
     @property
     def is_emulator(self):
-        chars = self.cache_properties()._ro_build_characteristics
+        self.cache_properties()
+        chars = self._ro_build_characteristics
         return chars == 'emulator'
 
     @property
     def is_debuggable(self):
-        return int(self.cache_properties()._ro_debuggable) != 0
+        self.cache_properties()
+        return int(self._ro_debuggable) != 0
 
     def can_run_build_config(self, config):
         if self.version < config.api:
@@ -254,7 +265,7 @@ class DeviceFleet(object):
         return self.devices[version].keys()
 
 
-def get_all_attached_devices():
+def get_all_attached_devices(workqueue):
     """Returns a list of all connected devices."""
     if distutils.spawn.find_executable('adb') is None:
         raise RuntimeError('Could not find adb.')
@@ -269,7 +280,6 @@ def get_all_attached_devices():
 
     # The first line of `adb devices` just says "List of attached devices", so
     # skip that.
-    devices = []
     for line in out.split('\n')[1:]:
         if not line.strip():
             continue
@@ -283,14 +293,20 @@ def get_all_attached_devices():
             logger().info('Ignoring unauthorized device: %s', serial)
             continue
 
-        device = Device(serial)
+        # Caching all the device details via getprop can actually take quite a
+        # bit of time. Do it in parallel to minimize the cost.
+        workqueue.add_task(Device, serial, True)
+
+    devices = []
+    while not workqueue.finished():
+        device = workqueue.get_result()
         logger().info('Found device %s', device)
         devices.append(device)
 
     return devices
 
 
-def find_devices(sought_devices):
+def find_devices(sought_devices, workqueue):
     """Detects connected devices and returns a set for testing.
 
     We get a list of devices by scanning the output of `adb devices` and
@@ -298,7 +314,7 @@ def find_devices(sought_devices):
     `sought_devices`.
     """
     fleet = DeviceFleet(sought_devices)
-    for device in get_all_attached_devices():
+    for device in get_all_attached_devices(workqueue):
         fleet.add_device(device)
 
     return fleet

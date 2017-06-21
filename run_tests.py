@@ -699,24 +699,26 @@ def main():
     # a warning. Then compare that list of devices against all our tests and
     # make sure each test is claimed by at least one device. For each
     # configuration that is unclaimed, print a warning.
-    fleet = ndk.test.devices.find_devices(test_config['devices'])
-    have_all_devices = verify_have_all_requested_devices(fleet)
-    if args.require_all_devices and not have_all_devices:
-        sys.exit('Some requested devices were not available. Quitting.')
-
-    devices_for_config = match_configs_to_devices(fleet, test_groups.keys())
-    for config in find_configs_with_no_device(devices_for_config):
-        logger().warning('No device found for %s.', config)
-    test_runs = create_test_runs(test_groups, devices_for_config)
-
-    all_used_devices = []
-    for devices in devices_for_config.values():
-        all_used_devices.extend(devices)
-    all_used_devices = sorted(list(set(all_used_devices)))
-
-    report = ndk.test.report.Report()
     workqueue = ndk.workqueue.WorkQueue()
     try:
+        fleet = ndk.test.devices.find_devices(
+            test_config['devices'], workqueue)
+        have_all_devices = verify_have_all_requested_devices(fleet)
+        if args.require_all_devices and not have_all_devices:
+            sys.exit('Some requested devices were not available. Quitting.')
+
+        devices_for_config = match_configs_to_devices(
+            fleet, test_groups.keys())
+        for config in find_configs_with_no_device(devices_for_config):
+            logger().warning('No device found for %s.', config)
+        test_runs = create_test_runs(test_groups, devices_for_config)
+
+        all_used_devices = []
+        for devices in devices_for_config.values():
+            all_used_devices.extend(devices)
+        all_used_devices = sorted(list(set(all_used_devices)))
+
+        report = ndk.test.report.Report()
         if args.clean_device:
             clear_test_directories(workqueue, fleet)
         can_use_sync = adb_has_feature('push_sync')
