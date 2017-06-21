@@ -330,6 +330,9 @@ ifdef HOST_PREBUILT
 else
     $(call ndk_log,Host tools prebuilt directory not found, using system tools)
 endif
+ifndef HOST_PYTHON
+    HOST_PYTHON := python
+endif
 
 HOST_ECHO := $(strip $(NDK_HOST_ECHO))
 ifdef HOST_PREBUILT
