@@ -11,10 +11,8 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 Announcements
 -------------
 
- * [Unified Headers] are now enabled by default.
-
-   **Note**: The deprecated headers will be removed in a future release, most
-   likely r16. If they do not work for you, file bugs now.
+ * The deprecated headers have been removed. [Unified Headers] are now simply
+   The Headers.
 
    For migration tips, see [Unified Headers Migration Notes].
 
@@ -23,36 +21,16 @@ Announcements
    become stable enough to be the default, as some parts of gnustl are still
    incompatible with Clang. It will likely be removed after that point.
 
- * Gingerbread (android-9) is no longer supported. The minimum API level target
-   in the NDK is now Ice Cream Sandwich (android-14). If your `APP_PLATFORM` is
-   set lower than android-14, android-14 will be used instead.
-
- * The CMake toolchain file now supports building assembly code written in YASM
-   to run on x86 and x86-64 architectures. To learn more, see this documentation
-   for [YASM in CMake].
-
 [Unified Headers]: docs/UnifiedHeaders.md
 [Unified Headers Migration Notes]: docs/UnifiedHeadersMigration.md
-[YASM in CMake]: https://developer.android.com/ndk/guides/cmake.html#yasm-cmake
 
 NDK
 ===
 
- * `awk` is no longer in the NDK. We've replaced all uses of awk with Python.
-
-Clang
-=====
-
- * Clang has been updated to build 4053586. This is built from Clang 5.0 SVN at
-   r300080.
- * Clang now supports OpenMP (except on MIPS/MIPS64):
-   https://github.com/android-ndk/ndk/issues/9.
-
-libc++
-======
-
- * We've begun slimming down and improving `libandroid_support` to fix libc++
-   reliability issues. https://github.com/android-ndk/ndk/issues/300.
+ * ndk-build and CMake now link libatomic by default. Manually adding `-latomic`
+   to your ldflags should no longer be necessary.
+ * Clang static analyzer support for ndk-build has been fixed to work with Clang
+   as a compiler. See https://github.com/android-ndk/ndk/issues/362.
 
 Known Issues
 ------------
