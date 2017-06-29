@@ -14,14 +14,12 @@
 # limitations under the License.
 #
 import argparse
-import datetime
 import multiprocessing
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
-import timeit
 import zipfile
 
 
@@ -78,29 +76,6 @@ def minimum_platform_level(abi):
         return 21
     else:
         return 14
-
-
-class Timer(object):
-    def __init__(self):
-        self.start_time = None
-        self.end_time = None
-        self.duration = None
-
-    def start(self):
-        self.start_time = timeit.default_timer()
-
-    def finish(self):
-        self.end_time = timeit.default_timer()
-
-        # Not interested in partial seconds at this scale.
-        seconds = int(self.end_time - self.start_time)
-        self.duration = datetime.timedelta(seconds=seconds)
-
-    def __enter__(self):
-        self.start()
-
-    def __exit__(self, _exc_type, _exc_value, _traceback):
-        self.finish()
 
 
 def arch_to_toolchain(arch):

@@ -30,6 +30,7 @@ import time
 import traceback
 
 import build.lib.build_support
+import ndk.notify
 import ndk.paths
 import ndk.subprocess
 import ndk.test.builder
@@ -37,6 +38,7 @@ import ndk.test.devices
 import ndk.test.report
 import ndk.test.result
 import ndk.test.spec
+import ndk.timer
 import ndk.workqueue
 
 import tests.filters as filters
@@ -636,6 +638,9 @@ class ConfigFilter(object):
 
 
 def main():
+    total_timer = ndk.timer.Timer()
+    total_timer.start()
+
     args = parse_args()
 
     log_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
@@ -656,21 +661,27 @@ def main():
         args.config, args.abi, args.toolchain, args.pie)
 
     printer = printers.StdoutPrinter(show_all=args.show_all)
-    if args.rebuild:
-        report = build_tests(
-            args.ndk, args.test_dir, args.clean, printer, test_config,
-            args.filter)
-        if report.num_tests == 0:
-            sys.exit('Found no tests for filter {}.'.format(args.filter))
-        printer.print_summary(report)
-        if not report.successful:
-            sys.exit(report.num_failed)
+    build_timer = ndk.timer.Timer()
+    with build_timer:
+        if args.rebuild:
+            report = build_tests(
+                args.ndk, args.test_dir, args.clean, printer, test_config,
+                args.filter)
+            if report.num_tests == 0:
+                sys.exit('Found no tests for filter {}.'.format(args.filter))
+            printer.print_summary(report)
+            if not report.successful:
+                sys.exit(report.num_failed)
 
     test_dist_dir = os.path.join(args.test_dir, 'dist')
     test_filter = filters.TestFilter.from_string(args.filter)
     # dict of {BuildConfiguration: [Test]}
     config_filter = ConfigFilter(test_config)
-    test_groups = enumerate_tests(test_dist_dir, test_filter, config_filter)
+    test_discovery_timer = ndk.timer.Timer()
+    with test_discovery_timer:
+        test_groups = enumerate_tests(
+            test_dist_dir, test_filter, config_filter)
+
     if sum([len(tests) for tests in test_groups.values()]) == 0:
         print('Found no tests in {} for filter {}.'.format(
             test_dist_dir, args.filter))
@@ -699,47 +710,79 @@ def main():
     # a warning. Then compare that list of devices against all our tests and
     # make sure each test is claimed by at least one device. For each
     # configuration that is unclaimed, print a warning.
-    fleet = ndk.test.devices.find_devices(test_config['devices'])
-    have_all_devices = verify_have_all_requested_devices(fleet)
-    if args.require_all_devices and not have_all_devices:
-        sys.exit('Some requested devices were not available. Quitting.')
-
-    devices_for_config = match_configs_to_devices(fleet, test_groups.keys())
-    for config in find_configs_with_no_device(devices_for_config):
-        logger().warning('No device found for %s.', config)
-    test_runs = create_test_runs(test_groups, devices_for_config)
-
-    all_used_devices = []
-    for devices in devices_for_config.values():
-        all_used_devices.extend(devices)
-    all_used_devices = sorted(list(set(all_used_devices)))
-
-    report = ndk.test.report.Report()
     workqueue = ndk.workqueue.WorkQueue()
     try:
-        if args.clean_device:
-            clear_test_directories(workqueue, fleet)
-        can_use_sync = adb_has_feature('push_sync')
-        push_tests_to_devices(
-            workqueue, test_dist_dir, devices_for_config, can_use_sync)
+        device_discovery_timer = ndk.timer.Timer()
+        with device_discovery_timer:
+            fleet = ndk.test.devices.find_devices(
+                test_config['devices'], workqueue)
+        have_all_devices = verify_have_all_requested_devices(fleet)
+        if args.require_all_devices and not have_all_devices:
+            sys.exit('Some requested devices were not available. Quitting.')
 
-        perform_asan_setup(workqueue, args.ndk, all_used_devices)
+        devices_for_config = match_configs_to_devices(
+            fleet, test_groups.keys())
+        for config in find_configs_with_no_device(devices_for_config):
+            logger().warning('No device found for %s.', config)
+        test_runs = create_test_runs(test_groups, devices_for_config)
+
+        all_used_devices = []
+        for devices in devices_for_config.values():
+            all_used_devices.extend(devices)
+        all_used_devices = sorted(list(set(all_used_devices)))
+
+        report = ndk.test.report.Report()
+        clean_device_timer = ndk.timer.Timer()
+        with clean_device_timer:
+            if args.clean_device:
+                clear_test_directories(workqueue, fleet)
+        can_use_sync = adb_has_feature('push_sync')
+        push_timer = ndk.timer.Timer()
+        with push_timer:
+            push_tests_to_devices(
+                workqueue, test_dist_dir, devices_for_config, can_use_sync)
+
+        asan_setup_timer = ndk.timer.Timer()
+        with asan_setup_timer:
+            perform_asan_setup(workqueue, args.ndk, all_used_devices)
 
         # Shuffle the test runs to distribute the load more evenly. These are
         # ordered by (build config, device, test), so most of the tests running
         # at any given point in time are all running on the same device.
         random.shuffle(test_runs)
-        for test in test_runs:
-            workqueue.add_task(run_test, test)
+        test_run_timer = ndk.timer.Timer()
+        with test_run_timer:
+            for test in test_runs:
+                workqueue.add_task(run_test, test)
 
-        wait_for_results(report, workqueue, printer)
-        restart_flaky_tests(report, workqueue)
-        wait_for_results(report, workqueue, printer)
+            wait_for_results(report, workqueue, printer)
+            restart_flaky_tests(report, workqueue)
+            wait_for_results(report, workqueue, printer)
 
         printer.print_summary(report)
     finally:
         workqueue.terminate()
         workqueue.join()
+
+    total_timer.finish()
+
+    print('Finished {}'.format(
+        'successfully' if report.successful else 'unsuccessfully'))
+    if args.rebuild:
+        print('Build: {}'.format(build_timer.duration))
+    print('Test discovery: {}'.format(test_discovery_timer.duration))
+    print('Device discovery: {}'.format(device_discovery_timer.duration))
+    if args.clean_device:
+        print('Clean device: {}'.format(clean_device_timer.duration))
+    print('Push: {}'.format(push_timer.duration))
+    print('ASAN setup: {}'.format(asan_setup_timer.duration))
+    print('Run: {}'.format(test_run_timer.duration))
+    print('Total: {}'.format(total_timer.duration))
+
+    subject = 'NDK Testing {}!'.format(
+        'Passed' if report.successful else 'Failed')
+    body = 'Testing finished in {}'.format(total_timer.duration)
+    ndk.notify.toast(subject, body)
 
     sys.exit(not report.successful)
 

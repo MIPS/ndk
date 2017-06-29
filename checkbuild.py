@@ -44,6 +44,7 @@ import ndk.notify
 import ndk.paths
 import ndk.test.builder
 import ndk.test.spec
+import ndk.timer
 import ndk.workqueue
 
 import tests.printers
@@ -1121,7 +1122,7 @@ def parse_args():
 def main():
     logging.basicConfig()
 
-    total_timer = build_support.Timer()
+    total_timer = ndk.timer.Timer()
     total_timer.start()
 
     # It seems the build servers run us in our own session, in which case we
@@ -1200,7 +1201,7 @@ def main():
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-    build_timer = build_support.Timer()
+    build_timer = ndk.timer.Timer()
     with build_timer:
         workqueue = ndk.workqueue.WorkQueue(args.jobs)
         try:
@@ -1237,7 +1238,7 @@ def main():
             workqueue.join()
 
     ndk_dir = ndk.paths.get_install_path(out_dir)
-    install_timer = build_support.Timer()
+    install_timer = ndk.timer.Timer()
     with install_timer:
         if not os.path.exists(ndk_dir):
             os.makedirs(ndk_dir)
@@ -1245,14 +1246,14 @@ def main():
             if module.name in modules:
                 module.install(out_dir, dist_dir, args)
 
-    package_timer = build_support.Timer()
+    package_timer = ndk.timer.Timer()
     with package_timer:
         if do_package:
             host_tag = build_support.host_to_tag(args.system)
             package_ndk(ndk_dir, dist_dir, host_tag, args.build_number)
 
     good = True
-    test_timer = build_support.Timer()
+    test_timer = ndk.timer.Timer()
     with test_timer:
         if args.test:
             good = build_ndk_tests(out_dir, dist_dir, args)
