@@ -41,9 +41,7 @@ android_support_sources := \
     src/musl-ctype/iswspace.c \
     src/musl-ctype/iswupper.c \
     src/musl-ctype/iswxdigit.c \
-    src/musl-ctype/towctrans.c \
     src/musl-ctype/wcswidth.c \
-    src/musl-ctype/wctrans.c \
     src/musl-ctype/wcwidth.c \
     src/musl-math/frexp.c \
     src/musl-math/frexpf.c \
