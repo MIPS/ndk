@@ -24,8 +24,13 @@ android_support_c_includes := $(android_support_export_c_includes)
 
 ifeq ($(is_lp64),true)
 # 64-bit ABIs
+
+# We don't need this file on LP32 because libc++ has its own fallbacks for these
+# functions. We can't use those fallbacks for LP64 because the file contains all
+# the strto*_l functions. LP64 had some of those in L, so the inlines in libc++
+# collide with the out-of-line declarations in bionic.
 android_support_sources := \
-    src/locale_support.c \
+    src/locale_support.cpp \
 
 else
 # 32-bit ABIs
@@ -52,7 +57,6 @@ android_support_sources += \
     src/locale/localeconv.c \
     src/locale/newlocale.c \
     src/locale/uselocale.c \
-    src/locale_support.c \
     src/math_support.c \
     src/msun/e_log2.c \
     src/msun/e_log2f.c \
