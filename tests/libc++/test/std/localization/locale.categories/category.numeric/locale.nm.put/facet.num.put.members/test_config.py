@@ -5,4 +5,6 @@ def run_broken(abi, device_api, toolchain, name):
     percent_f_tests = ('put_double.pass', 'put_long_double.pass')
     if name in percent_f_tests and device_api < 21:
         return 'android-{}'.format(device_api), 'http://b/35764716'
+    if name == 'put_long_double.pass':
+        return 'all?', 'http://b/63144639'
     return None, None

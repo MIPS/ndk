@@ -28,8 +28,23 @@
 #ifndef NDK_ANDROID_SUPPORT_UCHAR_H
 #define NDK_ANDROID_SUPPORT_UCHAR_H
 
-// __LP64__
+#include_next <uchar.h>
 
-#warning Not implemented
+__BEGIN_DECLS
+
+#if __ANDROID_API__ < __ANDROID_API_L__
+
+size_t c16rtomb(char* __restrict, char16_t, mbstate_t* __restrict)
+    __INTRODUCED_IN(21);
+size_t c32rtomb(char* __restrict, char32_t, mbstate_t* __restrict)
+    __INTRODUCED_IN(21);
+size_t mbrtoc16(char16_t* __restrict, const char* __restrict, size_t,
+                mbstate_t* __restrict) __INTRODUCED_IN(21);
+size_t mbrtoc32(char32_t* __restrict, const char* __restrict, size_t,
+                mbstate_t* __restrict) __INTRODUCED_IN(21);
+
+#endif /* __ANDROID_API__ < __ANDROID_API_L__ */
+
+__END_DECLS
 
 #endif  // NDK_ANDROID_SUPPORT_UCHAR_H
