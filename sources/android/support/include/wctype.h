@@ -25,69 +25,16 @@
 #ifndef NDK_ANDROID_SUPPORT_WCTYPE_H
 #define NDK_ANDROID_SUPPORT_WCTYPE_H
 
-/* Please read note in wchar.h to see why the C library version of this
- * file is not included through #include_next here.
- */
-#if defined(__LP64__)
+#include_next <wctype.h>
 
-# include_next <wctype.h>
+__BEGIN_DECLS
 
-#else
+#if __ANDROID_API__ < __ANDROID_API_L__
 
-# include <xlocale.h>
+int iswblank(wint_t);
 
-#ifdef __cplusplus
-extern "C" {
 #endif
 
-typedef __WINT_TYPE__ wint_t;
-typedef const void* wctrans_t;
-typedef long wctype_t;
+__END_DECLS
 
-#define WEOF ((wint_t)(-1))
-
-int       iswalnum(wint_t);
-int       iswalpha(wint_t);
-int       iswblank(wint_t);
-int       iswcntrl(wint_t);
-int       iswdigit(wint_t);
-int       iswgraph(wint_t);
-int       iswlower(wint_t);
-int       iswprint(wint_t);
-int       iswpunct(wint_t);
-int       iswspace(wint_t);
-int       iswupper(wint_t);
-int       iswxdigit(wint_t);
-int       iswctype(wint_t, wctype_t);
-wint_t    towctrans(wint_t, wctrans_t);
-wint_t    towlower(wint_t);
-wint_t    towupper(wint_t);
-wctrans_t wctrans(const char *);
-wctype_t  wctype(const char *);
-
-int iswalnum_l(wint_t, locale_t);
-int iswgraph_l(wint_t, locale_t);
-int iswctype_l(wint_t, wctype_t, locale_t);
-
-wint_t towctrans_l(wint_t, wctrans_t, locale_t);
-wctrans_t wctrans_l(const char *, locale_t);
-wctype_t  wctype_l(const char *, locale_t);
-
-int iswalpha_l(wint_t, locale_t);
-int iswblank_l(wint_t, locale_t);
-int iswcntrl_l(wint_t, locale_t);
-int iswdigit_l(wint_t, locale_t);
-int iswlower_l(wint_t, locale_t);
-int iswprint_l(wint_t, locale_t);
-int iswpunct_l(wint_t, locale_t);
-int iswspace_l(wint_t, locale_t);
-int iswupper_l(wint_t, locale_t);
-int iswxdigit_l(wint_t, locale_t);
-
-#ifdef __cplusplus
-}  // extern "C"
-#endif
-
-#endif // !__LP64__
-
-#endif  // NDK_ANDROID_SUPPORT_WCTYPE_H
+#endif  /* NDK_ANDROID_SUPPORT_WCTYPE_H */
