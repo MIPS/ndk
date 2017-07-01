@@ -21,6 +21,11 @@ include $(PREBUILT_STATIC_LIBRARY)
 else # Building
 
 android_support_c_includes := $(android_support_export_c_includes)
+android_support_cflags := \
+    -Drestrict=__restrict__ \
+    -ffunction-sections \
+    -fdata-sections \
+    -fvisibility=hidden \
 
 ifeq ($(is_lp64),true)
 # 64-bit ABIs
@@ -37,7 +42,15 @@ else
 
 BIONIC_PATH := ../../../../bionic
 
-android_support_c_includes += $(BIONIC_PATH)/libc
+android_support_c_includes += \
+    $(BIONIC_PATH)/libc \
+    $(BIONIC_PATH)/libm \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src \
+    $(BIONIC_PATH)/libm/upstream-freebsd/android/include \
+
+android_support_cflags += \
+    -include freebsd-compat.h \
+    -D_BSD_SOURCE \
 
 android_support_sources := \
     $(BIONIC_PATH)/libc/bionic/c32rtomb.cpp \
@@ -45,6 +58,46 @@ android_support_sources := \
     $(BIONIC_PATH)/libc/bionic/mbstate.cpp \
     $(BIONIC_PATH)/libc/bionic/wchar.cpp \
     $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/locale/mbtowc.c \
+    $(BIONIC_PATH)/libm/digittoint.c \
+    $(BIONIC_PATH)/libm/fake_long_double.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_acos.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_acosh.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_asin.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_atan2.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_atanh.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_cosh.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_exp.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_hypot.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_lgamma.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_log.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_log10.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_log2.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_logf.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_remainder.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_sinh.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_sqrt.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/imprecise.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/k_cos.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/k_exp.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/k_rem_pio2.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/k_sin.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/k_tan.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_asinh.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_atan.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_cbrt.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_cos.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_erf.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_exp2.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_expm1.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_log1p.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_logb.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_nan.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_nextafter.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_remquo.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_rint.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_sin.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_tan.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_tanh.c \
     src/_Exit.cpp \
     src/iswblank.cpp \
     src/posix_memalign.cpp \
@@ -58,13 +111,6 @@ android_support_sources += \
     src/locale/localeconv.c \
     src/locale/newlocale.c \
     src/locale/uselocale.c \
-    src/math_support.c \
-    src/msun/e_log2.c \
-    src/msun/e_log2f.c \
-    src/msun/s_nan.c \
-    src/musl-math/frexp.c \
-    src/musl-math/frexpf.c \
-    src/musl-math/frexpl.c \
     src/wchar_support.c \
     src/wcstox/floatscan.c \
     src/wcstox/intscan.c \
@@ -72,13 +118,18 @@ android_support_sources += \
     src/wcstox/wcstod.c \
     src/wcstox/wcstol.c \
 
+ifneq (armeabi,$(TARGET_ARCH_ABI))
+# The file uses instructions that aren't available in arm5.
+android_support_sources += \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_nearbyint.c \
+
+endif
+
 # Replaces broken implementations in x86 libm.so
 ifeq (x86,$(TARGET_ARCH_ABI))
 android_support_sources += \
-    src/musl-math/scalbln.c \
-    src/musl-math/scalblnf.c \
-    src/musl-math/scalblnl.c \
-    src/musl-math/scalbnl.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_scalbln.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_scalbn.c \
 
 endif
 
@@ -89,11 +140,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := android_support
 LOCAL_SRC_FILES := $(android_support_sources)
 LOCAL_C_INCLUDES := $(android_support_c_includes)
-LOCAL_CFLAGS := \
-    -Drestrict=__restrict__ \
-    -ffunction-sections \
-    -fdata-sections \
-    -fvisibility=hidden \
+LOCAL_CFLAGS := $(android_support_cflags)
 
 LOCAL_CPPFLAGS := \
     -fvisibility-inlines-hidden \
