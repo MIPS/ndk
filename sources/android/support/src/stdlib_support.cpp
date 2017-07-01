@@ -26,33 +26,9 @@
  * SUCH DAMAGE.
  */
 
-// Contains an implementation of all stdlib functions missing from bionic.
-//
-// TODO(digit): Make these work.
-
-#include <inttypes.h>
 #include <stdlib.h>
-#include <assert.h>
 
 long double strtold(const char* nptr, char** endptr) {
-  //FIXME: Although in Android long double is the same as double, can we borrow stdtod?
+  static_assert(sizeof(double) == sizeof(long double), "double != long double");
   return strtod(nptr, endptr);
-}
-
-intmax_t imaxabs(intmax_t j)
-{
-  return (j < 0 ? -j : j);
-}
-
-imaxdiv_t imaxdiv(intmax_t numer, intmax_t denom)
-{
-  imaxdiv_t retval;
-
-  retval.quot = numer / denom;
-  retval.rem = numer % denom;
-  if (numer >= 0 && retval.rem < 0) {
-    retval.quot++;
-    retval.rem -= denom;
-  }
-  return (retval);
 }

@@ -48,6 +48,7 @@ android_support_sources := \
     src/_Exit.cpp \
     src/iswblank.cpp \
     src/posix_memalign.cpp \
+    src/stdlib_support.cpp \
     src/swprintf.cpp \
 
 # These are old sources that should be purged/rewritten/taken from bionic.
@@ -64,7 +65,6 @@ android_support_sources += \
     src/musl-math/frexp.c \
     src/musl-math/frexpf.c \
     src/musl-math/frexpl.c \
-    src/stdlib_support.c \
     src/wchar_support.c \
     src/wcstox/floatscan.c \
     src/wcstox/intscan.c \
