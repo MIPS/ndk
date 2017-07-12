@@ -44,12 +44,14 @@ BIONIC_PATH := ../../../../bionic
 
 android_support_c_includes += \
     $(BIONIC_PATH)/libc \
+    $(BIONIC_PATH)/libc/upstream-openbsd/android/include \
     $(BIONIC_PATH)/libm \
-    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src \
     $(BIONIC_PATH)/libm/upstream-freebsd/android/include \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src \
 
 android_support_cflags += \
     -include freebsd-compat.h \
+    -include openbsd-compat.h \
     -D_BSD_SOURCE \
     -D__BIONIC_BUILD_FOR_ANDROID_SUPPORT \
 
@@ -59,7 +61,22 @@ android_support_sources := \
     $(BIONIC_PATH)/libc/bionic/mbrtoc32.cpp \
     $(BIONIC_PATH)/libc/bionic/mbstate.cpp \
     $(BIONIC_PATH)/libc/bionic/wchar.cpp \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcscat.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcschr.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcslen.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcsncmp.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcsncpy.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcspbrk.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcsrchr.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcsspn.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcstok.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wmemchr.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wmemcmp.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wmemmove.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wmemset.c \
     $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/locale/mbtowc.c \
+    $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/string/wcsstr.c \
+    $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/string/wmemcpy.c \
     $(BIONIC_PATH)/libm/digittoint.c \
     $(BIONIC_PATH)/libm/fake_long_double.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_acos.c \
@@ -108,7 +125,6 @@ android_support_sources := \
 
 # These are old sources that should be purged/rewritten/taken from bionic.
 android_support_sources += \
-    src/wchar_support.c \
     src/wcstox/floatscan.c \
     src/wcstox/intscan.c \
     src/wcstox/shgetc.c \
