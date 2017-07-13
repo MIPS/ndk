@@ -52,7 +52,6 @@ android_support_c_includes += \
 android_support_cflags += \
     -include freebsd-compat.h \
     -include openbsd-compat.h \
-    -D_BSD_SOURCE \
     -D__BIONIC_BUILD_FOR_ANDROID_SUPPORT \
 
 android_support_sources := \
@@ -151,6 +150,7 @@ LOCAL_CFLAGS := $(android_support_cflags)
 LOCAL_CPPFLAGS := \
     -fvisibility-inlines-hidden \
     -std=c++11 \
+    -Werror \
 
 LOCAL_EXPORT_C_INCLUDES := $(android_support_export_c_includes)
 
