@@ -39,13 +39,8 @@ long long wcstoll(const wchar_t*, wchar_t**, int);
 long double wcstold(const wchar_t*, wchar_t**);
 unsigned long long wcstoull(const wchar_t*, wchar_t**, int);
 
-size_t wcslcat(wchar_t*, const wchar_t*, size_t);
-size_t wcslcpy(wchar_t*, const wchar_t*, size_t);
-
 intmax_t wcstoimax(const wchar_t* nptr, wchar_t** endptr, int base);
 uintmax_t wcstoumax(const wchar_t* nptr, wchar_t** endptr, int base);
-
-size_t wcsnlen(const wchar_t*, size_t);
 
 #endif /* __ANDROID_API__ < __ANDROID_API_L__ */
 

@@ -44,12 +44,14 @@ BIONIC_PATH := ../../../../bionic
 
 android_support_c_includes += \
     $(BIONIC_PATH)/libc \
+    $(BIONIC_PATH)/libc/upstream-openbsd/android/include \
     $(BIONIC_PATH)/libm \
-    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src \
     $(BIONIC_PATH)/libm/upstream-freebsd/android/include \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src \
 
 android_support_cflags += \
     -include freebsd-compat.h \
+    -include openbsd-compat.h \
     -D_BSD_SOURCE \
     -D__BIONIC_BUILD_FOR_ANDROID_SUPPORT \
 
@@ -59,7 +61,22 @@ android_support_sources := \
     $(BIONIC_PATH)/libc/bionic/mbrtoc32.cpp \
     $(BIONIC_PATH)/libc/bionic/mbstate.cpp \
     $(BIONIC_PATH)/libc/bionic/wchar.cpp \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcscat.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcschr.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcslen.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcsncmp.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcsncpy.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcspbrk.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcsrchr.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcsspn.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcstok.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wmemchr.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wmemcmp.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wmemmove.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wmemset.c \
     $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/locale/mbtowc.c \
+    $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/string/wcsstr.c \
+    $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/string/wmemcpy.c \
     $(BIONIC_PATH)/libm/digittoint.c \
     $(BIONIC_PATH)/libm/fake_long_double.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_acos.c \
@@ -105,15 +122,7 @@ android_support_sources := \
     src/posix_memalign.cpp \
     src/stdlib_support.cpp \
     src/swprintf.cpp \
-
-# These are old sources that should be purged/rewritten/taken from bionic.
-android_support_sources += \
-    src/wchar_support.c \
-    src/wcstox/floatscan.c \
-    src/wcstox/intscan.c \
-    src/wcstox/shgetc.c \
-    src/wcstox/wcstod.c \
-    src/wcstox/wcstol.c \
+    src/wcstox.cpp \
 
 ifneq (armeabi,$(TARGET_ARCH_ABI))
 # The file uses instructions that aren't available in arm5.
@@ -142,19 +151,6 @@ LOCAL_CFLAGS := $(android_support_cflags)
 LOCAL_CPPFLAGS := \
     -fvisibility-inlines-hidden \
     -std=c++11 \
-
-# These Clang warnings are triggered by the Musl sources. The code is fine,
-# but we don't want to modify it. TODO(digit): This is potentially dangerous,
-# see if there is a way to build the Musl sources in a separate static library
-# and have the main one depend on it, or include its object files.
-ifneq ($(TARGET_TOOLCHAIN),$(subst clang,,$(TARGET_TOOLCHAIN)))
-LOCAL_CFLAGS += \
-  -Wno-shift-op-parentheses \
-  -Wno-string-plus-int \
-  -Wno-dangling-else \
-  -Wno-bitwise-op-parentheses \
-  -Wno-shift-negative-value
-endif
 
 LOCAL_EXPORT_C_INCLUDES := $(android_support_export_c_includes)
 

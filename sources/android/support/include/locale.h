@@ -91,6 +91,7 @@ extern "C" {
                      )
 
 extern locale_t newlocale(int, const char*, locale_t);
+extern locale_t duplocale(locale_t);
 extern locale_t uselocale(locale_t);
 extern void     freelocale(locale_t);
 
