@@ -59,7 +59,9 @@ TEST(wchar, wcstof) {
         { L"0.2", 0.2, 3 },
         { L"-0.2", -0.2, 4 },
         { L"-3.1415926535", -3.1415926535, 13 },
+#if __ANDROID_API__ >= __ANDROID_API_L__
         { L"+1e+100", static_cast<float>(1e100), 7 },
+#endif
         { L"0x10000.80", 65536.50, 10 },
     };
     for (size_t n = 0; n < ARRAY_SIZE(kData); ++n) {

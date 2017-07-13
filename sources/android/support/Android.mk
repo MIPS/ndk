@@ -122,14 +122,7 @@ android_support_sources := \
     src/posix_memalign.cpp \
     src/stdlib_support.cpp \
     src/swprintf.cpp \
-
-# These are old sources that should be purged/rewritten/taken from bionic.
-android_support_sources += \
-    src/wcstox/floatscan.c \
-    src/wcstox/intscan.c \
-    src/wcstox/shgetc.c \
-    src/wcstox/wcstod.c \
-    src/wcstox/wcstol.c \
+    src/wcstox.cpp \
 
 ifneq (armeabi,$(TARGET_ARCH_ABI))
 # The file uses instructions that aren't available in arm5.
@@ -158,19 +151,6 @@ LOCAL_CFLAGS := $(android_support_cflags)
 LOCAL_CPPFLAGS := \
     -fvisibility-inlines-hidden \
     -std=c++11 \
-
-# These Clang warnings are triggered by the Musl sources. The code is fine,
-# but we don't want to modify it. TODO(digit): This is potentially dangerous,
-# see if there is a way to build the Musl sources in a separate static library
-# and have the main one depend on it, or include its object files.
-ifneq ($(TARGET_TOOLCHAIN),$(subst clang,,$(TARGET_TOOLCHAIN)))
-LOCAL_CFLAGS += \
-  -Wno-shift-op-parentheses \
-  -Wno-string-plus-int \
-  -Wno-dangling-else \
-  -Wno-bitwise-op-parentheses \
-  -Wno-shift-negative-value
-endif
 
 LOCAL_EXPORT_C_INCLUDES := $(android_support_export_c_includes)
 
