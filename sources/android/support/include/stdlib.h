@@ -66,6 +66,12 @@ unsigned long strtoul_l(const char* nptr, char** endptr, int base,
                         locale_t locale);
 #endif // __ANDROID_API__ < 26
 
+#if defined(MB_CUR_MAX)
+size_t __ctype_get_mb_cur_max();
+#undef MB_CUR_MAX
+#define MB_CUR_MAX __ctype_get_mb_cur_max()
+#endif  // defined(MB_CUR_MAX)
+
 __END_DECLS
 
 #endif  // NDK_ANDROID_SUPPORT_STDLIB_H
