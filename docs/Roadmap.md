@@ -70,19 +70,11 @@ well, the NDK will begin defaulting to using libc++. This means `ndk-build`,
 CMake, the Gradle plugin, and standalone toolchains. We don't have any control
 over other build systems :)
 
-### NDK Compatibility Library
+### Bugfix Release
 
-Now that we have some basis of supporting new APIs on old platform releases with
-`libandroid_support`, we plan to extend this beyond just being used by libc++.
-The NDK Compatibility Library which performs this role for any NDK library and
-not just libc++ is something we've been wanting to do for a very long time, and
-this is the point at which all the prerequisite work should finally be done.
-
-This project is going to span multiple releases. We'll be adding support for
-older releases with each update until we've reached the oldest supported
-version. Optimistically, NDK r17's compatibility library will support back to
-Jelly Bean, and NDK r18 will support back to the minimum supported NDK API
-(currently Ice Cream Sandwich).
+With all the systemic NDK issues now solved (or at least pending feedback on the
+attempted fixes), we should take a look through our bug backlog and start fixing
+all the non-critical and nice-to-have issues.
 
 
 NDK r18
@@ -111,24 +103,16 @@ written such that they do not work with Clang (threading and atomics, mostly).
 Now that libc++ is the best choice of STL, this is no longer blocking, so GCC
 can be removed.
 
-### NDK Compatibility Library
+### Bugfix Release
 
-Continued work on the NDK Compatibility Library will hopefully have us
-supporting back to the minimum supported target API at this point. As of writing
-this is Ice Cream Sandwich, but this might be Jelly Bean by the time of release.
+The r17 release cycle alone probably won't be enough to burn down enough of
+these issues.
 
 
 NDK r19
 -------
 
 Estimated release: Q2 2018
-
-### Now what?
-
-At this point all the fires are out and we've solved two of the largest pain
-points (supporting Gingerbread and getting common third-party dependencies).
-
-Some ideas of what to do next:
 
 ### Make standalone toolchains obsolete
 
