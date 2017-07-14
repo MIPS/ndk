@@ -95,7 +95,6 @@ android_support_sources := \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_remainder.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_sinh.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_sqrt.c \
-    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/imprecise.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/k_cos.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/k_exp.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/k_rem_pio2.c \
