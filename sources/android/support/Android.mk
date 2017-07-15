@@ -58,7 +58,6 @@ android_support_sources := \
     $(BIONIC_PATH)/libc/bionic/c32rtomb.cpp \
     $(BIONIC_PATH)/libc/bionic/locale.cpp \
     $(BIONIC_PATH)/libc/bionic/mbrtoc32.cpp \
-    $(BIONIC_PATH)/libc/bionic/mbstate.cpp \
     $(BIONIC_PATH)/libc/bionic/wchar.cpp \
     $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcscat.c \
     $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcschr.c \
