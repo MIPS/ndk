@@ -129,13 +129,6 @@ struct lconv {
 
 struct lconv* localeconv(void);
 
-#if 0
-// Used to implement the std::ctype<char> specialization.
-extern const char * const __ctype_c_mask_table;
-// TODO(ajwong): Make this based on some exported bionic constant.
-const int __ctype_c_mask_table_size = 256;
-#endif
-
 #ifdef __cplusplus
 }  // extern "C"
 #endif
