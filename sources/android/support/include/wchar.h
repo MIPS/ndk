@@ -35,6 +35,12 @@ __BEGIN_DECLS
 
 #if __ANDROID_API__ < __ANDROID_API_L__
 
+#include <stdarg.h>
+
+int vfwscanf(FILE*, const wchar_t*, va_list);
+int vswscanf(const wchar_t*, const wchar_t*, va_list);
+int vwscanf(const wchar_t*, va_list);
+
 size_t mbsnrtowcs(wchar_t*, const char**, size_t, size_t, mbstate_t*);
 int vswprintf(wchar_t*, size_t, const wchar_t*, va_list);
 size_t wcsnrtombs(char*, const wchar_t**, size_t, size_t, mbstate_t*);
