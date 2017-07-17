@@ -224,13 +224,6 @@ else
     $(call ndk_log, Host operating system detected: $(HOST_OS))
 endif
 
-# Always use /usr/bin/file on Darwin to avoid relying on broken Ports
-# version. See http://b.android.com/53769 .
-HOST_FILE_PROGRAM := file
-ifeq ($(HOST_OS),darwin)
-HOST_FILE_PROGRAM := /usr/bin/file
-endif
-
 HOST_ARCH := $(strip $(HOST_ARCH))
 HOST_ARCH64 :=
 ifndef HOST_ARCH
@@ -243,24 +236,11 @@ ifndef HOST_ARCH
         ifneq ("/",$(shell echo "%ProgramW6432%/%ProgramFiles(x86)%"))
             HOST_ARCH64 := x86_64
         endif
-    else # HOST_OS_BASE != windows
-        UNAME := $(shell uname -m)
-        ifneq (,$(findstring 86,$(UNAME)))
-            HOST_ARCH := x86
-            ifneq (,$(shell $(HOST_FILE_PROGRAM) -L $(SHELL) | grep 'x86[_-]64'))
-                HOST_ARCH64 := x86_64
-            endif
-        endif
-        # We should probably should not care at all
-        ifneq (,$(findstring Power,$(UNAME)))
-            HOST_ARCH := ppc
-        endif
-        ifeq ($(HOST_ARCH),)
-            $(call __ndk_info,Unsupported host architecture: $(UNAME))
-            $(call __ndk_error,Aborting)
-        endif
-    endif # HOST_OS_BASE != windows
-    $(call ndk_log,Host CPU was auto-detected: $(HOST_ARCH))
+        $(call ndk_log,Host CPU was auto-detected: $(HOST_ARCH))
+    else
+        HOST_ARCH := x86
+        HOST_ARCH64 := x86_64
+    endif
 else
     $(call ndk_log,Host CPU from environment: $(HOST_ARCH))
 endif
