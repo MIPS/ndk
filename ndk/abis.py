@@ -38,7 +38,7 @@ def min_api_for_abi(abi):
     21
 
     >>> min_api_for_abi('armeabi-v7a')
-    9
+    14
 
     >>> min_api_for_abi('foobar')
     Traceback (most recent call last):
@@ -48,6 +48,6 @@ def min_api_for_abi(abi):
     if abi in LP64_ABIS:
         return 21
     elif abi in LP32_ABIS:
-        return 9
+        return 14
     else:
         raise ValueError('Invalid ABI: {}'.format(abi))
