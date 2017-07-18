@@ -34,9 +34,7 @@
 __BEGIN_DECLS
 
 #if __ANDROID_API__ < __ANDROID_API_L__
-
 int iswblank(wint_t);
-
 #endif
 
 __END_DECLS

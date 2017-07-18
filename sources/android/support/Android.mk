@@ -107,7 +107,6 @@ android_support_sources := \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_expm1.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_log1p.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_logb.c \
-    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_nan.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_nextafter.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_remquo.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_rint.c \

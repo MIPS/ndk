@@ -34,32 +34,16 @@
 __BEGIN_DECLS
 
 #if __ANDROID_API__ < __ANDROID_API_L__
-
-#include <stdarg.h>
-
 int vfwscanf(FILE*, const wchar_t*, va_list);
 int vswscanf(const wchar_t*, const wchar_t*, va_list);
 int vwscanf(const wchar_t*, va_list);
-
 size_t mbsnrtowcs(wchar_t*, const char**, size_t, size_t, mbstate_t*);
-int vswprintf(wchar_t*, size_t, const wchar_t*, va_list);
 size_t wcsnrtombs(char*, const wchar_t**, size_t, size_t, mbstate_t*);
 float wcstof(const wchar_t*, wchar_t**);
 long long wcstoll(const wchar_t*, wchar_t**, int);
 long double wcstold(const wchar_t*, wchar_t**);
 unsigned long long wcstoull(const wchar_t*, wchar_t**, int);
-
-intmax_t wcstoimax(const wchar_t* nptr, wchar_t** endptr, int base);
-uintmax_t wcstoumax(const wchar_t* nptr, wchar_t** endptr, int base);
-
-#endif /* __ANDROID_API__ < __ANDROID_API_L__ */
-
-#if __ANDROID_API__ < __ANDROID_API_M__
-
-int wcscasecmp_l(const wchar_t*, const wchar_t*, locale_t);
-int wcsncasecmp_l(const wchar_t*, const wchar_t*, size_t, locale_t);
-
-#endif /* __ANDROID_API__ < __ANDROID_API_L__ */
+#endif
 
 __END_DECLS
 

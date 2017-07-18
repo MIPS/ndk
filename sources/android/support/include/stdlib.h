@@ -25,53 +25,39 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+
 #ifndef NDK_ANDROID_SUPPORT_STDLIB_H
 #define NDK_ANDROID_SUPPORT_STDLIB_H
 
 #include_next <stdlib.h>
-#include <xlocale.h>
 
 __BEGIN_DECLS
 
-#if __ANDROID_API__ < 16
+#if __ANDROID_API__ < __ANDROID_API_J__
 int posix_memalign(void** memptr, size_t alignment, size_t size);
 #endif
 
-// These APIs made it in to L.
-#if __ANDROID_API__ < 21
-
-void _Exit(int);
-
+#if __ANDROID_API__ < __ANDROID_API_L__
+#undef MB_CUR_MAX
+size_t __ctype_get_mb_cur_max(void);
+#define MB_CUR_MAX __ctype_get_mb_cur_max()
+void _Exit(int); // TODO: not needed after bionic commit 79dd9889d1701dda881bb383b212932fcf2ff25f.
 long double strtold(const char*, char**);
-long double strtold_l(const char* nptr, char** endptr, locale_t loc);
-long long strtoll_l(const char* nptr, char** endptr, int base, locale_t loc);
-unsigned long long strtoull_l(const char* nptr, char** endptr, int base,
-                              locale_t loc);
-
-int mbtowc(wchar_t* pwc, const char* pmb, size_t n);
-
-#if __ISO_C_VISIBLE >= 2011 || __cplusplus >= 201103L
+long double strtold_l(const char*, char**, locale_t);
+long long strtoll_l(const char*, char**, int, locale_t);
+unsigned long long strtoull_l(const char*, char**, int, locale_t);
+int mbtowc(wchar_t*, const char*, size_t);
 int at_quick_exit(void (*)(void));
 void quick_exit(int) __noreturn;
 #endif
 
-#endif // __ANDROID_API__ < 21
-
-// These APIs made it in to O.
-#if __ANDROID_API__ < 26
-double strtod_l(const char* nptr, char** endptr, locale_t locale);
-float strtof_l(const char* nptr, char** endptr, locale_t locale);
-long strtol_l(const char* nptr, char** endptr, int base, locale_t locale);
-unsigned long strtoul_l(const char* nptr, char** endptr, int base,
-                        locale_t locale);
-#endif // __ANDROID_API__ < 26
-
-#if defined(MB_CUR_MAX)
-size_t __ctype_get_mb_cur_max();
-#undef MB_CUR_MAX
-#define MB_CUR_MAX __ctype_get_mb_cur_max()
-#endif  // defined(MB_CUR_MAX)
+#if __ANDROID_API__ < __ANDROID_API_O__
+double strtod_l(const char*, char**, locale_t);
+float strtof_l(const char*, char**, locale_t);
+long strtol_l(const char*, char**, int, locale_t);
+unsigned long strtoul_l(const char*, char**, int, locale_t);
+#endif
 
 __END_DECLS
 
-#endif  // NDK_ANDROID_SUPPORT_STDLIB_H
+#endif
