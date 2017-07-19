@@ -1,23 +1,30 @@
 {
   "armeabi": {
+    "bitness": 32,
     "deprecated": false
   },
   "armeabi-v7a": {
+    "bitness": 32,
     "deprecated": false
   },
   "arm64-v8a": {
+    "bitness": 64,
     "deprecated": false
   },
   "mips": {
+    "bitness": 32,
     "deprecated": false
   },
   "mips64": {
+    "bitness": 64,
     "deprecated": false
   },
   "x86": {
+    "bitness": 32,
     "deprecated": false
   },
   "x86_64": {
+    "bitness": 64,
     "deprecated": false
   }
 }
