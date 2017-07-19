@@ -2,297 +2,169 @@
 
 [TOC]
 
-The Android platform provides a very minimal C++ runtime support library, called
-`system`, which is the default runtime when using ndk-build. This minimal
-support does not include, for example:
-
- * Standard C++ Library support (except a few trivial headers).
- * C++ exceptions support
- * RTTI support
-
-The NDK provides headers for use with this default library. In addition, the NDK
-provides a number of helper runtimes that provide additional features. This page
-provides information about these helper runtimes, their characteristics, and how
-to use them.
-
-Warning: Using static runtimes can cause unexpected behavior. See the [static
-runtimes section](#static_runtimes) for more information.
-
-
-## Helper Runtimes
-<a id="hr"></a>
-
-Table 1 provides names, brief explanations, and features of runtimes available
-in the NDK.
-
-**Table 1.** NDK Runtimes and Features.
-
-<table>
-  <colgroup>
-    <col width="25%">
-  </colgroup>
-  <tr>
-    <th>Name</th>
-    <th>Explanation</th>
-    <th>Features</th>
-  </tr>
-
-  <!-- System "STL" -->
-  <tr>
-    <td><a href="#system"><code>system</code></a></td>
-    <td>
-      The minimal system C++ runtime library and the default runtime when using
-      ndk-build or the
-      <a href="http://tools.android.com/tech-docs/new-build-system/gradle-experimental">
-        experimental Gradle plugin</a>.
-      <p class="note">
-        <strong>Note:</strong> The shared object library for this runtime,
-        <code>libstdc++.so</code>, is an Android-specific implementation of a
-        minimal C++ runtime. It is not the same as the GNU libstdc++ runtime
-        library.
-      </p>
-    </td>
-    <td>N/A</td>
-  </tr>
-
-  <!-- gabi++_static -->
-  <tr>
-    <td><a href="#ga"><code>gabi++_static</code></a></td>
-    <td>The GAbi++ runtime (static library).</td>
-    <td>C++ Exceptions and RTTI</td>
-  </tr>
-
-  <!-- gabi++_shared -->
-  <tr>
-    <td><a href="#ga"><code>gabi++_shared</code></a></td>
-    <td>The GAbi++ runtime (shared library).</td>
-    <td>C++ Exceptions and RTTI</td>
-  </tr>
-
-  <!-- stlport_static -->
-  <tr>
-    <td><a href="#stl"><code>stlport_static</code></a></td>
-    <td>The STLport runtime (static library).</td>
-    <td>C++ Exceptions and RTTI; Standard Library</td>
-  </tr>
-
-  <!-- stlport_shared -->
-  <tr>
-    <td><a href="#stl"><code>stlport_shared</code></a></td>
-    <td>The STLport runtime (shared library).</td>
-    <td>C++ Exceptions and RTTI; Standard Library</td>
-  </tr>
-
-  <!-- gnustl_static -->
-  <tr>
-    <td><a href="#gn"><code>gnustl_static</code></a></td>
-    <td>
-      The GNU STL (static library). This is the default runtime when using CMake
-      or a standalone toolchain.
-    </td>
-    <td>C++ Exceptions and RTTI; Standard Library</td>
-  </tr>
-
-  <!-- gnustl_shared -->
-  <tr>
-    <td><a href="#gn"><code>gnustl_shared</code></a></td>
-    <td>The GNU STL (shared library).</td>
-    <td>C++ Exceptions and RTTI; Standard Library</td>
-  </tr>
-
-  <!-- c++_static -->
-  <tr>
-    <td><a href="#cs"><code>c++_static</code></a></td>
-    <td>The LLVM libc++ runtime (static library).</td>
-    <td>C++ Exceptions and RTTI; Standard Library</td>
-  </tr>
-
-  <!-- c++_shared -->
-  <tr>
-    <td><a href="#cs"><code>c++_shared</code></a></td>
-    <td>The LLVM libc++ runtime (shared library).</td>
-    <td>C++ Exceptions and RTTI; Standard Library</td>
-  </tr>
-</table>
-
-
-### How to set your runtime
-
-If you are using CMake, you can specify a runtime from table 1 with the
-`ANDROID_STL` variable in your module-level `build.gradle` file. To learn more,
-go to [Using CMake Variables](/ndk/guides/cmake.html#variables).
-
-If you are using ndk-build, you can specify a runtime from table 1 with the
-`APP_STL` variable in your [Application.mk] file. For example:
-
-```makefile
-APP_STL := gnustl_static
-```
-
-You may only select one runtime for your app, and can only do in
-[Application.mk].
-
-Even if you do not use the NDK build system, you can still use STLport, libc++
-or GNU STL. For more information on how to use these runtimes with your own
-toolchain, see [Standalone Toolchain](/ndk/guides/standalone_toolchain.html).
-
-
-## Runtime Characteristics
-<a id="rc"></a>
-
-### system
-
-This runtime only provides the following headers, with no support beyond them:
-
- * `cassert`
- * `cctype`
- * `cerrno`
- * `cfloat`
- * `climits`
- * `cmath`
- * `csetjmp`
- * `csignal`
- * `cstddef`
- * `cstdint`
- * `cstdio`
- * `cstdlib`
- * `cstring`
- * `ctime`
- * `cwchar`
- * `new`
- * `stl_pair.h`
- * `typeinfo`
- * `utility`
-
-### GAbi++ runtime
-<a id="ga"></a>
-
-This runtime provides the same headers as the default runtime, but adds support
-for RTTI (RunTime Type Information) and exception handling.
-
-
-### STLport runtime
-<a id="stl"></a>
-
-This runtime is an Android port of STLport (<http://www.stlport.org>). It
-provides a complete set of C++ standard library headers. It also, by embedding
-its own instance of GAbi++, provides support for RTTI and exception handling.
-
-While shared and static versions of this runtime are avilable, we recommend
-using the shared version. For more information, see [Static
-runtimes](#static_runtimes).
-
-The shared library file is named `libstlport_shared.so` instead of
-`libstdc++.so` as is common on other platforms.
-
-In addition to the static- and shared-library options, you can also force the
-NDK to build the library from sources by adding the following line to your
-`Application.mk` file, or setting it in your environment prior to building:
-
-```makefile
-STLPORT_FORCE_REBUILD := true
-```
-
-### GNU STL runtime
-<a id="gn"></a>
-
-This runtime is the GNU Standard C++ Library, (`libstdc++-v3`). Its shared
-library file is named `libgnustl_shared.so`.
-
-
-### libc++ runtime:
-<a id="cs"></a>
-
-This runtime is an Android port of [LLVM libc++](https://libcxx.llvm.org). Its
-shared library file is named `libc++_shared.so`.
-
-By default, this runtime compiles with `-std=c++11`. As with GNU `libstdc++`,
-you need to explicitly turn on exceptions or RTTI support. For information on
-how to do this, see [C++ Exceptions](#c_exceptions) and [RTTI](#rtti).
-
-The NDK provides prebuilt static and shared libraries for `libc++`, but you can
-force the NDK to rebuild `libc++` from sources by adding the following line to
-your `Application.mk` file, or setting it in your environment prior to building:
-
-```makefile
-LIBCXX_FORCE_REBUILD := true
-```
-
-#### Atomic Support
-
-If you include `<atomic>`, it's likely that you also need `libatomic`, If you
-are using `ndk-build`, add the following line:
-
-```makefile
-LOCAL_LDLIBS += -latomic
-```
-
-If you are using your own toolchain, use:
-
-```bash
--latomic
-```
-
-#### Compatibility
-
-The NDK's libc++ is not stable. Not all the tests pass, and the test suite is
-not comprehensive.  Some known issues are:
-
- * Support for `wchar_t` and the locale APIs is limited.
-
-You should also make sure to check the "Known Issues" section of the changelog
-for the NDK release you are using.
-
-Warning: Attempting to change to an unsupported locale will **not** fail. The
-operation will succeed, but the locale will not change and the following message
-will appear in `logcat`.
-
-```
-newlocale() WARNING: Trying to set locale to en_US.UTF-8 other than "", "C" or "POSIX"
-```
+The NDK supports multiple C++ runtime libraries. This document provides
+information about these libraries, the tradeoffs involved, and how to use them.
 
 
 ## Important Considerations
 <a id="ic"></a>
 
-### C++ Exceptions
-<a id="xp"></a>
+### One STL Per App
 
-The NDK toolchain allows you to use C++ runtimes that support exception
-handling. However, to ensure compatibility with earlier releases, it compiles
-all C++ sources with `-fno-exceptions` support by default. You can enable C++
-exceptions either for your entire app, or for individual modules.
+An application should not use more than one C++ runtime. The various STLs are
+**not** compatible with one another. As an example, the layout of `std::string`
+in libc++ is not the same as it is in gnustl. Code written against one STL will
+not be able to use objects written against another. This is just one example;
+the incompatibilities are numerous.
 
-To enable exception-handling support, add the following to your module-level
-`build.gradle` file:
+Note: The exception to this rule is that "no STL" does not count as an STL. You
+can safely use C only libraries (or even the [system] runtime, since it is not
+an STL) in the same application as an STL. This rule only applies to [libc++],
+[gnustl], and [stlport].
 
-```gradle
-android {
-  ...
-  defaultConfig {
-    ...
-    externalNativeBuild {
+Warning: The linker can catch some of these issues at build time, but many of
+these issues will only manifest as a crash or odd behavior at run time.
 
-      // For ndk-build, instead use ndkBuild {}
-      cmake {
-        // Enables exception-handling support.
-        cppFlags "-fexceptions"
-      }
-    }
-  }
-}
-...
+This rule extends beyond your code. All of your dependencies must use the same
+STL that you have selected. If you depend on a closed source third-party
+dependency that uses the STL and does not provide a library per STL, you do not
+have a choice in STL. You must use the same STL as your dependency.
+
+It is possible that you will depend on two mutually incompatible libraries. In
+this situation the only solutions are to drop one of the dependencies or ask the
+maintainer to provide a library built against the other STL.
+
+Note: While we attempt to maintain ABI compatibility across NDK releases, this
+is not always possible. For the best compatibility, you should use not only the
+same STL as your dependencies but also the same version of the NDK whenever
+possible.
+
+### Static runtimes
+<a id="sr"></a>
+
+In C++, it is not safe to define more than one copy of the same function or
+object in a single program. This is one aspect of the [One Definition Rule]
+present in the C++ standard.
+
+[One Definition Rule]: http://en.cppreference.com/w/cpp/language/definition
+
+When using a static runtime (and static libraries in general), it is easy to
+accidentally break this rule. For example, the following application breaks this
+rule:
+
+```makefile
+# Application.mk
+APP_STL := c++_static
 ```
 
-Alternatively, if you're using ndk-build, enable support for your entire app
-by adding the following line to your [Application.mk] file:
+```makefile
+# Android.mk
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := foo
+LOCAL_SRC_FILES := foo.cpp
+include $(BUILD_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := bar
+LOCAL_SRC_FILES := bar.cpp
+LOCAL_SHARED_LIBRARIES := foo
+include $(BUILD_SHARED_LIBRARY)
+```
+
+In this situation, the STL, including and global data and static constructors,
+will be present in both libraries. The runtime behavior of this application is
+undefined, and in practice crashes are very common. Other possible issues
+include:
+
+ * Memory allocated in one library, and freed in the other, causing memory
+   leakage or heap corruption.
+ * Exceptions raised in `libfoo.so` going uncaught in `libbar.so`, causing your
+   app to crash.
+ * Buffering of `std::cout` not working properly.
+
+Beyond the behavioral issues involved, linking the static runtime into multiple
+libraries will duplicate the code in each shared library, increasing the size of
+your application.
+
+In general, you can only use a static variant of the C++ runtime if you have one
+and only one shared library in your application.
+
+Note: This rule applies to both your code and your third party dependencies.
+
+However, if all of your application's native code is contained in a single
+shared library, we recommend using the static runtime. In this situation it is
+safe to do so and it will allow the linker to inline and prune as much unused
+code as possible, leading to the best optimized and smallest application
+possible.
+
+### Shared runtimes
+
+If your app targets a version of Android earlier than Android 4.3 (Android API
+level 18), and you use the shared library variant of a given C++ runtime, you
+must load the shared library before any other library that depends on it.
+
+Rather than managing this yourself, we recommend using
+[ReLinker](https://github.com/KeepSafe/ReLinker).
+
+
+## C++ Runtime Libraries
+<a id="hr"></a>
+
+**Table 1.** NDK C++ Runtimes and Features.
+
+| Name      | Features            |
+| --------- | ------------------- |
+| [libc++]  | C++1z support.      |
+| [gnustl]  | C++11 support.      |
+| [STLport] | C++98 support.      |
+| [system]  | `new` and `delete`. |
+
+With the exception of the system library, each of these is available as both a
+static and shared library.
+
+Warning: Using static runtimes can cause unexpected behavior. See the [static
+runtimes section](#static_runtimes) for more information.
+
+### Selecting a C++ Runtime
+
+If you are using CMake, you can specify a runtime from Table 1 with the
+`ANDROID_STL` variable in your module-level `build.gradle` file. To learn more,
+see [Using CMake Variables](/ndk/guides/cmake.html#variables).
+
+If you are using ndk-build, you can specify a runtime from Table 1 with the
+`APP_STL` variable in your [Application.mk] file. For example:
+
+```makefile
+APP_STL := c++_shared
+```
+
+You may only select one runtime for your app, and can only do in
+[Application.mk].
+
+When using a [Standalone Toolchain](/ndk/guides/standalone_toolchain.html), you
+select your STL with the `--stl` argument to `make_standalone_toolchain.py`. By
+default your toolchain will use the shared STL. To use the static variant, add
+`-static-libstdc++` to your linker flags.
+
+
+## C++ Exceptions
+<a id="xp"></a>
+
+C++ exceptions are supported by most of the NDK C++ runtimes, but they are
+disabled by default in ndk-build. This is because historically C++ exceptions
+were not available in the NDK. CMake and standalone toolchains have C++
+exceptions enabled by default.
+
+To enable exceptions across your whole application in ndk-build, add the
+following line to your [Application.mk] file:
 
 ```makefile
 APP_CPPFLAGS := -fexceptions
 ```
 
-To enable exception-handling support per individual modules while using
-ndk-build, add the following line to their respective [Android.mk] files:
+To enable exceptions for a single ndk-build module, add the following line to
+the given module in its [Android.mk]:
 
 ```makefile
 LOCAL_CPP_FEATURES := exceptions
@@ -304,43 +176,23 @@ Alternatively, you can use:
 LOCAL_CPPFLAGS := -fexceptions
 ```
 
-### RTTI
+
+## RTTI
 <a id="rt"></a>
 
-The NDK toolchain allows you to use C++ runtimes that support RTTI. However, to
-ensure compatibility with earlier releases, it compiles all C++ sources with
-`-fno-rtti` by default.
+As with exceptions, RTTI is supported by most NDK C++ runtimes, but is disabled
+by default in ndk-build. CMake and standalone toolchains have RTTI enabled by
+default.
 
-To enable RTTI support, add the following to your module-level `build.gradle`
-file:
-
-```gradle
-android {
-  ...
-  defaultConfig {
-    ...
-    externalNativeBuild {
-
-      // For ndk-build, instead use ndkBuild {}
-      cmake {
-        // Enables RTTI support.
-        cppFlags "-frtti"
-      }
-    }
-  }
-}
-...
-```
-
-Alternatively, if you are using ndk-build, enable RTTI support for your
-entire app by adding the following line to your [Application.mk] file.
+To enable RTTI across your whole application in ndk-build, add the following
+line to your [Application.mk] file:
 
 ```makefile
 APP_CPPFLAGS := -frtti
 ```
 
-To enable RTTI support for individual modules, add the following line to their
-respective [Android.mk] files:
+To enable RTTI for a single ndk-build module, add the following line to the
+given module in its [Android.mk]:
 
 ```makefile
 LOCAL_CPP_FEATURES := rtti
@@ -352,68 +204,102 @@ Alternatively, you can use:
 LOCAL_CPPFLAGS := -frtti
 ```
 
-### Static runtimes
-<a id="sr"></a>
 
-Linking the static library variant of a C++ runtime to more than one binary may
-result in unexpected behavior. For example, you may experience:
+## Runtime Characteristics
+<a id="rc"></a>
 
- * Memory allocated in one library, and freed in the other, causing memory
-   leakage or heap corruption.
- * Exceptions raised in `libfoo.so` going uncaught in `libbar.so`, causing your
-   app to crash.
- * Buffering of `std::cout` not working properly.
+### libc++:
+<a id="cs"></a>
 
-In addition, if you link two shared libraries - or a shared library and an
-executable - against the same static runtime, the final binary image of each
-shared library includes a copy of the runtime's code. Having multiple instances
-of runtime code is problematic because of duplication of certain global
-variables that the runtime uses or provides internally.
+[LLVM's libc++](https://libcxx.llvm.org) is the C++ standard library that has
+been used by the Android OS since Lollipop, and in the [future] will be the only
+STL available in the NDK.
 
-This problem does not apply to a project comprising a single shared library. For
-example, you can link against `stlport_static`, and expect your app to behave
-correctly. If your project requires several shared library modules, we recommend
-that you use the shared library variant of your C++ runtime.
+Until NDK r16, the NDK's libc++ is only of beta quality. Beginning with NDK r16,
+libc++ will be the preferred STL. A [future] NDK release will remove the other
+options.
 
-### Shared runtimes
+The shared library for this runtime is `libc++_shared.so`, and the static
+library is `libc++_static.a`.
 
-If your app targets a version of Android earlier than Android 4.3 (Android API
-level 18), and you use the shared library variant of a given C++ runtime, you
-must load the shared library before any other library that depends on it.
+libc++ is dual-licensed under both the University of Illinois "BSD-Like" license
+and the MIT license. For more information, see the [license
+file](https://llvm.org/svn/llvm-project/libcxx/trunk/LICENSE.TXT).
 
-For example, an app may have the following modules:
+#### Compatibility
 
- * libfoo.so
- * libbar.so which is used by libfoo.so
- * libstlport\_shared.so, used by both libfoo and libbar
+Prior to NDK r16, the NDK's libc++ is not stable. Not all the tests pass, and
+the test suite is not comprehensive. There is no comprehensive list of issues,
+but locales and stdio (the `sprintf` family in particular) have been known to be
+unreliable.
 
-You must load the libraries in reverse dependency order:
+These compatibility issues are caused by libandroid\_support, which backports
+the libc APIs necessary for libc++ to old releases. These compatibility issues
+have been fixed in NDK r16. This library has been rewritten and is much more
+thoroughly tested.
 
-```java
-    static {
-      System.loadLibrary("stlport_shared");
-      System.loadLibrary("bar");
-      System.loadLibrary("foo");
-    }
-```
+### gnustl
+<a id="gn"></a>
 
-Note: Do not use the `lib` prefix when calling `System.loadLibrary()`.
+The [GNU C++ Library](https://gcc.gnu.org/onlinedocs/libstdc++/) is called
+gnustl on Android to differentiate it from the [system](#system) runtime. This
+runtime is the libstdc++ available on a GNU/Linux system.
 
+This runtime is tightly coupled to GCC, which is no longer supported in the NDK.
+As such, it has not received updates for several releases. The version in the
+NDK only supports C++11, and some portions of this library are incompatible with
+Clang.
 
-## Licensing
-<a id="li"></a>
+Note: This library will be deprecated and removed in a [future] NDK release.
+Beginning with NDK r16, you should use [libc++](#libc) instead.
+
+The shared library for this runtime is `libgnustl_shared.so`, and the static
+library is `libgnustl_static.a`.
+
+gnustl is covered by the GPLv3 license, and *not* the LGPLv2 or LGPLv3.
+For more information, see [the
+license](https://gcc.gnu.org/onlinedocs/gcc-4.9.3/libstdc++/manual/manual/license.html)
+on the GCC website.
+
+### STLport
+<a id="stl"></a>
+
+This is an Android port of [STLport](http://www.stlport.org).
+
+The upstream STLport project became inactive in 2008, and as such this runtime
+does not support C++11 or newer. For modern C++ support, you should use
+[libc++](#libc).
+
+Note: This library will be deprecated and removed in a [future] NDK release.
+Beginning with NDK r16, you should use [libc++](#libc) instead.
+
+The shared library for this runtime is `libstlport_shared.so`, and the static
+library is `libstlport_static.a`.
 
 STLport is licensed under a BSD-style open-source license. See
-`$NDK/sources/cxx-stl/stlport/README` for more details about STLport.
+`$NDK/sources/cxx-stl/stlport/README` for more details.
 
-GNU libstdc++ is covered by the GPLv3 license, and *not* the LGPLv2 or LGPLv3.
-For more information, see
-[License](http://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html) on the
-GCC website.
+### system
 
-[LLVM libc++](https://llvm.org/svn/llvm-project/libcxx/trunk/LICENSE.TXT) is
-dual-licensed under both the University of Illinois "BSD-Like" license and the
-MIT license.
+The system runtime refers to `/system/lib/libstdc++.so`. This library should not
+be confused with GNU's libstdc++, which is called [gnustl](#gnustl) in the NDK.
+
+The system C++ runtime provides support for the basic C++ Runtime ABI.
+Essentially, this library provides `new` and `delete`. In contrast to the other
+options available in the NDK, there is no support for exception handling or
+RTTI.
+
+There is no standard library support aside from the C++ wrappers for the C
+library headers such as `<cstdio>`. If you want an STL, you should use one of
+the other options presented on this page.
+
+Note: This is the only C++ Runtime that is provided by the OS. All other
+runtimes must be included in your APK.
 
 [Android.mk]: /ndk/guides/android_mk.html
 [Application.mk]: /ndk/guides/application_mk.html
+[libc++]: #libc
+[gnustl]: #gnustl
+[stlport]: #stlport
+[system]: #system
+[future]: https://android.googlesource.com/platform/ndk/+/master/docs/Roadmap.md
