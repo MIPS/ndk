@@ -212,6 +212,8 @@ if(ANDROID_ABI MATCHES "^armeabi(-v7a)?$")
 	set(ANDROID_TOOLCHAIN_ROOT ${ANDROID_TOOLCHAIN_NAME})
 	set(ANDROID_HEADER_TRIPLE arm-linux-androideabi)
 	if(ANDROID_ABI STREQUAL armeabi)
+		message(WARNING "armeabi is deprecated and will be removed in a future NDK "
+			              "release.")
 		set(CMAKE_SYSTEM_PROCESSOR armv5te)
 		set(ANDROID_LLVM_TRIPLE armv5te-none-linux-androideabi)
 	elseif(ANDROID_ABI STREQUAL armeabi-v7a)
