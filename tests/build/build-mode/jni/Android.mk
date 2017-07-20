@@ -1,7 +1,5 @@
 LOCAL_PATH := $(call my-dir)
 
-ifeq ($(strip $(filter-out $(NDK_KNOWN_ARCHS),$(TARGET_ARCH))),)
-
 # We build up to 4 armeabi binaries
 # To check for thumb/arm build modes, either with the .arm extension
 # or using LOCAL_ARM_MODE
@@ -131,5 +129,3 @@ LOCAL_SRC_FILES := main.c
 include $(BUILD_EXECUTABLE)
 
 endif # TARGET_ARCH == mips
-
-endif # if TARGET_ARCH is known arch

@@ -1,6 +1,5 @@
 LOCAL_PATH := $(call my-dir)
 
-ifeq ($(strip $(filter-out $(NDK_KNOWN_ARCHS),$(TARGET_ARCH))),)
 include $(CLEAR_VARS)
 LOCAL_MODULE := test-build-assembly
 ifeq ($(TARGET_ARCH),arm)
@@ -15,4 +14,3 @@ else
     endif
 endif
 include $(BUILD_SHARED_LIBRARY)
-endif
