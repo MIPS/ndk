@@ -22,17 +22,9 @@ a bug in the platform headers, which means we're much more likely to find them).
 Known Issues
 ------------
 
- * Some third-party projects have incorrect feature checks for things like
-   `epoll_create1`. These are not bugs in the NDK, but rather need to be fixed
-   in those projects. Boost and libev are projects that we know are affected by
-   this. We'll be sending some patches to those projects soon. See [bug 302] and
-   [bug 394].
  * Standalone toolchains using GCC are not supported out of the box. To use GCC,
    pass `-D__ANDROID_API__=$API` when compiling. Note: this is not something we
    will be fixing.
-
-[bug 302]: https://github.com/android-ndk/ndk/issues/302
-[bug 394]: https://github.com/android-ndk/ndk/issues/394
 
 
 Supporting Unified Headers in Your Build System
