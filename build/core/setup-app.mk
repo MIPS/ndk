@@ -80,6 +80,12 @@ else
     endif
 endif
 
+_deprecated_abis := $(filter $(NDK_DEPRECATED_ABIS),$(NDK_APP_ABI))
+ifneq ($(_deprecated_abis),)
+    $(call __ndk_warning,Application targets deprecated ABI(s): $(_deprecated_abis))
+    $(call __ndk_warning,Support for these ABIs will be removed in a future NDK release.)
+endif
+
 # Clear all installed binaries for this application
 # This ensures that if the build fails, you're not going to mistakenly
 # package an obsolete version of it. Or if you change the ABIs you're targetting,

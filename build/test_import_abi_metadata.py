@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 """Tests for import_abi_metadata.py."""
-import os
 import unittest
 
 import build.import_abi_metadata
@@ -37,7 +36,7 @@ class ImportAbiMetadataTest(unittest.TestCase):
         make_vars = build.import_abi_metadata.metadata_to_make_vars({
             'armeabi': {
                 'bitness': 32,
-                'deprecated': False,
+                'deprecated': True,
             },
             'armeabi-v7a': {
                 'bitness': 32,
@@ -66,6 +65,7 @@ class ImportAbiMetadataTest(unittest.TestCase):
         })
 
         self.assertDictEqual({
+            'NDK_DEPRECATED_ABIS': 'armeabi',
             'NDK_KNOWN_DEVICE_ABI32S': 'armeabi armeabi-v7a mips x86',
             'NDK_KNOWN_DEVICE_ABI64S': 'arm64-v8a mips64 x86_64',
         }, make_vars)

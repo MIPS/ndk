@@ -541,7 +541,7 @@ NDK_ALL_TOOLCHAINS   := $(sort $(NDK_ALL_TOOLCHAINS))
 NDK_ALL_ABIS         := $(sort $(NDK_ALL_ABIS))
 NDK_ALL_ARCHS        := $(sort $(NDK_ALL_ARCHS))
 
-NDK_DEFAULT_ABIS := all
+NDK_DEFAULT_ABIS := $(filter-out $(NDK_DEPRECATED_ABIS),$(NDK_ALL_ABIS))
 
 # Check that each ABI has a single architecture definition
 $(foreach _abi,$(strip $(NDK_ALL_ABIS)),\
