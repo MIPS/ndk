@@ -61,8 +61,8 @@ TEST(wchar, wcstof) {
         { L"-3.1415926535", -3.1415926535, 13 },
 #if __ANDROID_API__ >= __ANDROID_API_L__
         { L"+1e+100", static_cast<float>(1e100), 7 },
-#endif
         { L"0x10000.80", 65536.50, 10 },
+#endif
     };
     for (size_t n = 0; n < ARRAY_SIZE(kData); ++n) {
         const char* text = to_cstr(kData[n].input);
