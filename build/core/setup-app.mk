@@ -84,30 +84,6 @@ ifeq ($(NDK_APP_ABI),all64)
         NDK_APP_ABI := $(filter-out $(_abis_without_toolchain),$(NDK_APP_ABI))
     endif
 else
-    # Plug in the unknown
-    _unknown_abis := $(strip $(filter-out $(NDK_ALL_ABIS),$(NDK_APP_ABI)))
-    ifneq ($(_unknown_abis),)
-        ifeq (1,$(words $(filter-out $(NDK_KNOWN_ARCHS),$(NDK_FOUND_ARCHS))))
-            ifneq ($(filter %bcall,$(_unknown_abis)),)
-                 _unknown_abis_prefix := $(_unknown_abis:%bcall=%)
-                 NDK_APP_ABI := $(NDK_KNOWN_ABI32S:%=$(_unknown_abis_prefix)bc%)
-            else
-                ifneq ($(filter %all,$(_unknown_abis)),)
-                    _unknown_abis_prefix := $(_unknown_abis:%all=%)
-                    NDK_APP_ABI := $(NDK_KNOWN_ABIS:%=$(_unknown_abis_prefix)%)
-                else
-                    $(foreach _abi,$(NDK_KNOWN_ABIS),\
-                        $(eval _unknown_abis := $(subst $(_abi),,$(subst bc$(_abi),,$(_unknown_abis)))) \
-                    )
-                    _unknown_abis_prefix := $(sort $(_unknown_abis))
-                endif
-            endif
-            ifeq (1,$(words $(_unknown_abis_prefix)))
-                NDK_APP_ABI := $(subst $(_unknown_abis_prefix),$(filter-out $(NDK_KNOWN_ARCHS),$(NDK_FOUND_ARCHS)),$(NDK_APP_ABI))
-            endif
-        endif
-	TARGET_PLATFORM := android-21
-    endif
     # check the target ABIs for this application
     _bad_abis = $(strip $(filter-out $(NDK_ALL_ABIS),$(NDK_APP_ABI)))
     ifneq ($(_bad_abis),)
