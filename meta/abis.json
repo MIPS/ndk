@@ -1,7 +1,7 @@
 {
   "armeabi": {
     "bitness": 32,
-    "deprecated": false
+    "deprecated": true
   },
   "armeabi-v7a": {
     "bitness": 32,
