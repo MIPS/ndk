@@ -21,6 +21,12 @@ Announcements
    become stable enough to be the default, as some parts of gnustl are still
    incompatible with Clang. It will likely be removed after that point.
 
+ * Support for ARM5 (armeabi) is deprecated. It will no longer build by default
+   with ndk-build, but is still buildable if it is explicitly named, and will be
+   included by "all" and "all32".
+
+   Both CMake and ndk-build will issue a warning if you target this ABI.
+
 [Unified Headers]: docs/UnifiedHeaders.md
 [Unified Headers Migration Notes]: docs/UnifiedHeadersMigration.md
 
