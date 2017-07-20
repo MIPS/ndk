@@ -510,9 +510,14 @@ endif
 # the build script to include in each toolchain config.mk
 ADD_TOOLCHAIN := $(BUILD_SYSTEM)/add-toolchain.mk
 
-# the list of known abis and archs
-NDK_KNOWN_DEVICE_ABI64S := arm64-v8a x86_64 mips64
-NDK_KNOWN_DEVICE_ABI32S := armeabi-v7a armeabi x86 mips
+# ABI information is kept in meta/abis.json so it can be shared among multiple
+# build systems. Use Python to convert the JSON into make, replace the newlines
+# as necessary (make helpfully turns newlines into spaces for us...
+# https://www.gnu.org/software/make/manual/html_node/Shell-Function.html) and
+# eval the result.
+$(eval $(subst %NEWLINE%,$(newline),$(shell $(HOST_PYTHON) \
+    $(BUILD_PY)/import_abi_metadata.py $(NDK_ROOT)/meta/abis.json)))
+
 NDK_KNOWN_DEVICE_ABIS := $(NDK_KNOWN_DEVICE_ABI64S) $(NDK_KNOWN_DEVICE_ABI32S)
 NDK_KNOWN_ABIS     := $(NDK_KNOWN_DEVICE_ABIS)
 NDK_KNOWN_ABI32S   := $(NDK_KNOWN_DEVICE_ABI32S)
