@@ -519,29 +519,10 @@ $(eval $(subst %NEWLINE%,$(newline),$(shell $(HOST_PYTHON) \
     $(BUILD_PY)/import_abi_metadata.py $(NDK_ROOT)/meta/abis.json)))
 
 NDK_KNOWN_DEVICE_ABIS := $(NDK_KNOWN_DEVICE_ABI64S) $(NDK_KNOWN_DEVICE_ABI32S)
-NDK_KNOWN_ABIS     := $(NDK_KNOWN_DEVICE_ABIS)
-NDK_KNOWN_ABI32S   := $(NDK_KNOWN_DEVICE_ABI32S)
-_archs := $(sort $(strip $(notdir $(wildcard $(NDK_PLATFORMS_ROOT)/android-*/arch-*))))
-NDK_FOUND_ARCHS    := $(_archs:arch-%=%)
 
-# the list of abis 'APP_ABI=all' is expanded to
-ifneq (,$(filter yes all all32 all64,$(_NDK_TESTING_ALL_)))
-NDK_APP_ABI_ALL_EXPANDED := $(NDK_KNOWN_ABIS)
-NDK_APP_ABI_ALL32_EXPANDED := $(NDK_KNOWN_ABI32S)
-else
 NDK_APP_ABI_ALL_EXPANDED := $(NDK_KNOWN_DEVICE_ABIS)
 NDK_APP_ABI_ALL32_EXPANDED := $(NDK_KNOWN_DEVICE_ABI32S)
-endif
 NDK_APP_ABI_ALL64_EXPANDED := $(NDK_KNOWN_DEVICE_ABI64S)
-
-# For testing purpose
-ifeq ($(_NDK_TESTING_ALL_),all32)
-NDK_APP_ABI_ALL_EXPANDED := $(NDK_APP_ABI_ALL32_EXPANDED)
-else
-ifeq ($(_NDK_TESTING_ALL_),all64)
-NDK_APP_ABI_ALL_EXPANDED := $(NDK_APP_ABI_ALL64_EXPANDED)
-endif
-endif
 
 # The first API level ndk-build enforces -fPIE for executable
 NDK_FIRST_PIE_PLATFORM_LEVEL := 16
