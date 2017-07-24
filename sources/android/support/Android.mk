@@ -67,14 +67,14 @@ android_support_sources := \
     $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcspbrk.c \
     $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcsrchr.c \
     $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcsspn.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcsstr.c \
     $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wcstok.c \
     $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wmemchr.c \
     $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wmemcmp.c \
+    $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wmemcpy.c \
     $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wmemmove.c \
     $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wmemset.c \
     $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/locale/mbtowc.c \
-    $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/string/wcsstr.c \
-    $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/string/wmemcpy.c \
     $(BIONIC_PATH)/libm/digittoint.c \
     $(BIONIC_PATH)/libm/fake_long_double.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_acos.c \
