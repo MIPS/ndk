@@ -19,7 +19,13 @@ Announcements
  * GCC is no longer supported. It will not be removed from the NDK just yet, but
    is no longer receiving backports. It cannot be removed until after libc++ has
    become stable enough to be the default, as some parts of gnustl are still
-   incompatible with Clang. It will likely be removed after that point.
+   incompatible with Clang. It will be removed when the other STLs are removed
+   in r18.
+
+ * `libc++` is out of beta and is now the preferred STL in the NDK. Starting in
+   r17, `libc++` is the default STL for CMake and standalone toolchains. If you
+   manually selected a different STL, we strongly encourage you to move to
+   `libc++`. For more details, see this blog post. TODO: Create blog post.
 
  * Support for ARM5 (armeabi) is deprecated. It will no longer build by default
    with ndk-build, but is still buildable if it is explicitly named, and will be
@@ -37,6 +43,12 @@ NDK
    to your ldflags should no longer be necessary.
  * Clang static analyzer support for ndk-build has been fixed to work with Clang
    as a compiler. See https://github.com/android-ndk/ndk/issues/362.
+
+libc++
+======
+
+ * libandroid\_support now contains only APIs needed for supporting libc++ on
+   old devices. See https://github.com/android-ndk/ndk/issues/300.
 
 Known Issues
 ------------
