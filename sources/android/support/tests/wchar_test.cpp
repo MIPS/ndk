@@ -85,8 +85,10 @@ TEST(wchar, wcstod) {
         { L"-0.2", -0.2, 4 },
         { L"-3.1415926535", -3.1415926535, 13 },
         { L"+1e+100", 1e100, 7 },
+#if __ANDROID_API__ >= __ANDROID_API_L__
         { L"0x10000.80", 65536.50, 10 },
         { L"1.e60", 1e60, 5 },
+#endif
     };
     for (size_t n = 0; n < ARRAY_SIZE(kData); ++n) {
         const char* text = to_cstr(kData[n].input);
@@ -109,8 +111,10 @@ TEST(wchar, wcstold) {
         { L"-0.2", -0.2L, 4 },
         { L"-3.1415926535", -3.1415926535L, 13 },
         { L"+1e+100", 1e100L, 7 },
+#if __ANDROID_API__ >= __ANDROID_API_L__
         { L"0x10000.80", 65536.50L, 10 },
         { L"+1.e+100", 1e100L, 8 },
+#endif
     };
     for (size_t n = 0; n < ARRAY_SIZE(kData); ++n) {
         const char* text = to_cstr(kData[n].input);
