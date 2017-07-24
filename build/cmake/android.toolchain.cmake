@@ -319,6 +319,13 @@ list(APPEND CMAKE_FIND_ROOT_PATH "${ANDROID_NDK}")
 
 # Sysroot.
 set(CMAKE_SYSROOT "${ANDROID_NDK}/sysroot")
+
+# CMake 3.9 tries to use CMAKE_SYSROOT_COMPILE before it gets set from
+# CMAKE_SYSROOT, which leads to using the system's /usr/include. Set this
+# manually.
+# https://github.com/android-ndk/ndk/issues/467
+set(CMAKE_SYSROOT_COMPILE "${CMAKE_SYSROOT}")
+
 # The compiler driver doesn't check any arch specific include locations (though
 # maybe we should add that). Architecture specific headers like asm/ and
 # machine/ are installed to an arch-$ARCH subdirectory of the sysroot.
