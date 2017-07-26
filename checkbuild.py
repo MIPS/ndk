@@ -688,6 +688,62 @@ class Sysroot(ndk.builds.Module):
                 for remove_path in remove_paths:
                     os.remove(os.path.join(install_path, remove_path))
 
+            ndk_version_h_path = os.path.join(
+                install_path, 'usr/include/android/ndk-version.h')
+            with open(ndk_version_h_path, 'w') as ndk_version_h:
+                major = config.major
+                minor = config.hotfix
+                beta = config.beta
+                canary = '1' if config.canary else '0'
+                build = args.build_number
+                if build == 'dev':
+                    build = '-1'
+
+                ndk_version_h.write(textwrap.dedent("""\
+                    #ifndef ANDROID_NDK_VERSION_H
+                    #define ANDROID_NDK_VERSION_H
+
+                    /**
+                     * Major vision of this NDK.
+                     *
+                     * For example: 16 for r16.
+                     */
+                    #define __NDK_MAJOR__ {major}
+
+                    /**
+                     * Minor vision of this NDK.
+                     *
+                     * For example: 1 for r16b.
+                     */
+                    #define __NDK_MINOR__ {minor}
+
+                    /**
+                     * Beta vision of this NDK.
+                     *
+                     * For example: 1 for r16 beta 1, 0 for r16.
+                     */
+                    #define __NDK_BETA__ {beta}
+
+                    /**
+                     * Build number for this NDK.
+                     *
+                     * For a local development build of the NDK, this is -1.
+                     */
+                    #define __NDK_BUILD__ {build}
+
+                    /**
+                     * Set to 1 if this is a canary build, 0 if not.
+                     */
+                    #define __NDK_CANARY__ {canary}
+
+                    #endif  /* ANDROID_NDK_VERSION_H */
+                    """.format(
+                        major=major,
+                        minor=minor,
+                        beta=beta,
+                        build=build,
+                        canary=canary)))
+
             build_support.make_package('sysroot', install_path, dist_dir)
         finally:
             shutil.rmtree(temp_dir)
