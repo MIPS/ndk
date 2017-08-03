@@ -45,6 +45,7 @@ def generate_make_vars(abi_vars):
 
 
 def metadata_to_make_vars(meta):
+    default_abis = []
     deprecated_abis = []
     lp32_abis = []
     lp64_abis = []
@@ -58,10 +59,14 @@ def metadata_to_make_vars(meta):
             raise ValueError('{} bitness is unsupported value: {}'.format(
                 abi, bitness))
 
+        if abi_data['default']:
+            default_abis.append(abi)
+
         if abi_data['deprecated']:
             deprecated_abis.append(abi)
 
     abi_vars = {
+        'NDK_DEFAULT_ABIS': ' '.join(sorted(default_abis)),
         'NDK_DEPRECATED_ABIS': ' '.join(sorted(deprecated_abis)),
         'NDK_KNOWN_DEVICE_ABI32S': ' '.join(sorted(lp32_abis)),
         'NDK_KNOWN_DEVICE_ABI64S': ' '.join(sorted(lp64_abis)),
