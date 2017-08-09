@@ -31,8 +31,6 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_MODULE := android_support_unittests
 LOCAL_SRC_FILES := \
-    ctype_test.cpp \
-    math_test.cpp \
     platform_version.cpp \
     posix_memalign_test.cpp \
     stdio_test.cpp \
