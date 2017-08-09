@@ -33,8 +33,8 @@ LOCAL_MODULE := android_support_unittests
 LOCAL_SRC_FILES := \
     platform_version.cpp \
     posix_memalign_test.cpp \
-    stdio_test.cpp \
     wcstox_test.cpp \
+    swprintf_test.cpp \
 
 LOCAL_STATIC_LIBRARIES := android_support googletest_static googletest_main
 include $(BUILD_EXECUTABLE)
