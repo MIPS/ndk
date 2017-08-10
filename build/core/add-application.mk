@@ -190,6 +190,14 @@ else
     $(call ndk-stl-check,$(APP_STL))
 endif
 
+ifneq ($(filter $(APP_STL),gnustl_static gnustl_shared stlport_static stlport_shared),)
+    $(call __ndk_info,WARNING: APP_STL $(APP_STL) is deprecated and will be \
+        removed in the next release. Please switch to either c++_static or \
+        c++_shared. See \
+        https://developer.android.com/ndk/guides/cpp-support.html for more \
+        information.)
+endif
+
 $(if $(call get,$(_map),defined),\
   $(call __ndk_info,Weird, the application $(_app) is already defined by $(call get,$(_map),defined))\
   $(call __ndk_error,Aborting)\

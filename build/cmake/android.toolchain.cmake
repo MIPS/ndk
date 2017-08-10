@@ -165,9 +165,22 @@ if(ANDROID_ABI MATCHES "64(-v8a)?$" AND ANDROID_PLATFORM_LEVEL LESS 21)
 	set(ANDROID_PLATFORM android-21)
 	set(ANDROID_PLATFORM_LEVEL 21)
 endif()
+
 if(NOT ANDROID_STL)
-	set(ANDROID_STL gnustl_static)
+	set(ANDROID_STL c++_static)
 endif()
+
+if("${ANDROID_STL}" STREQUAL "gnustl_shared" OR
+		"${ANDROID_STL}" STREQUAL "gnustl_static" OR
+		"${ANDROID_STL}" STREQUAL "stlport_shared" OR
+		"${ANDROID_STL}" STREQUAL "stlport_static")
+	message(WARNING
+		"${ANDROID_STL} is deprecated and will be removed in the next release. "
+		"Please switch to either c++_shared or c++_static. See "
+		"https://developer.android.com/ndk/guides/cpp-support.html for more "
+		"information.")
+endif()
+
 if(NOT DEFINED ANDROID_PIE)
 	if(ANDROID_PLATFORM_LEVEL LESS 16)
 		set(ANDROID_PIE FALSE)
