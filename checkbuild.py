@@ -522,6 +522,17 @@ class Platforms(ndk.builds.InvokeBuildModule):
     def additional_args(self, args):
         return ['--build-number={}'.format(args.build_number)]
 
+    def install(self, out_dir, dist_dir, args):
+        super(Platforms, self).install(out_dir, dist_dir, args)
+
+        install_dir = os.path.join(
+            ndk.paths.get_install_path(out_dir), self.path)
+        for root, dirs, files in os.walk(install_dir):
+            if len(files) == 0 and len(dirs) == 0:
+                with open(os.path.join(root, '.keep_dir'), 'w') as keep_file:
+                    keep_file.write(
+                        'This file forces git to keep the directory.')
+
 
 class LibShaderc(ndk.builds.Module):
     name = 'libshaderc'
