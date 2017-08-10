@@ -537,7 +537,7 @@ def parse_args():
         '--api', type=int,
         help='Target the given API version (example: "--api 24").')
     parser.add_argument(
-        '--stl', choices=('gnustl', 'libc++', 'stlport'), default='gnustl',
+        '--stl', choices=('gnustl', 'libc++', 'stlport'), default='libc++',
         help='C++ STL to use.')
 
     parser.add_argument(
@@ -570,6 +570,14 @@ def main():
         logging.basicConfig(level=logging.INFO)
     elif args.verbose >= 2:
         logging.basicConfig(level=logging.DEBUG)
+
+    if args.stl != 'libc++':
+        logger().warning(
+            '%s is deprecated and will be removed in the next release. '
+            'Please switch to libc++. See '
+            'https://developer.android.com/ndk/guides/cpp-support.html '
+            'for more information.',
+            args.stl)
 
     check_ndk_or_die()
 
