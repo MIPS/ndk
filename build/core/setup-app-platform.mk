@@ -93,6 +93,8 @@ endif # APP_PROJECT_PATH == null
 APP_PLATFORM_LEVEL := $(strip $(subst android-,,$(APP_PLATFORM)))
 ifneq (,$(filter 20,$(APP_PLATFORM_LEVEL)))
     override APP_PLATFORM := android-19
+else ifneq (,$(filter 25,$(APP_PLATFORM_LEVEL)))
+    override APP_PLATFORM := android-24
 endif
 
 # For APP_PLATFORM values set below the minimum supported version, we could
