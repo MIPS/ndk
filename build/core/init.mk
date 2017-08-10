@@ -461,14 +461,8 @@ $(foreach _platform,$(NDK_ALL_PLATFORMS),\
 
 # we're going to find the maximum platform number of the form android-<number>
 # ignore others, which could correspond to special and experimental cases
-NDK_PREVIEW_LEVEL := L
 NDK_ALL_PLATFORM_LEVELS := $(filter android-%,$(NDK_ALL_PLATFORMS))
 NDK_ALL_PLATFORM_LEVELS := $(patsubst android-%,%,$(NDK_ALL_PLATFORM_LEVELS))
-ifneq (,$(filter $(NDK_PREVIEW_LEVEL),$(NDK_ALL_PLATFORM_LEVELS)))
-    $(call __ndk_info,Please remove stale preview platforms/android-$(NDK_PREVIEW_LEVEL))
-    $(call __ndk_info,API level android-L is renamed as android-21.)
-    $(call __ndk_error,Aborting)
-endif
 $(call ndk_log,Found stable platform levels: $(NDK_ALL_PLATFORM_LEVELS))
 
 NDK_MIN_PLATFORM_LEVEL := 14

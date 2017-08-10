@@ -59,10 +59,28 @@ ifeq ($(APP_PLATFORM),latest)
 endif
 
 # Handle any platform codenames.
-# TODO(danalbert): Expand these. There isn't really any reason we shouldn't
-# handle all version letters.
-ifeq ($(APP_PLATFORM),android-L)
+ifeq ($(APP_PLATFORM),android-I)
+    override APP_PLATFORM := android-14
+else ifeq ($(APP_PLATFORM),android-J)
+    override APP_PLATFORM := android-16
+else ifeq ($(APP_PLATFORM),android-J-MR1)
+    override APP_PLATFORM := android-17
+else ifeq ($(APP_PLATFORM),android-J-MR2)
+    override APP_PLATFORM := android-18
+else ifeq ($(APP_PLATFORM),android-K)
+    override APP_PLATFORM := android-19
+else ifeq ($(APP_PLATFORM),android-L)
     override APP_PLATFORM := android-21
+else ifeq ($(APP_PLATFORM),android-L-MR1)
+    override APP_PLATFORM := android-22
+else ifeq ($(APP_PLATFORM),android-M)
+    override APP_PLATFORM := android-23
+else ifeq ($(APP_PLATFORM),android-N)
+    override APP_PLATFORM := android-24
+else ifeq ($(APP_PLATFORM),android-N-MR1)
+    override APP_PLATFORM := android-25
+else ifeq ($(APP_PLATFORM),android-O)
+    override APP_PLATFORM := android-26
 endif
 
 endif # APP_PROJECT_PATH == null
