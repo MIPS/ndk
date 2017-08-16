@@ -514,24 +514,262 @@ class Stlport(ndk.builds.InvokeExternalBuildModule):
     arch_specific = True
 
 
-class Platforms(ndk.builds.InvokeBuildModule):
+class Platforms(ndk.builds.Module):
     name = 'platforms'
     path = 'platforms'
-    script = 'build-platforms.py'
 
-    def additional_args(self, args):
-        return ['--build-number={}'.format(args.build_number)]
+    # These API levels had no new native APIs. The contents of these platforms
+    # directories would be identical to the previous extant API level, so they
+    # are not included in the NDK to save space.
+    skip_apis = (10, 11, 20, 25)
+
+    def prebuilt_path(self, *args):  # pylint: disable=no-self-use
+        return build_support.android_path('prebuilts/ndk/platform', *args)
+
+    def src_path(self, *args):  # pylint: disable=no-self-use
+        return build_support.android_path('development/ndk/platforms', *args)
+
+    def gcc_toolchain(self, arch):  # pylint: disable=no-self-use
+        host_tag = build_support.host_to_tag(build_support.get_default_host())
+        toolchain = build_support.arch_to_toolchain(arch) + '-4.9'
+        # triple = build_support.arch_to_triple(arch)
+        return build_support.android_path(
+            'prebuilts/ndk/current/toolchains', host_tag, toolchain)
+
+    def gcc_tool(self, tool, arch):
+        gcc_toolchain = self.gcc_toolchain(arch)
+        triple = build_support.arch_to_triple(arch)
+        return os.path.join(gcc_toolchain, 'bin', triple + '-' + tool)
+
+    def libdir_name(self, arch):  # pylint: disable=no-self-use
+        if arch in ('mips64', 'x86_64'):
+            return 'lib64'
+        else:
+            return 'lib'
+
+    def get_apis(self):
+        apis = []
+        for name in os.listdir(self.prebuilt_path('platforms')):
+            if not name.startswith('android-'):
+                continue
+
+            _, api_str = name.split('-')
+            apis.append(int(api_str))
+        return sorted(apis)
+
+    def get_arches(self, api):  # pylint: disable=no-self-use
+        arches = ['arm', 'mips', 'x86']
+        if api >= 21:
+            arches.extend(['arm64', 'mips64', 'x86_64'])
+        return arches
+
+    def get_build_cmd(self, dst, srcs, api, arch, build_number):
+        bionic_includes = build_support.android_path(
+            'bionic/libc/arch-common/bionic')
+
+        # TODO: Investigate crtbegin_so.o segfaults when built with Clang.
+        cc = self.gcc_tool('gcc', arch)
+
+        args = [
+            cc,
+            '--sysroot', self.prebuilt_path('sysroot'),
+            '-I', bionic_includes,
+            '-DPLATFORM_SDK_VERSION={}'.format(api),
+            '-DABI_NDK_VERSION="{}"'.format(config.release),
+            '-DABI_NDK_BUILD_NUMBER="{}"'.format(build_number),
+            '-O2', '-fpic', '-Wl,-r', '-nostdlib', '-o', dst,
+        ] + srcs
+
+        if arch == 'mips':
+            args.extend(['-mabi=32', '-mips32'])
+        elif arch == 'mips64':
+            args.extend(['-mabi=64', '-mips64r6'])
+
+        return args
+
+    def check_elf_note(self, obj_file):
+        # readelf is a cross platform tool, so arch doesn't matter.
+        readelf = self.gcc_tool('readelf', 'arm')
+        out = subprocess.check_output([readelf, '--notes', obj_file])
+        if 'Android' not in out:
+            raise RuntimeError(
+                '{} does not contain NDK ELF note'.format(obj_file))
+
+    def build_crt_object(self, dst, srcs, api, arch, build_number, defines):
+        cc_args = self.get_build_cmd(dst, srcs, api, arch, build_number)
+        cc_args.extend(defines)
+
+        subprocess.check_call(cc_args)
+
+    def build_crt_objects(self, dst_dir, src_dir, api, arch, build_number):
+        for src_name in os.listdir(src_dir):
+            name, ext = os.path.splitext(src_name)
+            if ext not in ('.c', '.S'):
+                continue
+
+            known_sources = (
+                'crtbegin.c',
+                'crtbegin_so.c',
+                'crtend.S',
+                'crtend_android.S',
+                'crtend_so.S',
+            )
+            if src_name not in known_sources:
+                raise NotImplementedError(
+                    'Compilation of {} is not implemented.'.format(src_name))
+
+            is_crtbegin = name.startswith('crtbegin')
+            also_static = False
+            if name == 'crtbegin':
+                # A single crtbegin.c is used for both crtbegin_dynamic.o and
+                # crtbegin_static.o.
+                name = 'crtbegin_dynamic'
+                also_static = True
+            elif name == 'crtend':
+                # TODO: Rename these in the source directory.
+                name = 'crtend_android'
+
+            dst_path = os.path.join(dst_dir, name + '.o')
+            srcs = [os.path.join(src_dir, src_name)]
+            if is_crtbegin:
+                srcs.append(build_support.ndk_path('sources/crt/crtbrand.S'))
+
+            defs = ['-DBUILDING_DYNAMIC'] if is_crtbegin else []
+            self.build_crt_object(
+                dst_path, srcs, api, arch, build_number, defs)
+
+            if is_crtbegin:
+                self.check_elf_note(dst_path)
+
+            if also_static:
+                static_dst_path = os.path.join(dst_dir, 'crtbegin_static.o')
+                defs = ['-DBUILDING_STATIC']
+                self.build_crt_object(
+                    static_dst_path, srcs, api, arch, build_number, defs)
+                self.check_elf_note(static_dst_path)
+
+    def validate(self):
+        super(Platforms, self).validate()
+
+        first_lp32 = self.get_apis()[0]
+        first_lp64 = 21
+        for arch in ('arm', 'mips', 'x86'):
+            self.validate_src(first_lp32, arch)
+        for arch in ('arm64', 'mips64', 'x86_64'):
+            self.validate_src(first_lp64, arch)
+
+    def validate_src(self, api, arch):
+        platform = 'android-{}'.format(api)
+        arch_name = 'arch-{}'.format(arch)
+        src_dir = self.src_path(platform, arch_name, 'src')
+        if not os.path.exists(src_dir):
+            raise self.validate_error(
+                'Minimum platform API {} does not contain CRT object sources '
+                '({} does not exist)'.format(api, src_dir))
+
+        lib_dir = self.src_path(platform, arch_name, self.libdir_name(arch))
+        if not os.path.exists(lib_dir):
+            raise self.validate_error(
+                'Minimum platform API {} does not contain prebuilt static '
+                'libraries ({} does not exist)'.format(api, lib_dir))
+
+    def build(self, build_dir, _dist_dir, args):
+        build_dir = os.path.join(build_dir, self.path)
+        if os.path.exists(build_dir):
+            shutil.rmtree(build_dir)
+
+        last_platform_with_src = {
+            arch: None for arch in build_support.ALL_ARCHITECTURES}
+        for api in self.get_apis():
+            if api in self.skip_apis:
+                continue
+
+            platform = 'android-{}'.format(api)
+            for arch in self.get_arches(api):
+                arch_name = 'arch-{}'.format(arch)
+                src_dir = self.src_path(platform, arch_name, 'src')
+                if os.path.exists(src_dir):
+                    last_platform_with_src[arch] = platform
+                else:
+                    src_dir = self.src_path(
+                        last_platform_with_src[arch], arch_name, 'src')
+
+                dst_dir = os.path.join(build_dir, platform, arch_name)
+                os.makedirs(dst_dir)
+                self.build_crt_objects(
+                    dst_dir, src_dir, api, arch, args.build_number)
 
     def install(self, out_dir, dist_dir, args):
-        super(Platforms, self).install(out_dir, dist_dir, args)
-
+        build_dir = os.path.join(out_dir, self.path)
         install_dir = os.path.join(
             ndk.paths.get_install_path(out_dir), self.path)
+
+        if os.path.exists(install_dir):
+            shutil.rmtree(install_dir)
+        os.makedirs(install_dir)
+
+        last_platform_with_libs = None
+        for api in self.get_apis():
+            if api in self.skip_apis:
+                continue
+
+            # Copy shared libraries from prebuilts/ndk.
+            platform = 'android-{}'.format(api)
+            platform_src = self.prebuilt_path('platforms', platform)
+            platform_dst = os.path.join(install_dir, 'android-{}'.format(api))
+            shutil.copytree(platform_src, platform_dst)
+
+            # Copy static libraries from development/ndk.
+            for arch in self.get_arches(api):
+                arch_name = 'arch-{}'.format(arch)
+
+                libdir_name = self.libdir_name(arch)
+                lib_dir = self.src_path(platform, arch_name, libdir_name)
+                if os.path.exists(lib_dir):
+                    last_platform_with_libs = platform
+                else:
+                    lib_dir = self.src_path(
+                        last_platform_with_libs, arch_name, libdir_name)
+
+                lib_dir_dst = os.path.join(
+                    install_dir, platform, arch_name, 'usr', libdir_name)
+                for name in os.listdir(lib_dir):
+                    lib_src = os.path.join(lib_dir, name)
+                    lib_dst = os.path.join(lib_dir_dst, name)
+                    shutil.copy2(lib_src, lib_dst)
+
+                if libdir_name == 'lib64':
+                    # The Clang driver won't accept a sysroot that contains
+                    # only a lib64. An empty lib dir is enough to convince it.
+                    os.makedirs(os.path.join(
+                        install_dir, platform, arch_name, 'usr/lib'))
+                elif arch == 'mips':
+                    # And GCC's driver won't accept a mips sysroot that doesn't
+                    # contain a lib64, because the 64-bit toolchain is used for
+                    # building 32-bit code.
+                    os.makedirs(os.path.join(
+                        install_dir, platform, arch_name, 'usr/lib64'))
+
+                obj_dir = os.path.join(build_dir, platform, arch_name)
+                for name in os.listdir(obj_dir):
+                    obj_src = os.path.join(obj_dir, name)
+                    obj_dst = os.path.join(lib_dir_dst, name)
+                    shutil.copy2(obj_src, obj_dst)
+
+        # https://github.com/android-ndk/ndk/issues/372
         for root, dirs, files in os.walk(install_dir):
             if len(files) == 0 and len(dirs) == 0:
                 with open(os.path.join(root, '.keep_dir'), 'w') as keep_file:
                     keep_file.write(
                         'This file forces git to keep the directory.')
+
+        # TODO: This is overspecified.
+        shutil.copy2(
+            self.prebuilt_path('sysroot/NOTICE'),
+            os.path.join(install_dir, 'NOTICE'))
+
+        build_support.make_repo_prop(install_dir)
+        self.validate_notice(install_dir)
 
 
 class LibShaderc(ndk.builds.Module):

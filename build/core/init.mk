@@ -438,8 +438,6 @@ ifndef NDK_PLATFORMS_ROOT
         $(call __ndk_info,Could not find platform files (headers and libraries))
         $(if $(strip $(wildcard $(NDK_ROOT)/RELEASE.TXT)),\
             $(call __ndk_info,Please define NDK_PLATFORMS_ROOT to point to a valid directory.)\
-        ,\
-            $(call __ndk_info,Please run build/tools/gen-platforms.sh to build the corresponding directory.)\
         )
         $(call __ndk_error,Aborting)
     endif

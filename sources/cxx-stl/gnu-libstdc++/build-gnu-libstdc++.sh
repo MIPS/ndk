@@ -165,12 +165,11 @@ build_gnustl_for_abi ()
     LDIR=$SYSROOT"/usr/"$(get_default_libdir_for_arch $ARCH)
     # Sanity check
     if [ ! -f "$LDIR/libc.a" ]; then
-	echo "ERROR: Empty sysroot! you probably need to run gen-platforms.sh before this script."
-	exit 1
+      echo "ERROR: Incomplete sysroot, $LDIR/libc.a not found"
+      exit 1
     fi
     if [ ! -f "$LDIR/libc.so" ]; then
-        echo "ERROR: Sysroot misses shared libraries! you probably need to run gen-platforms.sh"
-        echo "*without* the --minimal flag before running this script."
+        echo "ERROR: Incomplete sysroot. $LDIR/libc.so not found"
         exit 1
     fi
 
