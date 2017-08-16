@@ -601,22 +601,16 @@ class Platforms(ndk.builds.Module):
 
         subprocess.check_call(cc_args)
 
-    def build_crt_objects(self, dst_dir, src_dir, api, arch, build_number):
-        for src_name in os.listdir(src_dir):
-            name, ext = os.path.splitext(src_name)
-            if ext not in ('.c', '.S'):
-                continue
-
-            known_sources = (
-                'crtbegin.c',
-                'crtbegin_so.c',
-                'crtend.S',
-                'crtend_android.S',
-                'crtend_so.S',
-            )
-            if src_name not in known_sources:
-                raise NotImplementedError(
-                    'Compilation of {} is not implemented.'.format(src_name))
+    def build_crt_objects(self, dst_dir, api, arch, build_number):
+        src_dir = build_support.android_path('development/ndk/crt', arch)
+        sources = (
+            'crtbegin.c',
+            'crtbegin_so.c',
+            'crtend_android.S',
+            'crtend_so.S',
+        )
+        for src_name in sources:
+            name, _ = os.path.splitext(src_name)
 
             is_crtbegin = name.startswith('crtbegin')
             also_static = False
@@ -625,9 +619,6 @@ class Platforms(ndk.builds.Module):
                 # crtbegin_static.o.
                 name = 'crtbegin_dynamic'
                 also_static = True
-            elif name == 'crtend':
-                # TODO: Rename these in the source directory.
-                name = 'crtend_android'
 
             dst_path = os.path.join(dst_dir, name + '.o')
             srcs = [os.path.join(src_dir, src_name)]
@@ -661,12 +652,6 @@ class Platforms(ndk.builds.Module):
     def validate_src(self, api, arch):
         platform = 'android-{}'.format(api)
         arch_name = 'arch-{}'.format(arch)
-        src_dir = self.src_path(platform, arch_name, 'src')
-        if not os.path.exists(src_dir):
-            raise self.validate_error(
-                'Minimum platform API {} does not contain CRT object sources '
-                '({} does not exist)'.format(api, src_dir))
-
         lib_dir = self.src_path(platform, arch_name, self.libdir_name(arch))
         if not os.path.exists(lib_dir):
             raise self.validate_error(
@@ -678,8 +663,6 @@ class Platforms(ndk.builds.Module):
         if os.path.exists(build_dir):
             shutil.rmtree(build_dir)
 
-        last_platform_with_src = {
-            arch: None for arch in build_support.ALL_ARCHITECTURES}
         for api in self.get_apis():
             if api in self.skip_apis:
                 continue
@@ -687,17 +670,9 @@ class Platforms(ndk.builds.Module):
             platform = 'android-{}'.format(api)
             for arch in self.get_arches(api):
                 arch_name = 'arch-{}'.format(arch)
-                src_dir = self.src_path(platform, arch_name, 'src')
-                if os.path.exists(src_dir):
-                    last_platform_with_src[arch] = platform
-                else:
-                    src_dir = self.src_path(
-                        last_platform_with_src[arch], arch_name, 'src')
-
                 dst_dir = os.path.join(build_dir, platform, arch_name)
                 os.makedirs(dst_dir)
-                self.build_crt_objects(
-                    dst_dir, src_dir, api, arch, args.build_number)
+                self.build_crt_objects(dst_dir, api, arch, args.build_number)
 
     def install(self, out_dir, dist_dir, args):
         build_dir = os.path.join(out_dir, self.path)
