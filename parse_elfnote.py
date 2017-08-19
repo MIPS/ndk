@@ -70,7 +70,7 @@ def get_section_pos(sec_name, file_path):
             sys.exit('Failed to get offset of {}'.format(sec_name))
         addr = int(sections[2], 16)
         off = int(sections[3], 16)
-        return addr + off
+        return off
     sys.exit('Failed to find section: {}'.format(sec_name))
 
 
