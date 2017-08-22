@@ -121,13 +121,6 @@ class BasicTestCase(TestCase):
             self.executable)
 
     def run(self, device):
-        # May need this for Windows.
-        # # Binaries pushed from Windows may not have execute permissions.
-        # if not file_is_lib:
-        #     file_path = posixpath.join(self.get_device_dir(), test_file)
-        #     # Can't use +x because apparently old versions of Android
-        #     # didn't support that...
-        #     self.device.shell(['chmod', '777', file_path])
         config = self.check_unsupported(device)
         if config is not None:
             message = 'test unsupported for {}'.format(config)
@@ -181,13 +174,6 @@ class LibcxxTestCase(TestCase):
         return None, None
 
     def run(self, device):
-        # May need this for Windows.
-        # # Binaries pushed from Windows may not have execute permissions.
-        # if not file_is_lib:
-        #     file_path = posixpath.join(self.get_device_dir(), test_file)
-        #     # Can't use +x because apparently old versions of Android
-        #     # didn't support that...
-        #     self.device.shell(['chmod', '777', file_path])
         libcxx_so_dir = posixpath.join(
             DEVICE_TEST_BASE_DIR, str(self.config), 'libcxx/libc++')
         cmd = 'cd {} && LD_LIBRARY_PATH={} ./{} 2>&1'.format(
@@ -262,7 +248,10 @@ def enumerate_basic_tests(out_dir_base, build_cfg, build_system, test_filter):
         test_dir = os.path.join(tests_dir, test_subdir)
         out_dir = os.path.join(test_dir, build_cfg.abi)
         test_relpath = os.path.relpath(out_dir, out_dir_base)
-        device_dir = posixpath.join(DEVICE_TEST_BASE_DIR, test_relpath)
+        device_relpath = test_relpath
+        if sys.platform == 'win32':
+            device_relpath = device_relpath.replace('\\', '/')
+        device_dir = posixpath.join(DEVICE_TEST_BASE_DIR, device_relpath)
         for test_file in os.listdir(out_dir):
             if test_file.endswith('.so'):
                 continue
@@ -363,6 +352,8 @@ def push_tests_to_device(src_dir, dest_dir, config, device, use_sync):
         '%s: push%s %s %s', device.name, ' --sync' if use_sync else '',
         src_dir, dest_dir)
     device.push(src_dir, dest_dir, sync=use_sync)
+    if sys.platform == 'win32':
+        device.shell(['chmod', '-R', '777', dest_dir])
 
 
 def push_tests_to_devices(workqueue, test_dir, devices_for_config, use_sync):
