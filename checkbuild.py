@@ -1139,19 +1139,19 @@ class SimplePerf(ndk.builds.Module):
         os.makedirs(install_dir)
 
         simpleperf_path = build_support.android_path('prebuilts/simpleperf')
-        shutil.copytree(os.path.join(simpleperf_path, 'bin'),
-                        os.path.join(install_dir, 'bin'))
+        for d in ['bin', 'doc', 'inferno']:
+            shutil.copytree(os.path.join(simpleperf_path, d),
+                            os.path.join(install_dir, d))
 
         for item in os.listdir(simpleperf_path):
             should_copy = False
-            if item.endswith('.py') and item != 'update.py':
+            if item.endswith('.py') and item != 'update.py' and item != 'test.py':
                 should_copy = True
-            elif item.endswith('.config'):
+            elif item == 'inferno.sh' or item == 'inferno.bat':
                 should_copy = True
             if should_copy:
                 shutil.copy2(os.path.join(simpleperf_path, item), install_dir)
 
-        shutil.copy2(os.path.join(simpleperf_path, 'README.md'), install_dir)
         shutil.copy2(os.path.join(simpleperf_path, 'NOTICE'), install_dir)
 
         build_support.make_package('simpleperf', install_dir, dist_dir)
