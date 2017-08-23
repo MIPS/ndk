@@ -1131,7 +1131,7 @@ class SimplePerf(ndk.builds.Module):
     name = 'simpleperf'
     path = 'simpleperf'
 
-    def build(self, out_dir, dist_dir, _args):
+    def build(self, out_dir, dist_dir, args):
         print('Building simpleperf...')
         install_dir = os.path.join(out_dir, 'simpleperf')
         if os.path.exists(install_dir):
@@ -1139,15 +1139,21 @@ class SimplePerf(ndk.builds.Module):
         os.makedirs(install_dir)
 
         simpleperf_path = build_support.android_path('prebuilts/simpleperf')
-        for d in ['bin', 'doc', 'inferno']:
+        dirs = ['doc', 'inferno', 'bin/android']
+        is_win = args.system.startswith('windows')
+        host_bin_dir = 'windows' if is_win else args.system
+        dirs.append(os.path.join('bin/', host_bin_dir))
+        for d in dirs:
             shutil.copytree(os.path.join(simpleperf_path, d),
                             os.path.join(install_dir, d))
 
         for item in os.listdir(simpleperf_path):
             should_copy = False
-            if item.endswith('.py') and item != 'update.py' and item != 'test.py':
+            if item.endswith('.py') and item not in ['update.py', 'test.py']:
                 should_copy = True
-            elif item == 'inferno.sh' or item == 'inferno.bat':
+            elif item == 'inferno.sh' and not is_win:
+                should_copy = True
+            elif item == 'inferno.bat' and is_win:
                 should_copy = True
             if should_copy:
                 shutil.copy2(os.path.join(simpleperf_path, item), install_dir)
