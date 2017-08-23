@@ -62,10 +62,10 @@ void TestWcsToFloat(WcsToFloatFn<T> fn) {
 
 template <typename T>
 void TestWcsToFloatHexFloats(WcsToFloatFn<T> fn) {
-  TestSingleWcsToFloat(fn, L"0.9e1", static_cast<T>(9.0), 5);
-  TestSingleWcsToFloat(fn, L"0x1.2p3", static_cast<T>(9.0), 7);
-  TestSingleWcsToFloat(fn, L"+1e+100", static_cast<T>(1e100), 7);
-  TestSingleWcsToFloat(fn, L"0x10000.80", static_cast<T>(65536.50), 10);
+  TestSingleWcsToFloat(fn, L"0.9e1", static_cast<T>(9.0L), 5);
+  TestSingleWcsToFloat(fn, L"0x1.2p3", static_cast<T>(9.0L), 7);
+  TestSingleWcsToFloat(fn, L"+1e+100", static_cast<T>(1e100L), 7);
+  TestSingleWcsToFloat(fn, L"0x10000.80", static_cast<T>(65536.50L), 10);
 }
 
 template <typename T>
