@@ -328,8 +328,9 @@ def clear_test_directory(device):
 
 
 def clear_test_directories(workqueue, fleet):
-    for device in fleet.get_unique_devices():
-        workqueue.add_task(clear_test_directory, device)
+    for group in fleet.get_unique_device_groups():
+        for device in group.devices:
+            workqueue.add_task(clear_test_directory, device)
 
     while not workqueue.finished():
         workqueue.get_result()
@@ -356,14 +357,15 @@ def push_tests_to_device(src_dir, dest_dir, config, device, use_sync):
         device.shell(['chmod', '-R', '777', dest_dir])
 
 
-def push_tests_to_devices(workqueue, test_dir, devices_for_config, use_sync):
-    for config, devices in devices_for_config.items():
+def push_tests_to_devices(workqueue, test_dir, groups_for_config, use_sync):
+    dest_dir = DEVICE_TEST_BASE_DIR
+    for config, groups in groups_for_config.items():
         src_dir = os.path.join(test_dir, str(config))
-        dest_dir = DEVICE_TEST_BASE_DIR
-        for device in devices:
-            workqueue.add_task(
-                push_tests_to_device, src_dir, dest_dir, config, device,
-                use_sync)
+        for group in groups:
+            for device in group.devices:
+                workqueue.add_task(
+                    push_tests_to_device, src_dir, dest_dir, config, device,
+                    use_sync)
 
     while not workqueue.finished():
         workqueue.get_result()
@@ -418,10 +420,16 @@ def setup_asan_for_device(ndk_path, device):
     asan_device_setup(ndk_path, device)
 
 
-def perform_asan_setup(workqueue, ndk_path, devices):
+def perform_asan_setup(workqueue, ndk_path, groups_for_config):
     # asan_device_setup is a shell script, so no asan there.
     if os.name == 'nt':
         return
+
+    devices = []
+    for groups in groups_for_config.values():
+        for group in groups:
+            devices.extend(group.devices)
+    devices = sorted(list(set(devices)))
 
     for device in devices:
         if device.can_use_asan():
@@ -459,27 +467,34 @@ def verify_have_all_requested_devices(fleet):
     return True
 
 
-def find_configs_with_no_device(devices_for_config):
-    return [c for c, ds in devices_for_config.items() if not ds]
+def find_configs_with_no_device(groups_for_config):
+    return [c for c, gs in groups_for_config.items() if not gs]
 
 
-def match_configs_to_devices(fleet, configs):
-    devices_for_config = {config: [] for config in configs}
+def match_configs_to_device_groups(fleet, configs):
+    groups_for_config = {config: [] for config in configs}
     for config in configs:
-        for device in fleet.get_unique_devices():
+        for group in fleet.get_unique_device_groups():
+            # All devices in the group are identical.
+            device = group.devices[0]
             if not device.can_run_build_config(config):
                 continue
-            devices_for_config[config].append(device)
+            groups_for_config[config].append(group)
 
-    return devices_for_config
+    return groups_for_config
 
 
-def create_test_runs(test_groups, devices_for_config):
+def create_test_runs(test_groups, groups_for_config):
     """Creates a TestRun object for each device/test case pairing."""
     test_runs = []
     for config, test_cases in test_groups.items():
-        for device in devices_for_config[config]:
-            test_runs.extend([TestRun(tc, device) for tc in test_cases])
+        if not test_cases:
+            continue
+
+        for group in groups_for_config[config]:
+            for shard_idx, device in enumerate(group.devices):
+                sharded_tests = test_cases[shard_idx::len(group.devices)]
+                test_runs.extend([TestRun(tc, device) for tc in sharded_tests])
     return test_runs
 
 
@@ -711,16 +726,10 @@ def main():
         if args.require_all_devices and not have_all_devices:
             sys.exit('Some requested devices were not available. Quitting.')
 
-        devices_for_config = match_configs_to_devices(
+        groups_for_config = match_configs_to_device_groups(
             fleet, test_groups.keys())
-        for config in find_configs_with_no_device(devices_for_config):
+        for config in find_configs_with_no_device(groups_for_config):
             logger().warning('No device found for %s.', config)
-        test_runs = create_test_runs(test_groups, devices_for_config)
-
-        all_used_devices = []
-        for devices in devices_for_config.values():
-            all_used_devices.extend(devices)
-        all_used_devices = sorted(list(set(all_used_devices)))
 
         report = ndk.test.report.Report()
         clean_device_timer = ndk.timer.Timer()
@@ -731,15 +740,16 @@ def main():
         push_timer = ndk.timer.Timer()
         with push_timer:
             push_tests_to_devices(
-                workqueue, test_dist_dir, devices_for_config, can_use_sync)
+                workqueue, test_dist_dir, groups_for_config, can_use_sync)
 
         asan_setup_timer = ndk.timer.Timer()
         with asan_setup_timer:
-            perform_asan_setup(workqueue, args.ndk, all_used_devices)
+            perform_asan_setup(workqueue, args.ndk, groups_for_config)
 
         # Shuffle the test runs to distribute the load more evenly. These are
         # ordered by (build config, device, test), so most of the tests running
         # at any given point in time are all running on the same device.
+        test_runs = create_test_runs(test_groups, groups_for_config)
         random.shuffle(test_runs)
         test_run_timer = ndk.timer.Timer()
         with test_run_timer:
