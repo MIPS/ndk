@@ -1277,7 +1277,7 @@ class SourceProperties(ndk.builds.Module):
             ])
 
 
-def launch_build(module, out_dir, dist_dir, args, log_dir):
+def launch_build(_worker_data, module, out_dir, dist_dir, args, log_dir):
     log_path = os.path.join(log_dir, module.name) + '.log'
     tee = subprocess.Popen(["tee", log_path], stdin=subprocess.PIPE)
     try:

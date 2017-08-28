@@ -24,7 +24,7 @@ import unittest
 import ndk.workqueue
 
 
-def put(i):
+def put(_worker_data, i):
     """Returns an the passed argument."""
     return i
 

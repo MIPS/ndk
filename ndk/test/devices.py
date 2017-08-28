@@ -322,6 +322,10 @@ class DeviceFleet(object):
         return self.devices[version].keys()
 
 
+def create_device(_worker_data, serial, precache):
+    return Device(serial, precache)
+
+
 def get_all_attached_devices(workqueue):
     """Returns a list of all connected devices."""
     if distutils.spawn.find_executable('adb') is None:
@@ -352,7 +356,7 @@ def get_all_attached_devices(workqueue):
 
         # Caching all the device details via getprop can actually take quite a
         # bit of time. Do it in parallel to minimize the cost.
-        workqueue.add_task(Device, serial, True)
+        workqueue.add_task(create_device, serial, True)
 
     devices = []
     while not workqueue.finished():
