@@ -516,6 +516,7 @@ def wait_for_results(report, workqueue, printer):
                 renderer.clear_last_render()
                 printer.print_result(result)
             renderer.render(workqueue)
+        renderer.clear_last_render()
 
 
 def flake_filter(result):
