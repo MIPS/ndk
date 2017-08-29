@@ -35,7 +35,7 @@ def worker_sigterm_handler(_signum, _frame):
     sys.exit()
 
 
-def _flush_queue(queue):
+def flush_queue(queue):
     """Flushes all pending items from a Queue."""
     try:
         while True:
@@ -58,7 +58,7 @@ class TaskError(Exception):
         super(TaskError, self).__init__(trace)
 
 
-def worker_main(task_queue, result_queue):
+def worker_main(worker_data, task_queue, result_queue):
     """Main loop for worker processes.
 
     Args:
@@ -72,7 +72,7 @@ def worker_main(task_queue, result_queue):
             logger().debug('worker %d waiting for work', os.getpid())
             task = task_queue.get()
             logger().debug('worker %d running task', os.getpid())
-            result = task.run()
+            result = task.run(worker_data)
             logger().debug('worker %d putting result', os.getpid())
             result_queue.put(result)
     except SystemExit:
@@ -104,9 +104,9 @@ class Task(object):
         self.args = args
         self.kwargs = kwargs
 
-    def run(self):
+    def run(self, worker_data):
         """Invokes the task."""
-        return self.func(*self.args, **self.kwargs)
+        return self.func(worker_data, *self.args, **self.kwargs)
 
 
 class ProcessPoolWorkQueue(object):
@@ -114,7 +114,8 @@ class ProcessPoolWorkQueue(object):
 
     join_timeout = 8  # Timeout for join before trying SIGKILL.
 
-    def __init__(self, num_workers=multiprocessing.cpu_count()):
+    def __init__(self, num_workers=multiprocessing.cpu_count(),
+                 task_queue=None, result_queue=None, worker_data=None):
         """Creates a WorkQueue.
 
         Worker threads are spawned immediately and remain live until both
@@ -122,6 +123,14 @@ class ProcessPoolWorkQueue(object):
 
         Args:
             num_workers: Number of worker processes to spawn.
+            task_queue: multiprocessing.Queue for tasks. Allows multiple work
+                queues to share a single task queue. If None, the work queue
+                creates its own.
+            result_queue: multiprocessing.Queue for results. Allows multiple
+                work queues to share a single result queue. If None, the work
+                queue creates its own.
+            worker_data: Data to be passed to every task run by this work
+                queue.
         """
         if sys.platform == 'win32':
             # TODO(danalbert): Port ProcessPoolWorkQueue to Windows.
@@ -129,8 +138,20 @@ class ProcessPoolWorkQueue(object):
             # groups, which are not supported on Windows.
             raise NotImplementedError
 
-        self.task_queue = multiprocessing.Queue()
-        self.result_queue = multiprocessing.Queue()
+        self.task_queue = task_queue
+        self.owns_task_queue = False
+        if task_queue is None:
+            self.task_queue = multiprocessing.Queue()
+            self.owns_task_queue = True
+
+        self.result_queue = result_queue
+        self.owns_result_queue = False
+        if result_queue is None:
+            self.result_queue = multiprocessing.Queue()
+            self.owns_result_queue = True
+
+        self.worker_data = worker_data
+
         self.workers = []
         # multiprocessing.JoinableQueue's join isn't able to implement
         # finished() because it doesn't come in a non-blocking flavor.
@@ -176,8 +197,10 @@ class ProcessPoolWorkQueue(object):
         We call _flush after all workers have been terminated to ensure that we
         can exit cleanly.
         """
-        _flush_queue(self.task_queue)
-        _flush_queue(self.result_queue)
+        if self.owns_task_queue:
+            flush_queue(self.task_queue)
+        if self.owns_result_queue:
+            flush_queue(self.result_queue)
 
     def join(self):
         """Waits for all worker processes to exit."""
@@ -203,7 +226,8 @@ class ProcessPoolWorkQueue(object):
         """
         for _ in range(num_workers):
             worker = multiprocessing.Process(
-                target=worker_main, args=(self.task_queue, self.result_queue))
+                target=worker_main,
+                args=(self.worker_data, self.task_queue, self.result_queue))
             worker.start()
             self.workers.append(worker)
 
@@ -214,9 +238,10 @@ class DummyWorkQueue(object):
     Useful for debugging when trying to determine if an issue is being caused
     by multiprocess specific behavior.
     """
-    def __init__(self):
+    def __init__(self, worker_data=None):
         """Creates a SerialWorkQueue."""
         self.task_queue = collections.deque()
+        self.worker_data = worker_data
 
     def add_task(self, func, *args, **kwargs):
         """Queues up a new task for execution.
@@ -234,7 +259,7 @@ class DummyWorkQueue(object):
         """Executes a task and returns the result."""
         task = self.task_queue.popleft()
         try:
-            return task.run()
+            return task.run(self.worker_data)
         except:
             trace = ''.join(traceback.format_exception(*sys.exc_info()))
             raise TaskError(trace)
