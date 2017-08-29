@@ -20,7 +20,6 @@ import collections
 import logging
 import multiprocessing
 import os
-import Queue
 import signal
 import sys
 import traceback
@@ -33,15 +32,6 @@ def logger():
 def worker_sigterm_handler(_signum, _frame):
     """Raises SystemExit so atexit/finally handlers can be executed."""
     sys.exit()
-
-
-def flush_queue(queue):
-    """Flushes all pending items from a Queue."""
-    try:
-        while True:
-            queue.get_nowait()
-    except Queue.Empty:
-        pass
 
 
 class TaskError(Exception):
@@ -138,16 +128,18 @@ class ProcessPoolWorkQueue(object):
             # groups, which are not supported on Windows.
             raise NotImplementedError
 
+        self.manager = multiprocessing.Manager()
+
         self.task_queue = task_queue
         self.owns_task_queue = False
         if task_queue is None:
-            self.task_queue = multiprocessing.Queue()
+            self.task_queue = self.manager.Queue()
             self.owns_task_queue = True
 
         self.result_queue = result_queue
         self.owns_result_queue = False
         if result_queue is None:
-            self.result_queue = multiprocessing.Queue()
+            self.result_queue = self.manager.Queue()
             self.owns_result_queue = True
 
         self.worker_data = worker_data
@@ -185,22 +177,6 @@ class ProcessPoolWorkQueue(object):
         for worker in self.workers:
             logger().debug('terminating %d', worker.pid)
             worker.terminate()
-        self._flush()
-
-    def _flush(self):
-        """Flushes all pending tasks and results.
-
-        If there are still items pending in the queues when terminate is
-        called, the subsequent join will hang waiting for the queues to be
-        emptied.
-
-        We call _flush after all workers have been terminated to ensure that we
-        can exit cleanly.
-        """
-        if self.owns_task_queue:
-            flush_queue(self.task_queue)
-        if self.owns_result_queue:
-            flush_queue(self.result_queue)
 
     def join(self):
         """Waits for all worker processes to exit."""
