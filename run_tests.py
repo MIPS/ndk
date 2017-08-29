@@ -31,6 +31,7 @@ import time
 import traceback
 
 import build.lib.build_support
+import ndk.ansi
 import ndk.notify
 import ndk.paths
 import ndk.subprocess
@@ -39,6 +40,7 @@ import ndk.test.devices
 import ndk.test.report
 import ndk.test.result
 import ndk.test.spec
+import ndk.test.ui
 import ndk.timer
 import ndk.workqueue
 
@@ -500,14 +502,20 @@ def pair_test_runs(test_groups, groups_for_config):
 
 
 def wait_for_results(report, workqueue, printer):
-    while not workqueue.finished():
-        result = workqueue.get_result()
-        suite = result.test.build_system
-        report.add_result(suite, result)
-        if logger().isEnabledFor(logging.INFO):
-            printer.print_result(result)
-        elif result.failed():
-            printer.print_result(result)
+    console = ndk.ansi.get_console()
+    renderer = ndk.test.ui.get_test_progress_renderer(console)
+    with console.cursor_hide_context():
+        while not workqueue.finished():
+            result = workqueue.get_result()
+            suite = result.test.build_system
+            report.add_result(suite, result)
+            if logger().isEnabledFor(logging.INFO):
+                renderer.clear_last_render()
+                printer.print_result(result)
+            elif result.failed():
+                renderer.clear_last_render()
+                printer.print_result(result)
+            renderer.render(workqueue)
 
 
 def flake_filter(result):
