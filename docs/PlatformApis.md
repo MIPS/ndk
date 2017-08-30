@@ -4,10 +4,6 @@ Platform APIs
 The latest version of this document is available at
 https://android.googlesource.com/platform/ndk/+/master/docs/PlatformApis.md.
 
-**Note:** This document covers the new method of getting platform APIs into the
-NDK. For the time being, the old method is still in use as well, and is covered
-by [Generating Sysroots](GeneratingSysroots.md).
-
 Implications of Adding a New Platform API
 -----------------------------------------
 
