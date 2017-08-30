@@ -145,7 +145,15 @@ class LibcxxTestCase(TestCase):
     with ".exe") or test data (always suffixed with ".dat").
     """
     def __init__(self, suite, executable, config, device_dir):
-        name = posixpath.join(suite, executable)
+        # Tests in the top level don't need any mangling to match the filters.
+        if suite == 'libc++':
+            filter_name = executable
+        else:
+            filter_name = suite[len('libc++/'):] + executable
+
+        # The executable name ends with .exe. Remove that so it matches the
+        # filter that would be used to build the test.
+        name = '.'.join(['libc++', filter_name[:-4]])
         super(LibcxxTestCase, self).__init__(
             name, config, 'libc++', device_dir)
 
@@ -279,8 +287,28 @@ def enumerate_libcxx_tests(out_dir_base, build_cfg, build_system, test_filter):
             test_relpath = os.path.relpath(root, out_dir_base)
             device_dir = posixpath.join(DEVICE_TEST_BASE_DIR, test_relpath)
             suite_name = os.path.relpath(root, tests_dir)
-            name = '/'.join([suite_name, test_file])
-            if not test_filter.filter(name):
+
+            # Our file has a .exe extension, but the name should match the
+            # source file for the filters to work.
+            test_name = test_file[:-4]
+
+            # Tests in the top level don't need any mangling to match the
+            # filters.
+            if not suite_name == 'libc++':
+                if not suite_name.startswith('libc++/'):
+                    raise ValueError(suite_name)
+                assert suite_name.startswith('libc++/')
+                # According to the test runner, these are all part of the
+                # "libc++" test, and the rest of the data is the subtest name.
+                # i.e.  libc++/foo/bar/baz.cpp.exe is actually
+                # libc++.foo/bar/baz.cpp.  Matching this expectation here
+                # allows us to use the same filter string for running the tests
+                # as for building the tests.
+                test_path = suite_name[len('libc++/'):]
+                test_name = '/'.join([test_path, test_name])
+
+            filter_name = '.'.join(['libc++', test_name])
+            if not test_filter.filter(filter_name):
                 continue
             tests.append(LibcxxTestCase(
                 suite_name, test_file, build_cfg, device_dir))
