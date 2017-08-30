@@ -40,8 +40,9 @@ class TestProgressRenderer(object):
         lines.append('{: >{width}} tests remaining'.format(
             workqueue.num_tasks, width=self.NUM_TESTS_DIGITS))
         for group in sorted(workqueue.task_queues.keys()):
-            group_id = 'android-{} {}'.format(
-                group.devices[0].version, group.name)
+            group_id = '{} devices android-{} {}'.format(
+                len(group.devices), group.devices[0].version,
+                ', '.join(group.abis))
             lines.append('{: >{width}} {}'.format(
                 workqueue.task_queues[group].qsize(), group_id,
                 width=self.NUM_TESTS_DIGITS))

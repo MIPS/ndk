@@ -192,10 +192,11 @@ class DeviceShardingGroup(object):
     """
     def __init__(self, first_device):
         self.devices = [first_device]
-        self.name = first_device.name
-        self.build_id = first_device.build_id
+        self.abis = first_device.abis
+        self.version = first_device.version
         self.is_emulator = first_device.is_emulator
         self.is_release = first_device.is_release
+        self.is_debuggable = first_device.is_debuggable
 
     def add_device(self, device):
         if not self.device_matches(device):
@@ -205,19 +206,28 @@ class DeviceShardingGroup(object):
         self.devices.append(device)
 
     def device_matches(self, device):
-        if self.name != device.name:
+        if self.version != device.version:
             return False
-        if self.build_id != device.build_id:
+        if self.abis != device.abis:
             return False
-
-        # None of the other properties should vary if we have identical
-        # hardware and builds...
+        if self.is_emulator != device.is_emulator:
+            return False
+        if self.is_release != device.is_release:
+            return False
+        if self.is_debuggable != device.is_debuggable:
+            return False
         return True
 
     def __eq__(self, other):
-        if self.name != other.name:
+        if self.version != other.version:
             return False
-        if self.build_id != other.build_id:
+        if self.abis != other.abis:
+            return False
+        if self.is_emulator != other.is_emulator:
+            return False
+        if self.is_release != other.is_release:
+            return False
+        if self.is_debuggable != other.is_debuggable:
             return False
         if self.devices != other.devices:
             print 'devices not equal: {}, {}'.format(
@@ -226,12 +236,9 @@ class DeviceShardingGroup(object):
         return True
 
     def __hash__(self):
-        return hash((self.name, self.build_id, tuple(self.devices)))
-
-    def __str__(self):
-        return 'DeviceShardingGroup {} {} [{}]'.format(
-            self.name, self.build_id,
-            ', '.join([str(d) for d in self.devices]))
+        return hash((
+            self.version, self.is_emulator, self.is_release,
+            self.is_debuggable, tuple(self.abis), tuple(self.devices)))
 
 
 class DeviceFleet(object):
