@@ -654,12 +654,13 @@ class ConfigFilter(object):
 
 class ShardingWorkQueue(object):
     def __init__(self, device_groups, procs_per_device):
-        self.result_queue = multiprocessing.Queue()
+        self.manager = multiprocessing.Manager()
+        self.result_queue = self.manager.Queue()
         self.task_queues = {}
         self.work_queues = []
         self.num_tasks = 0
         for group in device_groups:
-            self.task_queues[group] = multiprocessing.Queue()
+            self.task_queues[group] = self.manager.Queue()
             for device in group.devices:
                 self.work_queues.append(
                     ndk.workqueue.WorkQueue(
@@ -682,9 +683,6 @@ class ShardingWorkQueue(object):
     def terminate(self):
         for work_queue in self.work_queues:
             work_queue.terminate()
-        for task_queue in self.task_queues.values():
-            ndk.workqueue.flush_queue(task_queue)
-        ndk.workqueue.flush_queue(self.result_queue)
 
     def join(self):
         for work_queue in self.work_queues:
