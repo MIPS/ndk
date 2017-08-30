@@ -54,13 +54,17 @@ The NDK consists of three parts: host binaries, target prebuilts, and others
 
 ### Target Headers and Binaries
 
-* `platforms/android-$VERSION/arch-$ARCH_NAME/` contains headers and libraries
-  for each API level.
-    * The build system sets `--sysroot` to one of these directories based on
-      user-specified `APP_ABI` and `APP_PLATFORM`.
+* `sysroot/usr/include` contains the headers for the NDK. See [Unified Headers]
+  for more information.
+* `platforms/android-$VERSION/arch-$ARCH_NAME/` contains stub shared libraries
+  and a few static libraries for each API level. See [Platform APIs] for more
+  information.
 * `sources/cxx-stl/$STL` contains the headers and libraries for the various C++
   STLs.
 * `prebuilt/android-$ARCH/gdbserver` contains gdbserver.
+
+[Unified Headers]: docs/UnifiedHeaders.md
+[Platform APIs]: docs/PlatformApis.md
 
 ### Others
 

@@ -158,7 +158,7 @@ For NDK Developers
 
 The platform APIs reach the NDK via the "sysroot" and "platforms" modules in
 checkbuild.py. The sysroot currently is just the headers, whereas the libraries
-and CRT objects are in platforms (as are the deprecated headers).
+and CRT objects are in platforms.
 
 The sysroot module is copied from `prebuilts/ndk/platform/sysroot`. These
 prebuilts are updated with `prebuilts/ndk/update_platform.py`, which pulls NDK
@@ -169,3 +169,18 @@ and partially from `development/ndk/platforms`. The former contains the library
 stubs from the platform, and the latter contains the deprecated headers, the CRT
 objects, and static libraries. For more information on this process, see
 [Generating Sysroots](GeneratingSysroots.md).
+
+### Updating the Sysroot
+
+The NDK sysroot is provided as prebuilts in prebuilts/ndk/platform. To update
+these, use prebuilts/ndk/update\_platform.py. Prebuilts suitable for check-in
+must be taken from the build servers. However, to test changes that have not yet
+been submitted to the platform, do the following:
+
+```bash
+$ cd path/to/platform
+$ OUT_DIR=ndk-out DIST_DIR=ndk-dist build/soong/scripts/build-ndk-prebuilts.sh
+$ cd path/to/ndk/prebuilts/ndk
+$ ./update_platform.py --no-download \
+    path/to/platform/ndk-dist/ndk_platform.tar.bz2
+```
