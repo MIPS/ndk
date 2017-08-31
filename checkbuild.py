@@ -1447,7 +1447,7 @@ def main():
     # We're building the Windows packages from Linux, so we can't actually run
     # any of the tests from here.
     if args.system.startswith('windows') or not do_package:
-        args.test = False
+        args.build_tests = False
 
     # Disable buffering on stdout so the build output doesn't hide all of our
     # "Building..." messages.
