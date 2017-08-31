@@ -5,8 +5,7 @@ The latest version of this document is available at
 https://android.googlesource.com/platform/ndk/+/master/docs/Testing.md.
 
 The NDK tests are built as part of a normal build (with `checkbuild.py`) and run
-with `run_tests.py`. (See [README.md] for more instructions on building the
-NDK).
+with `run_tests.py`. See [README.md] for more instructions on building the NDK.
 
 From the NDK source directory (`./ndk` within the directory you ran `repo init`
 in, or the root of the cloned directory if you cloned only the NDK project).
@@ -26,8 +25,9 @@ requirements listed in the `devices` section of the test configuration file (see
 [qa\_config.json] for the defaults, or use `--config` to choose your own). Each
 test will be run on all devices compatible with that test.
 
-The full QA configuration takes roughly 20 minutes to run (Z840 Linux host,
-Galaxy Nexi for ICS and Jelly Bean, and Pixel for Nougat).
+The full QA configuration takes roughly 10 minutes to run (Z840 Linux host,
+Galaxy Nexūs for ICS and Jelly Bean, and Pixel for Nougat). Attaching multiple
+devices will allow the test runner to shard tests among those devices.
 
 The tests can be rebuilt without running `checkbuild.py` (which is necessary in
 the case of not having a full NDK checkout, as you might when running the
@@ -42,9 +42,9 @@ Restricting Test Configurations
 
 By default, all of the configurations we test are built from both
 `checkbuild.py` and `run_tests.py --rebuild`. This runs several tens of
-thousands of test executables (each test is built in 84 different configurations
-at time of writing). The set of configurations built can be restricted in two
-ways.
+thousands of test executables. Each test is built in 28 different configurations
+(7 ABIs ⨯ PIE or non-PIE ⨯ GCC or Clang) at time of writing. The set of
+configurations built can be restricted in two ways.
 
 First, `run_tests.py --config myconfig.json` will use an alternate test
 configuration file (the default is `qa_config.json`).
@@ -136,6 +136,7 @@ def build_broken(abi, platform, toolchain):
     if abi == 'arm64-v8a':
         return abi, 'https://github.com/android-ndk/ndk/issues/foo'
     return None, None
+
 
 def run_unsupported(abi, device_api, toolchain, name):
     if device_api < 21:
