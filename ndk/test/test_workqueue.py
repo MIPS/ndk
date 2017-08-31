@@ -34,11 +34,11 @@ class Functor(object):
     def __init__(self, value):
         self.value = value
 
-    def __call__(self):
+    def __call__(self, _worker_data):
         return self.value
 
 
-def block_on_event(event):
+def block_on_event(_worker_data, event):
     """Blocks until the event is signalled."""
     event.wait()
 
@@ -58,7 +58,7 @@ def sleep_until_sigterm(pid_queue):
         pid_queue.put(os.getpid())
 
 
-def spawn_child(pid_queue):
+def spawn_child(_worker_data, pid_queue):
     """Spawns a child process to check behavior of terminate().
 
     The PIDs of both processes are returned via the pid_queue, and then both
