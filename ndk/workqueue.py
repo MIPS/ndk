@@ -48,36 +48,60 @@ class TaskError(Exception):
         super(TaskError, self).__init__(trace)
 
 
-def worker_main(worker_data, task_queue, result_queue):
-    """Main loop for worker processes.
+class Worker(object):
+    def __init__(self, data, task_queue, result_queue):
+        """Creates a Worker object.
 
-    Args:
-        task_queue: A multiprocessing.Queue of Tasks to retrieve work from.
-        result_queue: A multiprocessing.Queue to push results to.
-    """
-    os.setpgrp()
-    signal.signal(signal.SIGTERM, worker_sigterm_handler)
-    try:
-        while True:
-            logger().debug('worker %d waiting for work', os.getpid())
-            task = task_queue.get()
-            logger().debug('worker %d running task', os.getpid())
-            result = task.run(worker_data)
-            logger().debug('worker %d putting result', os.getpid())
-            result_queue.put(result)
-    except SystemExit:
-        pass
-    except:  # pylint: disable=bare-except
-        logger().debug('worker %d raised exception', os.getpid())
-        trace = ''.join(traceback.format_exception(*sys.exc_info()))
-        result_queue.put(TaskError(trace))
-    finally:
-        # multiprocessing.Process.terminate() doesn't kill our descendents.
-        signal.signal(signal.SIGTERM, signal.SIG_IGN)
-        logger().debug('worker %d killing process group', os.getpid())
-        os.kill(0, signal.SIGTERM)
-        signal.signal(signal.SIGTERM, signal.SIG_DFL)
-    logger().debug('worker %d exiting', os.getpid())
+        Args:
+            task_queue: A multiprocessing.Queue of Tasks to retrieve work from.
+            result_queue: A multiprocessing.Queue to push results to.
+        """
+        self.data = data
+        self.task_queue = task_queue
+        self.result_queue = result_queue
+        self.process = multiprocessing.Process(target=self.main)
+
+    @property
+    def pid(self):
+        return self.process.pid
+
+    def is_alive(self):
+        return self.process.is_alive()
+
+    def start(self):
+        self.process.start()
+
+    def terminate(self):
+        self.process.terminate()
+
+    def join(self, timeout=None):
+        self.process.join(timeout)
+
+    def main(self):
+        """Main loop for worker processes."""
+        os.setpgrp()
+        signal.signal(signal.SIGTERM, worker_sigterm_handler)
+        try:
+            while True:
+                logger().debug('worker %d waiting for work', os.getpid())
+                task = self.task_queue.get()
+                logger().debug('worker %d running task', os.getpid())
+                result = task.run(self)
+                logger().debug('worker %d putting result', os.getpid())
+                self.result_queue.put(result)
+        except SystemExit:
+            pass
+        except:  # pylint: disable=bare-except
+            logger().debug('worker %d raised exception', os.getpid())
+            trace = ''.join(traceback.format_exception(*sys.exc_info()))
+            self.result_queue.put(TaskError(trace))
+        finally:
+            # multiprocessing.Process.terminate() doesn't kill our descendents.
+            signal.signal(signal.SIGTERM, signal.SIG_IGN)
+            logger().debug('worker %d killing process group', os.getpid())
+            os.kill(0, signal.SIGTERM)
+            signal.signal(signal.SIGTERM, signal.SIG_DFL)
+        logger().debug('worker %d exiting', os.getpid())
 
 
 class Task(object):
@@ -201,9 +225,8 @@ class ProcessPoolWorkQueue(object):
             num_workers: Number of worker proceeses to spawn.
         """
         for _ in range(num_workers):
-            worker = multiprocessing.Process(
-                target=worker_main,
-                args=(self.worker_data, self.task_queue, self.result_queue))
+            worker = Worker(
+                self.worker_data, self.task_queue, self.result_queue)
             worker.start()
             self.workers.append(worker)
 

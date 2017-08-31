@@ -329,7 +329,7 @@ class DeviceFleet(object):
         return self.devices[version].keys()
 
 
-def create_device(_worker_data, serial, precache):
+def create_device(_worker, serial, precache):
     return Device(serial, precache)
 
 
