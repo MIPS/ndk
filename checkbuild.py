@@ -1158,7 +1158,8 @@ class SimplePerf(ndk.builds.Module):
             if should_copy:
                 shutil.copy2(os.path.join(simpleperf_path, item), install_dir)
 
-        shutil.copy2(os.path.join(simpleperf_path, 'NOTICE'), install_dir)
+        for f in ['NOTICE', 'ChangeLog']:
+            shutil.copy2(os.path.join(simpleperf_path, f), install_dir)
 
         build_support.make_package('simpleperf', install_dir, dist_dir)
 
