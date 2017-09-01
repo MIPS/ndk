@@ -33,7 +33,7 @@
 
 __BEGIN_DECLS
 
-#if __USE_FILE_OFFSET64 && __ANDROID_API__ < __ANDROID_API_N__
+#if defined(__USE_FILE_OFFSET64) && __ANDROID_API__ < __ANDROID_API_N__
 // Not really available, but we need a decl to allow `#include <cstdio>`.
 int fgetpos(FILE*, const fpos_t*) __RENAME(fgetpos64);
 int fsetpos(FILE*, const fpos_t*) __RENAME(fsetpos64);
