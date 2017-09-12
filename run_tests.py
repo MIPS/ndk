@@ -829,7 +829,7 @@ def main():
         workqueue.terminate()
         workqueue.join()
 
-    shard_queue = ShardingWorkQueue(fleet.get_unique_device_groups(), 8)
+    shard_queue = ShardingWorkQueue(fleet.get_unique_device_groups(), 4)
     try:
         # Need an input queue per device group, a single result queue, and a
         # pool of threads per device.
