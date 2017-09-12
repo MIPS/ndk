@@ -22,6 +22,28 @@ import os
 import sys
 
 
+def cursor_up(lines):
+    # \033[0A still goes up one line. Emit nothing.
+    if lines == 0:
+        return ''
+    return '\033[{}A'.format(lines)
+
+
+def cursor_down(lines):
+    # \033[0B still goes down one line. Emit nothing.
+    if lines == 0:
+        return ''
+    return '\033[{}B'.format(lines)
+
+
+def goto_first_column():
+    return '\r'
+
+
+def clear_line():
+    return '\033[K'
+
+
 def get_console(stream=sys.stdout):
     if stream.isatty() and os.name != 'nt':
         return AnsiConsole(stream)
@@ -35,6 +57,7 @@ class Console(object):
 
     def print(self, *args, **kwargs):
         print(*args, file=self.stream, **kwargs)
+        self.stream.flush()
 
     @contextlib.contextmanager
     def cursor_hide_context(self):
@@ -71,9 +94,11 @@ class AnsiConsole(Console):
 
     def clear_lines(self, num_lines):
         """Clears num_lines lines and positions the cursor at the top left."""
-        cmds = []
-        for _ in range(num_lines):
-            cmds.append(self.CURSOR_UP)
+        cmds = [self.GOTO_HOME]
+        for idx in range(num_lines):
+            # For the first line, we're already in place.
+            if idx != 0:
+                cmds.append(self.CURSOR_UP)
             cmds.append(self.CLEAR_LINE)
         self._do(''.join(cmds))
 

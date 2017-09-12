@@ -351,7 +351,7 @@ def enumerate_tests(test_dir, test_filter, config_filter):
     return tests
 
 
-def clear_test_directory(_worker_data, device):
+def clear_test_directory(_worker, device):
     print('Clearing test directory on {}.'.format(device))
     cmd = ['rm', '-r', DEVICE_TEST_BASE_DIR]
     logger().info('%s: shell_nocheck "%s"', device.name, cmd)
@@ -376,7 +376,7 @@ def adb_has_feature(feature):
     return feature in features
 
 
-def push_tests_to_device(_worker_data, src_dir, dest_dir, config, device,
+def push_tests_to_device(_worker, src_dir, dest_dir, config, device,
                          use_sync):
     print('Pushing {} tests to {}.'.format(config, device))
     logger().info('%s: mkdir %s', device.name, dest_dir)
@@ -446,7 +446,7 @@ def asan_device_setup(ndk_path, device):
             device, out))
 
 
-def setup_asan_for_device(_worker_data, ndk_path, device):
+def setup_asan_for_device(_worker, ndk_path, device):
     print('Performing ASAN setup for {}'.format(device))
     disable_verity_and_wait_for_reboot(device)
     asan_device_setup(ndk_path, device)
@@ -471,8 +471,8 @@ def perform_asan_setup(workqueue, ndk_path, groups_for_config):
         workqueue.get_result()
 
 
-def run_test(worker_data, test):
-    device = worker_data[0]
+def run_test(worker, test):
+    device = worker.data[0]
     return test.run(device)
 
 

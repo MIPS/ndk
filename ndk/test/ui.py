@@ -21,6 +21,8 @@ import os
 import sys
 import time
 
+import ndk.ansi
+
 
 def get_test_progress_renderer(console):
     if console.smart_console:
@@ -58,17 +60,40 @@ class TestProgressRenderer(object):
 class AnsiTestProgressRenderer(TestProgressRenderer):
     def __init__(self, console):
         super(AnsiTestProgressRenderer, self).__init__(console)
-        self.last_rendered_lines = 0
+        self.last_rendered_lines = []
+
+    def changed_lines(self, new_lines):
+        assert len(new_lines) == len(self.last_rendered_lines)
+        old_lines = self.last_rendered_lines
+        for idx, (old_line, new_line) in enumerate(zip(old_lines, new_lines)):
+            if old_line != new_line:
+                yield idx, new_line
 
     def clear_last_render(self):
-        self.console.clear_lines(self.last_rendered_lines)
-        self.last_rendered_lines = 0
+        self.console.clear_lines(len(self.last_rendered_lines))
+        self.last_rendered_lines = []
 
     def render(self, workqueue):
         lines = self.make_status_lines(workqueue)
-        self.clear_last_render()
-        self.console.print(os.linesep.join(lines))
-        self.last_rendered_lines = len(lines)
+        if not self.last_rendered_lines:
+            self.console.print(os.linesep.join(lines), end='')
+        else:
+            redraw_commands = []
+            last_idx = 0
+            for idx, new_line in self.changed_lines(lines):
+                redraw_commands.append(ndk.ansi.cursor_down(idx - last_idx))
+                redraw_commands.append(ndk.ansi.goto_first_column())
+                redraw_commands.append(ndk.ansi.clear_line())
+                redraw_commands.append(new_line)
+                last_idx = idx
+            if redraw_commands:
+                total_lines = len(self.last_rendered_lines)
+                goto_top = ndk.ansi.cursor_up(total_lines - 1)
+                goto_bottom = ndk.ansi.cursor_down(total_lines - last_idx)
+                self.console.print(
+                    goto_top + ''.join(redraw_commands) + goto_bottom,
+                    end='')
+        self.last_rendered_lines = lines
 
 
 class DumbTestProgressRenderer(TestProgressRenderer):

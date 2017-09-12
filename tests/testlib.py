@@ -256,11 +256,11 @@ def _fixup_negative_test(result):
         return result
 
 
-def _run_test(_worker_data, suite, test, obj_dir, dist_dir, test_filters):
+def _run_test(_worker, suite, test, obj_dir, dist_dir, test_filters):
     """Runs a given test according to the given filters.
 
     Args:
-        _worker_data: Data identifying the worker process.
+        _worker: The worker that invoked this task.
         suite: Name of the test suite the test belongs to.
         test: The test to be run.
         obj_dir: Out directory for intermediate build artifacts.
