@@ -36,35 +36,43 @@ class ImportAbiMetadataTest(unittest.TestCase):
         make_vars = build.import_abi_metadata.metadata_to_make_vars({
             'armeabi': {
                 'bitness': 32,
+                'default': False,
                 'deprecated': True,
             },
             'armeabi-v7a': {
                 'bitness': 32,
+                'default': True,
                 'deprecated': False,
             },
             'arm64-v8a': {
                 'bitness': 64,
+                'default': True,
                 'deprecated': False,
             },
             'mips': {
                 'bitness': 32,
+                'default': False,
                 'deprecated': False,
             },
             'mips64': {
                 'bitness': 64,
+                'default': False,
                 'deprecated': False,
             },
             'x86': {
                 'bitness': 32,
+                'default': True,
                 'deprecated': False,
             },
             'x86_64': {
                 'bitness': 64,
+                'default': True,
                 'deprecated': False,
             },
         })
 
         self.assertDictEqual({
+            'NDK_DEFAULT_ABIS': 'arm64-v8a armeabi-v7a x86 x86_64',
             'NDK_DEPRECATED_ABIS': 'armeabi',
             'NDK_KNOWN_DEVICE_ABI32S': 'armeabi armeabi-v7a mips x86',
             'NDK_KNOWN_DEVICE_ABI64S': 'arm64-v8a mips64 x86_64',

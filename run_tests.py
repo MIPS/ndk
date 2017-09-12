@@ -559,7 +559,7 @@ def flake_filter(result):
     # These libc++ tests expect to complete in a specific amount of time,
     # and commonly fail under high load.
     name = result.test.name
-    if 'libc++/libcxx/thread' in name or 'libc++/std/thread' in name:
+    if 'libc++.libcxx/thread' in name or 'libc++.std/thread' in name:
         return True
 
     return False
@@ -577,7 +577,8 @@ def restart_flaky_tests(report, workqueue):
 
     for flaky_report in rerun_tests:
         logger().warning('Flaky test failure: %s', flaky_report.result)
-        workqueue.add_task(run_test, flaky_report.result.test)
+        group = flaky_report.result.test.device_group
+        workqueue.add_task(group, run_test, flaky_report.result.test)
 
 
 def get_config_dict(config, abis, toolchains, pie):
