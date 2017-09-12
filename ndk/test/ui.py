@@ -69,6 +69,15 @@ class AnsiTestProgressRenderer(TestProgressRenderer):
             if old_line != new_line:
                 yield idx, new_line
 
+    def make_status_lines(self, workqueue):
+        lines = super(AnsiTestProgressRenderer, self).make_status_lines(
+            workqueue)
+        worker_status_lines = []
+        for work_queue in workqueue.work_queues:
+            for worker in work_queue.workers:
+                worker_status_lines.append(worker.status)
+        return worker_status_lines + lines
+
     def clear_last_render(self):
         self.console.clear_lines(len(self.last_rendered_lines))
         self.last_rendered_lines = []
