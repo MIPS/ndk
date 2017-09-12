@@ -151,9 +151,10 @@ LDFLAGS="$LDFLAGS \
    $BINUTILS_BUILD_DIR/binutils/filemode.o \
    $BINUTILS_BUILD_DIR/bfd/libbfd.a \
    $BINUTILS_BUILD_DIR/libiberty/libiberty.a \
+   $BINUTILS_BUILD_DIR/zlib/libz.a \
    "
 if [ "$MINGW" != "yes" ]; then
-    LDFLAGS="$LDFLAGS -ldl -lz"
+    LDFLAGS="$LDFLAGS -ldl"
 fi
 
 export CFLAGS LDFLAGS
