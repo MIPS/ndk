@@ -49,7 +49,10 @@ class TaskError(Exception):
 
 
 class Worker(object):
-    def __init__(self, data, task_queue, result_queue):
+    IDLE_STATUS = 'IDLE'
+    EXCEPTION_STATUS = 'EXCEPTION'
+
+    def __init__(self, data, task_queue, result_queue, manager):
         """Creates a Worker object.
 
         Args:
@@ -59,7 +62,26 @@ class Worker(object):
         self.data = data
         self.task_queue = task_queue
         self.result_queue = result_queue
+        # For multiprocess.Manager.Value, the type is actually ignored.
+        # https://stackoverflow.com/a/21290961/632035
+        self._status = manager.Value('', self.IDLE_STATUS)
+        self._status_lock = manager.Lock()
         self.process = multiprocessing.Process(target=self.main)
+
+    @property
+    def status(self):
+        with self._status_lock:
+            return self._status.value
+
+    @status.setter
+    def status(self, value):
+        with self._status_lock:
+            self._status.value = value
+
+    def put_result(self, result, status):
+        with self._status_lock:
+            self._status.value = status
+        self.result_queue.put(result)
 
     @property
     def pid(self):
@@ -88,13 +110,13 @@ class Worker(object):
                 logger().debug('worker %d running task', os.getpid())
                 result = task.run(self)
                 logger().debug('worker %d putting result', os.getpid())
-                self.result_queue.put(result)
+                self.put_result(result, self.IDLE_STATUS)
         except SystemExit:
             pass
         except:  # pylint: disable=bare-except
             logger().debug('worker %d raised exception', os.getpid())
             trace = ''.join(traceback.format_exception(*sys.exc_info()))
-            self.result_queue.put(TaskError(trace))
+            self.put_result(TaskError(trace), self.EXCEPTION_STATUS)
         finally:
             # multiprocessing.Process.terminate() doesn't kill our descendents.
             signal.signal(signal.SIGTERM, signal.SIG_IGN)
@@ -226,7 +248,8 @@ class ProcessPoolWorkQueue(object):
         """
         for _ in range(num_workers):
             worker = Worker(
-                self.worker_data, self.task_queue, self.result_queue)
+                self.worker_data, self.task_queue, self.result_queue,
+                self.manager)
             worker.start()
             self.workers.append(worker)
 

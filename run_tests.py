@@ -475,6 +475,7 @@ def perform_asan_setup(workqueue, ndk_path, groups_for_config):
 
 def run_test(worker, test):
     device = worker.data[0]
+    worker.status = 'Running {}'.format(test.name)
     return test.run(device)
 
 
