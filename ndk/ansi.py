@@ -39,8 +39,10 @@ class Console(object):
     @contextlib.contextmanager
     def cursor_hide_context(self):
         self.hide_cursor()
-        yield
-        self.show_cursor()
+        try:
+            yield
+        finally:
+            self.show_cursor()
 
     def clear_lines(self, num_lines):
         raise NotImplementedError
