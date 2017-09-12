@@ -18,6 +18,7 @@
 from __future__ import print_function
 
 import argparse
+import contextlib
 import json
 import logging
 import multiprocessing
@@ -27,6 +28,7 @@ import random
 import site
 import subprocess
 import sys
+import termios
 import time
 import traceback
 
@@ -529,22 +531,36 @@ def pair_test_runs(test_groups, groups_for_config):
     return test_runs
 
 
+@contextlib.contextmanager
+def disable_terminal_echo(fd):
+    fd = sys.stdin.fileno()
+    original = termios.tcgetattr(fd)
+    termattr = termios.tcgetattr(fd)
+    termattr[3] &= ~termios.ECHO
+    termios.tcsetattr(fd, termios.TCSANOW, termattr)
+    try:
+        yield
+    finally:
+        termios.tcsetattr(fd, termios.TCSANOW, original)
+
+
 def wait_for_results(report, workqueue, printer):
     console = ndk.ansi.get_console()
     renderer = ndk.test.ui.get_test_progress_renderer(console)
-    with console.cursor_hide_context():
-        while not workqueue.finished():
-            result = workqueue.get_result()
-            suite = result.test.build_system
-            report.add_result(suite, result)
-            if logger().isEnabledFor(logging.INFO):
-                renderer.clear_last_render()
-                printer.print_result(result)
-            elif result.failed():
-                renderer.clear_last_render()
-                printer.print_result(result)
-            renderer.render(workqueue)
-        renderer.clear_last_render()
+    with disable_terminal_echo(sys.stdin):
+        with console.cursor_hide_context():
+            while not workqueue.finished():
+                result = workqueue.get_result()
+                suite = result.test.build_system
+                report.add_result(suite, result)
+                if logger().isEnabledFor(logging.INFO):
+                    renderer.clear_last_render()
+                    printer.print_result(result)
+                elif result.failed():
+                    renderer.clear_last_render()
+                    printer.print_result(result)
+                renderer.render(workqueue)
+            renderer.clear_last_render()
 
 
 def flake_filter(result):
@@ -829,7 +845,7 @@ def main():
         workqueue.terminate()
         workqueue.join()
 
-    shard_queue = ShardingWorkQueue(fleet.get_unique_device_groups(), 8)
+    shard_queue = ShardingWorkQueue(fleet.get_unique_device_groups(), 4)
     try:
         # Need an input queue per device group, a single result queue, and a
         # pool of threads per device.
