@@ -282,10 +282,11 @@ def invoke_external_build(script, args=None):
 
 
 def common_build_args(out_dir, dist_dir, args):
-    build_args = ['--out-dir={}'.format(out_dir)]
-    build_args = ['--dist-dir={}'.format(dist_dir)]
-    build_args.append('--host={}'.format(args.system))
-    return build_args
+    return [
+        '--out-dir={}'.format(out_dir),
+        '--dist-dir={}'.format(dist_dir),
+        '--host={}'.format(args.system),
+    ]
 
 
 def install_directory(src, dst):
