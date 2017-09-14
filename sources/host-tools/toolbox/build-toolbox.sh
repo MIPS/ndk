@@ -40,8 +40,7 @@ NDK_DIR=
 register_var_option "--ndk-dir=<path>" NDK_DIR "Specify NDK root path for the build."
 
 BUILD_DIR=
-OPTION_BUILD_DIR=
-register_var_option "--build-dir=<path>" OPTION_BUILD_DIR "Specify temporary build dir."
+register_var_option "--build-dir=<path>" BUILD_DIR "Specify temporary build dir."
 
 NO_MAKEFILE=
 register_var_option "--no-makefile" NO_MAKEFILE "Do not use makefile to speed-up build"
@@ -65,14 +64,7 @@ else
     fi
 fi
 
-if [ -z "$OPTION_BUILD_DIR" ]; then
-    BUILD_DIR=$NDK_TMPDIR/build-toolbox
-    log "Auto-config: --build-dir=$BUILD_DIR"
-    rm -rf $BUILD_DIR/* && mkdir -p $BUILD_DIR
-else
-    BUILD_DIR=$OPTION_BUILD_DIR
-fi
-mkdir -p "$BUILD_DIR"
+rm -rf $BUILD_DIR/* && mkdir -p $BUILD_DIR
 fail_panic "Could not create build directory: $BUILD_DIR"
 
 if [ -z "$NO_MAKEFILE" ]; then

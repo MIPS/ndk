@@ -62,8 +62,7 @@ NDK_DIR=
 register_var_option "--ndk-dir=<path>" NDK_DIR "Specify NDK root path for the build."
 
 BUILD_DIR=
-OPTION_BUILD_DIR=
-register_var_option "--build-dir=<path>" OPTION_BUILD_DIR "Specify temporary build dir."
+register_var_option "--build-dir=<path>" BUILD_DIR "Specify temporary build dir."
 
 OUT_DIR=
 register_var_option "--out-dir=<path>" OUT_DIR "Specify output directory directly."
@@ -143,11 +142,6 @@ case $CXX_STL in
     ;;
 esac
 
-if [ -z "$OPTION_BUILD_DIR" ]; then
-    BUILD_DIR=$NDK_TMPDIR/build-$CXX_STL
-else
-    BUILD_DIR=$OPTION_BUILD_DIR
-fi
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 fail_panic "Could not create build directory: $BUILD_DIR"

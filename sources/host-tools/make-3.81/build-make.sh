@@ -42,6 +42,9 @@ register_var_option "--make=<path>" GNUMAKE "Specify GNU Make program for the bu
 PACKAGE_DIR=
 register_var_option "--package-dir=<path>" PACKAGE_DIR "Archive binaries into package directory"
 
+BUILD_DIR=
+register_var_option "--build-dir=<path>" BUILD_DIR "Specify temporary build dir."
+
 extract_parameters "$@"
 
 if [ -z "$CUSTOM_OUT" ]; then
@@ -62,7 +65,7 @@ log "Using sources from: $GNUMAKE_SRCDIR"
 prepare_abi_configure_build
 prepare_host_build
 
-TMP_SRCDIR=$NDK_TMPDIR/src
+TMP_SRCDIR=$BUILD_DIR/src
 
 # We need to copy the sources to a temporary directory because
 # the build system will modify some documentation files in the
@@ -71,7 +74,7 @@ log "Copying sources to temporary directory: $TMP_SRCDIR"
 mkdir -p "$TMP_SRCDIR" && copy_directory "$GNUMAKE_SRCDIR" "$TMP_SRCDIR"
 fail_panic "Could not copy GNU Make sources to: $TMP_SRCDIR"
 
-BUILD_DIR=$NDK_TMPDIR/build
+BUILD_DIR=$BUILD_DIR/build
 
 CONFIGURE_FLAGS="--disable-nls --disable-rpath"
 if [ "$MINGW" = "yes" ]; then

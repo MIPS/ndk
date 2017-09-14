@@ -43,13 +43,15 @@ def main(args):
     for arch in arches:
         abis.extend(build_support.arch_to_abis(arch))
 
+    build_dir = os.path.join(args.out_dir, 'gnustl')
+
     print('Building libstdc++ for ABIs: {}'.format(' '.join(abis)))
     abis_arg = '--abis={}'.format(','.join(abis))
     ndk_dir_arg = '--ndk-dir={}'.format(build_support.ndk_path())
     build_cmd = [
         'bash', 'build-gnu-libstdc++.sh', abis_arg, ndk_dir_arg,
         build_support.jobs_arg(), build_support.toolchain_path(),
-        '--with-debug-info',
+        '--with-debug-info', '--build-dir={}'.format(build_dir),
     ]
 
     build_support.build(build_cmd, args)

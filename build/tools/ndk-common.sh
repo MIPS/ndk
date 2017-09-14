@@ -89,47 +89,13 @@ DRYRUN=${DRYRUN-no}
 ##
 VERBOSE=${VERBOSE-yes}
 
-
-# If NDK_LOGFILE is defined in the environment, use this as the log file
-TMPLOG=
-if [ -n "$NDK_LOGFILE" ] ; then
-    mkdir -p `dirname "$NDK_LOGFILE"` && touch "$NDK_LOGFILE"
-    TMPLOG="$NDK_LOGFILE"
-fi
-
-# Setup a log file where all log() output will be sent
-#
-# $1: log file path  (optional)
-#
-setup_default_log_file ()
-{
-    if [ -n "$NDK_LOGFILE" ] ; then
-        return
-    fi
-    if [ -n "$1" ] ; then
-        NDK_LOGFILE="$1"
-    else
-        NDK_LOGFILE=$TMPDIR/ndk-log-$$.txt
-    fi
-    export NDK_LOGFILE
-    TMPLOG="$NDK_LOGFILE"
-    rm -rf "$TMPLOG" && mkdir -p `dirname "$TMPLOG"` && touch "$TMPLOG"
-    echo "To follow build in another terminal, please use: tail -F $TMPLOG"
-}
-
 dump ()
 {
-    if [ -n "$TMPLOG" ] ; then
-        echo "$@" >> $TMPLOG
-    fi
     echo "$@"
 }
 
 dump_n ()
 {
-    if [ -n "$TMPLOG" ] ; then
-        printf %s "$@" >> $TMPLOG
-    fi
     printf %s "$@"
 }
 
@@ -137,10 +103,6 @@ log ()
 {
     if [ "$VERBOSE" = "yes" ] ; then
         echo "$@"
-    else
-        if [ -n "$TMPLOG" ] ; then
-            echo "$@" >> $TMPLOG
-        fi
     fi
 }
 
@@ -148,10 +110,6 @@ log_n ()
 {
     if [ "$VERBOSE" = "yes" ] ; then
         printf %s "$@"
-    else
-        if [ -n "$TMPLOG" ] ; then
-            printf %s "$@" >> $TMPLOG
-        fi
     fi
 }
 
@@ -163,12 +121,7 @@ run ()
         echo "## COMMAND: $@"
         "$@" 2>&1
     else
-        if [ -n "$TMPLOG" ] ; then
-            echo "## COMMAND: $@" >> $TMPLOG
-            "$@" >>$TMPLOG 2>&1
-        else
-            "$@" > /dev/null 2>&1
-        fi
+        "$@" > /dev/null 2>&1
     fi
 }
 
