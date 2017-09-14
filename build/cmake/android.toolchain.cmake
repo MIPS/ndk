@@ -39,6 +39,9 @@
 
 cmake_minimum_required(VERSION 3.6.0)
 
+# Inhibit all of CMake's own NDK handling code.
+set(CMAKE_SYSTEM_VERSION 1)
+
 # CMake invokes the toolchain file twice during the first build, but only once
 # during subsequent rebuilds. This was causing the various flags to be added
 # twice on the first build, and on a rebuild ninja would see only one set of the
@@ -213,7 +216,6 @@ set(CMAKE_TRY_COMPILE_PLATFORM_VARIABLES
 # Standard cross-compiling stuff.
 set(ANDROID TRUE)
 set(CMAKE_SYSTEM_NAME Android)
-set(CMAKE_SYSTEM_VERSION ${ANDROID_PLATFORM_LEVEL})
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
