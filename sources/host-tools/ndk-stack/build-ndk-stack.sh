@@ -28,7 +28,6 @@ PROGRAM_DESCRIPTION=\
 
 register_jobs_option
 
-OPTION_BUILD_DIR=
 BUILD_DIR=
 register_var_option "--build-dir=<path>" BUILD_DIR "Specify build directory"
 
@@ -59,14 +58,6 @@ fi
 
 prepare_abi_configure_build
 prepare_host_build
-
-# Choose a build directory if not specified by --build-dir
-if [ -z "$BUILD_DIR" ]; then
-    BUILD_DIR=$NDK_TMPDIR/build-ndk-stack
-    log "Auto-config: --build-dir=$BUILD_DIR"
-else
-    OPTION_BUILD_DIR="yes"
-fi
 
 rm -rf $BUILD_DIR
 mkdir -p $BUILD_DIR
@@ -110,7 +101,7 @@ run make -j$NUM_JOBS
 fail_panic "Can't build $BINUTILS_SRC_DIR"
 
 NAME=$(get_host_exec_name ndk-stack)
-INSTALL_ROOT=$(mktemp -d $NDK_TMPDIR/ndk-stack-XXXXXX)
+INSTALL_ROOT=$BUILD_DIR/install
 INSTALL_SUBDIR=host-tools/bin
 INSTALL_PATH=$INSTALL_ROOT/$INSTALL_SUBDIR
 OUT=$INSTALL_PATH/$NAME
@@ -176,13 +167,6 @@ if [ "$PACKAGE_DIR" ]; then
     dump "Packaging: $ARCHIVE"
     pack_archive "$PACKAGE_DIR/$ARCHIVE" "$INSTALL_ROOT" "$INSTALL_SUBDIR"
     fail_panic "Could not create package: $PACKAGE_DIR/$ARCHIVE from $OUT"
-fi
-
-if [ "$OPTION_BUILD_DIR" != "yes" ]; then
-    log "Cleaning up..."
-    rm -rf $BUILD_DIR
-else
-    log "Don't forget to cleanup: $BUILD_DIR"
 fi
 
 log "Done!"
