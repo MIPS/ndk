@@ -242,7 +242,7 @@ run $SRC_DIR/configure \
 --host=$GDBSERVER_HOST \
 $CONFIGURE_FLAGS
 if [ $? != 0 ] ; then
-    dump "Could not configure gdbserver build. See $TMPLOG"
+    dump "Could not configure gdbserver build."
     exit 1
 fi
 
@@ -272,7 +272,7 @@ DEST=$INSTALL_DIR/$GDBSERVER_SUBDIR
 mkdir -p $DEST &&
 run ${TOOLCHAIN_PREFIX}objcopy --strip-unneeded $BUILD_OUT/gdbserver $DEST/$DSTFILE
 if [ $? != 0 ] ; then
-    dump "Could not install $DSTFILE. See $TMPLOG"
+    dump "Could not install $DSTFILE."
     exit 1
 fi
 

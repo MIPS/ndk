@@ -664,8 +664,6 @@ bh_setup_build_dir ()
     mkdir -p "$BH_BUILD_DIR"
     fail_panic "Could not create build directory: $BH_BUILD_DIR"
 
-    setup_default_log_file $BH_BUILD_DIR/build.log
-
     if [ "$_BH_OPTION_FORCE" ]; then
         rm -rf "$BH_BUILD_DIR"/*
     fi
