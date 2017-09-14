@@ -56,8 +56,7 @@ NDK_DIR=
 register_var_option "--ndk-dir=<path>" NDK_DIR "Specify NDK root path for the build."
 
 BUILD_DIR=
-OPTION_BUILD_DIR=
-register_var_option "--build-dir=<path>" OPTION_BUILD_DIR "Specify temporary build dir."
+register_var_option "--build-dir=<path>" BUILD_DIR "Specify temporary build dir."
 
 OUT_DIR=
 register_var_option "--out-dir=<path>" OUT_DIR "Specify output directory directly."
@@ -103,12 +102,6 @@ else
         echo "ERROR: NDK directory does not exists: $NDK_DIR"
         exit 1
     fi
-fi
-
-if [ -z "$OPTION_BUILD_DIR" ]; then
-    BUILD_DIR=$NDK_TMPDIR/build-gnustl
-else
-    BUILD_DIR=$OPTION_BUILD_DIR
 fi
 
 HOST_TAG_LIST="$HOST_TAG $HOST_TAG32"
