@@ -1492,21 +1492,6 @@ make_repo_prop () {
 }
 
 #
-# The NDK_TMPDIR variable is used to specify a root temporary directory
-# when invoking toolchain build scripts. If it is not defined, we will
-# create one here, and export the value to ensure that any scripts we
-# call after that use the same one.
-#
-if [ -z "$NDK_TMPDIR" ]; then
-    NDK_TMPDIR=$TMPDIR/tmp/build-$$
-    mkdir -p $NDK_TMPDIR
-    if [ $? != 0 ]; then
-        echo "ERROR: Could not create NDK_TMPDIR: $NDK_TMPDIR"
-        exit 1
-    fi
-    export NDK_TMPDIR
-fi
-
 # Define HOST_TAG32, as the 32-bit version of HOST_TAG
 # We do this by replacing an -x86_64 suffix by -x86
 HOST_TAG32=$HOST_TAG
