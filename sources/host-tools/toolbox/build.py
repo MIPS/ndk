@@ -40,6 +40,8 @@ def main(args):
     if args.host != 'windows':
         build_cmd.append('--try-64')
 
+    build_cmd.append('--build-dir=' + os.path.join(args.out_dir, 'toolbox'))
+
     build_support.build(build_cmd, args, intermediate_package=True)
 
 if __name__ == '__main__':
