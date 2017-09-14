@@ -1471,12 +1471,6 @@ def main():
 
     out_dir = build_support.get_out_dir()
     dist_dir = build_support.get_dist_dir(out_dir)
-    tmp_dir = os.path.join(out_dir, 'build')
-    if os.path.exists(tmp_dir):
-        shutil.rmtree(tmp_dir)
-    os.mkdir(tmp_dir)
-
-    os.environ['TMPDIR'] = tmp_dir
 
     print('Cleaning up...')
     invoke_build('dev-cleanup.sh')
