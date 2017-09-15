@@ -490,26 +490,34 @@ class GdbServer(ndk.builds.InvokeBuildModule):
             shutil.rmtree(install_path)
         shutil.copytree(src_dir, install_path)
 
+        self.validate_notice(install_path)
 
-class Gnustl(ndk.builds.InvokeExternalBuildModule):
+
+class Gnustl(ndk.builds.Module):
     name = 'gnustl'
     path = 'sources/cxx-stl/gnu-libstdc++/4.9'
-    script = 'ndk/sources/cxx-stl/gnu-libstdc++/build.py'
-    arch_specific = True
+    script = 'prebuilts/ndk/gnu-libstdc++'
+
+    def build(self, _build_dir, _dist_dir, _args):
+        pass
 
     def install(self, out_dir, dist_dir, args):
-        super(Gnustl, self).install(out_dir, dist_dir, args)
+        src_dir = build_support.android_path('prebuilts/ndk/gnu-libstdc++')
+        install_path = self.get_install_path(out_dir, args.system)
+        if os.path.exists(install_path):
+            shutil.rmtree(install_path)
+        shutil.copytree(src_dir, install_path)
 
         # NDK r10 had most of gnustl installed to gnu-libstdc++/4.9, but the
         # Android.mk was one directory up from that. To remain compatible, we
         # extract the gnustl package to sources/cxx-stl/gnu-libstdc++/4.9. As
         # such, the Android.mk ends up in the 4.9 directory. We need to pull it
         # up a directory.
-        install_base = ndk.paths.get_install_path(out_dir)
-        new_dir = os.path.dirname(self.path)
         os.rename(
-            os.path.join(install_base, self.path, 'Android.mk'),
-            os.path.join(install_base, new_dir, 'Android.mk'))
+            os.path.join(install_path, 'Android.mk'),
+            os.path.join(os.path.dirname(install_path), 'Android.mk'))
+
+        self.validate_notice(install_path)
 
 
 class Libcxx(ndk.builds.InvokeExternalBuildModule):
