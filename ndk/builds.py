@@ -66,7 +66,6 @@ class Module(object):
             package = os.path.join(dist_dir, package_name)
             if os.path.exists(install_path):
                 shutil.rmtree(install_path)
-            print 'Extracting {} to {}'.format(package, install_path)
             ndk.packaging.extract_zip(package, install_path)
 
             self.validate_notice(install_path)
@@ -143,7 +142,6 @@ class PackageModule(Module):
             build_dir, args.system, build.lib.build_support.ALL_ARCHITECTURES)
         assert len(install_paths) == 1
         install_path = install_paths[0]
-        print 'Installing {} to {}'.format(self.src, install_path)
         install_directory(self.src, install_path)
         if self.create_repo_prop:
             build.lib.build_support.make_repo_prop(install_path)
@@ -185,7 +183,6 @@ class FileModule(Module):
         install_path = os.path.join(install_base, self.path)
         if os.path.exists(install_path):
             os.remove(install_path)
-        print 'Installing {} to {}'.format(self.src, self.path)
         shutil.copy2(self.src, install_path)
 
 

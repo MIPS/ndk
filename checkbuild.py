@@ -1300,6 +1300,11 @@ def launch_build(worker, module, out_dir, dist_dir, args, log_dir):
             return module.name, False, log_path
 
 
+def do_install(worker, module, out_dir, dist_dir, args):
+    worker.status = 'Installing {}...'.format(module.name)
+    module.install(out_dir, dist_dir, args)
+
+
 ALL_MODULES = [
     CanaryReadme(),
     Changelog(),
@@ -1434,6 +1439,19 @@ def wait_for_build(workqueue, dist_dir):
                     print('Build succeeded: ' + build_name)
                 ui.draw()
             ui.clear()
+            print('Build finished')
+
+
+def wait_for_install(workqueue):
+    console = ndk.ansi.get_console()
+    ui = ndk.ui.get_build_progress_ui(console, workqueue)
+    with ndk.ansi.disable_terminal_echo(sys.stdin):
+        with console.cursor_hide_context():
+            while not workqueue.finished():
+                workqueue.get_result()
+                ui.draw()
+            ui.clear()
+            print('Install finished')
 
 
 def main():
@@ -1513,31 +1531,35 @@ def main():
         os.makedirs(log_dir)
 
     build_timer = ndk.timer.Timer()
-    with build_timer:
-        workqueue = ndk.workqueue.WorkQueue(args.jobs)
-        try:
+    workqueue = ndk.workqueue.WorkQueue(args.jobs)
+    try:
+        with build_timer:
             for module in ALL_MODULES:
                 if module.name in modules:
                     workqueue.add_task(
                         launch_build, module, out_dir, dist_dir, args, log_dir)
 
             wait_for_build(workqueue, dist_dir)
-        finally:
-            workqueue.terminate()
-            workqueue.join()
 
-    ndk_dir = ndk.paths.get_install_path(out_dir)
-    install_timer = ndk.timer.Timer()
-    with install_timer:
-        if not os.path.exists(ndk_dir):
-            os.makedirs(ndk_dir)
-        for module in ALL_MODULES:
-            if module.name in modules:
-                module.install(out_dir, dist_dir, args)
+        ndk_dir = ndk.paths.get_install_path(out_dir)
+        install_timer = ndk.timer.Timer()
+        with install_timer:
+            if not os.path.exists(ndk_dir):
+                os.makedirs(ndk_dir)
+            for module in ALL_MODULES:
+                if module.name in modules:
+                    workqueue.add_task(
+                        do_install, module, out_dir, dist_dir, args)
+
+            wait_for_install(workqueue)
+    finally:
+        workqueue.terminate()
+        workqueue.join()
 
     package_timer = ndk.timer.Timer()
     with package_timer:
         if do_package:
+            print('Packaging NDK...')
             host_tag = build_support.host_to_tag(args.system)
             package_ndk(ndk_dir, dist_dir, host_tag, args.build_number)
 
