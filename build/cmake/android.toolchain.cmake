@@ -216,10 +216,26 @@ set(CMAKE_TRY_COMPILE_PLATFORM_VARIABLES
 # Standard cross-compiling stuff.
 set(ANDROID TRUE)
 set(CMAKE_SYSTEM_NAME Android)
-set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+
+# Allow users to override these values in case they want more strict behaviors.
+# For example, they may want to prevent the NDK's libz from being picked up so
+# they can use their own.
+# https://github.com/android-ndk/ndk/issues/517
+if(NOT CMAKE_FIND_ROOT_PATH_MODE_PROGRAM)
+	set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+endif()
+
+if(NOT CMAKE_FIND_ROOT_PATH_MODE_LIBRARY)
+	set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+endif()
+
+if(NOT CMAKE_FIND_ROOT_PATH_MODE_INCLUDE)
+	set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+endif()
+
+if(NOT CMAKE_FIND_ROOT_PATH_MODE_PACKAGE)
+	set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+endif()
 
 # ABI.
 set(CMAKE_ANDROID_ARCH_ABI ${ANDROID_ABI})
