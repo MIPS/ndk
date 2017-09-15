@@ -57,6 +57,9 @@ class AnsiUiRenderer(UiRenderer):
     def render(self, lines):
         if not self.last_rendered_lines:
             self.console.print(os.linesep.join(lines), end='')
+        elif len(lines) != len(self.last_rendered_lines):
+            self.clear_last_render()
+            self.render(lines)
         else:
             redraw_commands = []
             last_idx = 0
@@ -116,3 +119,36 @@ class Ui(object):
 
     def draw(self):
         self.ui_renderer.render(self.get_ui_lines())
+
+
+def get_build_progress_ui(console, workqueue):
+    if console.smart_console:
+        ui_renderer = AnsiUiRenderer(console)
+        return BuildProgressUi(ui_renderer, workqueue)
+    else:
+        return DumbBuildProgressUi()
+
+
+class BuildProgressUi(Ui):
+    def __init__(self, ui_renderer, workqueue):
+        super(BuildProgressUi, self).__init__(ui_renderer)
+        self.workqueue = workqueue
+
+    def get_ui_lines(self):
+        lines = []
+        for worker in self.workqueue.workers:
+            status = worker.status
+            if status != worker.IDLE_STATUS:
+                lines.append(status)
+        return lines
+
+
+class DumbBuildProgressUi(object):
+    def clear(self):
+        pass
+
+    def draw(self):
+        # Don't flood the terminal with repeated status of what is still
+        # building. it will be printing the same three modules for most of the
+        # build.
+        pass

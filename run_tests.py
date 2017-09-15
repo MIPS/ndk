@@ -532,23 +532,10 @@ def pair_test_runs(test_groups, groups_for_config):
     return test_runs
 
 
-@contextlib.contextmanager
-def disable_terminal_echo(fd):
-    fd = sys.stdin.fileno()
-    original = termios.tcgetattr(fd)
-    termattr = termios.tcgetattr(fd)
-    termattr[3] &= ~termios.ECHO
-    termios.tcsetattr(fd, termios.TCSANOW, termattr)
-    try:
-        yield
-    finally:
-        termios.tcsetattr(fd, termios.TCSANOW, original)
-
-
 def wait_for_results(report, workqueue, printer):
     console = ndk.ansi.get_console()
     ui = ndk.test.ui.get_test_progress_ui(console, workqueue)
-    with disable_terminal_echo(sys.stdin):
+    with ndk.ansi.disable_terminal_echo(sys.stdin):
         with console.cursor_hide_context():
             while not workqueue.finished():
                 result = workqueue.get_result()

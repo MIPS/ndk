@@ -39,12 +39,14 @@ import traceback
 
 import config
 import build.lib.build_support as build_support
+import ndk.ansi
 import ndk.builds
 import ndk.notify
 import ndk.paths
 import ndk.test.builder
 import ndk.test.spec
 import ndk.timer
+import ndk.ui
 import ndk.workqueue
 
 import tests.printers
@@ -1284,23 +1286,18 @@ class SourceProperties(ndk.builds.Module):
             ])
 
 
-def launch_build(_worker, module, out_dir, dist_dir, args, log_dir):
+def launch_build(worker, module, out_dir, dist_dir, args, log_dir):
     log_path = os.path.join(log_dir, module.name) + '.log'
-    tee = subprocess.Popen(["tee", log_path], stdin=subprocess.PIPE)
-    try:
-        os.dup2(tee.stdin.fileno(), sys.stdout.fileno())
-        os.dup2(tee.stdin.fileno(), sys.stderr.fileno())
-
+    with open(log_path, 'w') as log_file:
+        os.dup2(log_file.fileno(), sys.stdout.fileno())
+        os.dup2(log_file.fileno(), sys.stderr.fileno())
         try:
-            print('Building {}...'.format(module.name))
+            worker.status = 'Building {}...'.format(module.name)
             module.build(out_dir, dist_dir, args)
             return module.name, True, log_path
         except Exception:  # pylint: disable=broad-except
             traceback.print_exc()
             return module.name, False, log_path
-    finally:
-        tee.terminate()
-        tee.wait()
 
 
 ALL_MODULES = [
@@ -1406,6 +1403,39 @@ def parse_args():
     return parser.parse_args()
 
 
+def log_build_failure(log_path, dist_dir):
+    with open(log_path, 'r') as log_file:
+        contents = log_file.read()
+        print(contents)
+
+        # The build server has a build_error.log file that is supposed to be
+        # the short log of the failure that stopped the build. Append our
+        # failing log to that.
+        build_error_log = os.path.join(dist_dir, 'logs/build_error.log')
+        with open(build_error_log, 'a') as error_log:
+            error_log.write('\n')
+            error_log.write(contents)
+
+
+def wait_for_build(workqueue, dist_dir):
+    console = ndk.ansi.get_console()
+    ui = ndk.ui.get_build_progress_ui(console, workqueue)
+    with ndk.ansi.disable_terminal_echo(sys.stdin):
+        with console.cursor_hide_context():
+            while not workqueue.finished():
+                build_name, result, log_path = workqueue.get_result()
+                if not result:
+                    ui.clear()
+                    print('Build failed: ' + build_name)
+                    log_build_failure(log_path, dist_dir)
+                    sys.exit(1)
+                elif not console.smart_console:
+                    ui.clear()
+                    print('Build succeeded: ' + build_name)
+                ui.draw()
+            ui.clear()
+
+
 def main():
     logging.basicConfig()
 
@@ -1491,29 +1521,7 @@ def main():
                     workqueue.add_task(
                         launch_build, module, out_dir, dist_dir, args, log_dir)
 
-            while not workqueue.finished():
-                build_name, result, log_path = workqueue.get_result()
-                if result:
-                    print('BUILD SUCCESSFUL: ' + build_name)
-                else:
-                    # Kill all the children so the error we print appears last.
-                    workqueue.terminate()
-                    workqueue.join()
-
-                    print('BUILD FAILED: ' + build_name)
-                    with open(log_path, 'r') as log_file:
-                        contents = log_file.read()
-                        print(contents)
-
-                        # The build server has a build_error.log file that is
-                        # supposed to be the short log of the failure that
-                        # stopped the build. Append our failing log to that.
-                        build_error_log = os.path.join(
-                            dist_dir, 'logs/build_error.log')
-                        with open(build_error_log, 'a') as error_log:
-                            error_log.write('\n')
-                            error_log.write(contents)
-                    sys.exit(1)
+            wait_for_build(workqueue, dist_dir)
         finally:
             workqueue.terminate()
             workqueue.join()
