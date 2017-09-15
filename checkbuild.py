@@ -23,6 +23,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import argparse
+import copy
 import distutils.spawn
 import inspect
 import json
@@ -479,6 +480,15 @@ class GdbServer(ndk.builds.InvokeBuildModule):
     path = 'prebuilt/android-{arch}/gdbserver'
     script = 'build-gdbserver.py'
     arch_specific = True
+    split_build_by_arch = True
+
+    def install(self, out_dir, dist_dir, args):
+        src_dir = os.path.join(out_dir, self.name, self.build_arch, 'install')
+        install_path = self.get_install_path(
+            out_dir, args.system, self.build_arch)
+        if os.path.exists(install_path):
+            shutil.rmtree(install_path)
+        shutil.copytree(src_dir, install_path)
 
 
 class Gnustl(ndk.builds.InvokeExternalBuildModule):
@@ -1287,22 +1297,41 @@ class SourceProperties(ndk.builds.Module):
 
 
 def launch_build(worker, module, out_dir, dist_dir, args, log_dir):
-    log_path = os.path.join(log_dir, module.name) + '.log'
+    log_path = os.path.join(log_dir, module.log_file)
     with open(log_path, 'w') as log_file:
         os.dup2(log_file.fileno(), sys.stdout.fileno())
         os.dup2(log_file.fileno(), sys.stderr.fileno())
         try:
-            worker.status = 'Building {}...'.format(module.name)
+            worker.status = 'Building {}...'.format(module)
             module.build(out_dir, dist_dir, args)
-            return module.name, True, log_path
+            return module, True, log_path
         except Exception:  # pylint: disable=broad-except
             traceback.print_exc()
-            return module.name, False, log_path
+            return module, False, log_path
 
 
 def do_install(worker, module, out_dir, dist_dir, args):
-    worker.status = 'Installing {}...'.format(module.name)
+    worker.status = 'Installing {}...'.format(module)
     module.install(out_dir, dist_dir, args)
+
+
+def split_module_by_arch(module, arches):
+    if module.split_build_by_arch:
+        for arch in arches:
+            build_module = copy.deepcopy(module)
+            build_module.build_arch = arch
+            yield build_module
+    else:
+        yield module
+
+
+def get_modules_to_build(module_names, arches):
+    modules = []
+    for module in ALL_MODULES:
+        if module.name in module_names:
+            for build_module in split_module_by_arch(module, arches):
+                modules.append(build_module)
+    return modules
 
 
 ALL_MODULES = [
@@ -1428,15 +1457,15 @@ def wait_for_build(workqueue, dist_dir):
     with ndk.ansi.disable_terminal_echo(sys.stdin):
         with console.cursor_hide_context():
             while not workqueue.finished():
-                build_name, result, log_path = workqueue.get_result()
+                module, result, log_path = workqueue.get_result()
                 if not result:
                     ui.clear()
-                    print('Build failed: ' + build_name)
+                    print('Build failed: {}'.format(module))
                     log_build_failure(log_path, dist_dir)
                     sys.exit(1)
                 elif not console.smart_console:
                     ui.clear()
-                    print('Build succeeded: ' + build_name)
+                    print('Build succeeded: {}'.format(module))
                 ui.draw()
             ui.clear()
             print('Build finished')
@@ -1469,12 +1498,12 @@ def main():
     args = parse_args()
 
     if args.modules is None:
-        modules = get_all_module_names()
+        module_names = get_all_module_names()
     else:
-        modules = args.modules
+        module_names = args.modules
 
     if args.host_only:
-        modules = [
+        module_names = [
             'clang',
             'gcc',
             'host-tools',
@@ -1486,7 +1515,7 @@ def main():
         ]
 
     required_package_modules = set(get_all_module_names())
-    have_required_modules = required_package_modules <= set(modules)
+    have_required_modules = required_package_modules <= set(module_names)
     if (args.package and have_required_modules) or args.force_package:
         do_package = True
     else:
@@ -1523,8 +1552,13 @@ def main():
     print('Cleaning up...')
     invoke_build('dev-cleanup.sh')
 
-    print('Building modules: {}'.format(' '.join(modules)))
+    print('Building modules: {}'.format(' '.join(module_names)))
     print('Machine has {} CPUs'.format(multiprocessing.cpu_count()))
+
+    arches = build_support.ALL_ARCHITECTURES
+    if args.arch is not None:
+        arches = [args.arch]
+    modules = get_modules_to_build(module_names, arches)
 
     log_dir = os.path.join(dist_dir, 'logs')
     if not os.path.exists(log_dir):
@@ -1534,10 +1568,9 @@ def main():
     workqueue = ndk.workqueue.WorkQueue(args.jobs)
     try:
         with build_timer:
-            for module in ALL_MODULES:
-                if module.name in modules:
-                    workqueue.add_task(
-                        launch_build, module, out_dir, dist_dir, args, log_dir)
+            for module in modules:
+                workqueue.add_task(
+                    launch_build, module, out_dir, dist_dir, args, log_dir)
 
             wait_for_build(workqueue, dist_dir)
 
@@ -1546,10 +1579,9 @@ def main():
         with install_timer:
             if not os.path.exists(ndk_dir):
                 os.makedirs(ndk_dir)
-            for module in ALL_MODULES:
-                if module.name in modules:
-                    workqueue.add_task(
-                        do_install, module, out_dir, dist_dir, args)
+            for module in modules:
+                workqueue.add_task(
+                    do_install, module, out_dir, dist_dir, args)
 
             wait_for_install(workqueue)
     finally:

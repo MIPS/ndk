@@ -38,6 +38,13 @@ class Module(object):
     name = None
     path = None
 
+    # If split_build_by_arch is set, one workqueue task will be created for
+    # each architecture. The Module object will be cloned for each arch and
+    # each will have build_arch set to the architecture that should be built by
+    # that module. If build_arch is None, the module has not yet been split.
+    split_build_by_arch = False
+    build_arch = None
+
     def __init__(self):
         self.validate()
 
@@ -113,6 +120,20 @@ class Module(object):
                 '{} did not install a repo.prop file at {}'.format(
                     self.name, repo_prop_file))
 
+    def __str__(self):
+        if self.split_build_by_arch and self.build_arch is not None:
+            return '{} [{}]'.format(self.name, self.build_arch)
+        return self.name
+
+    @property
+    def log_file(self):
+        if self.split_build_by_arch and self.build_arch is not None:
+            return '{}-{}.log'.format(self.name, self.build_arch)
+        elif self.split_build_by_arch:
+            raise RuntimeError('Called log_file on unsplit module')
+        else:
+            return '{}.log'.format(self.name)
+
 
 class PackageModule(Module):
     src = None
@@ -154,7 +175,9 @@ class InvokeExternalBuildModule(Module):
 
     def build(self, build_dir, dist_dir, args):
         build_args = common_build_args(build_dir, dist_dir, args)
-        if self.arch_specific and args.arch is not None:
+        if self.split_build_by_arch:
+            build_args.append('--arch={}'.format(self.build_arch))
+        elif self.arch_specific and args.arch is not None:
             build_args.append('--arch={}'.format(args.arch))
         build_args.extend(self.additional_args(args))
         script = self.get_script_path()
