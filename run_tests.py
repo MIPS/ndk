@@ -547,7 +547,7 @@ def disable_terminal_echo(fd):
 
 def wait_for_results(report, workqueue, printer):
     console = ndk.ansi.get_console()
-    renderer = ndk.test.ui.get_test_progress_renderer(console)
+    ui = ndk.test.ui.get_test_progress_ui(console, workqueue)
     with disable_terminal_echo(sys.stdin):
         with console.cursor_hide_context():
             while not workqueue.finished():
@@ -555,13 +555,13 @@ def wait_for_results(report, workqueue, printer):
                 suite = result.test.build_system
                 report.add_result(suite, result)
                 if logger().isEnabledFor(logging.INFO):
-                    renderer.clear_last_render()
+                    ui.clear()
                     printer.print_result(result)
                 elif result.failed():
-                    renderer.clear_last_render()
+                    ui.clear()
                     printer.print_result(result)
-                renderer.render(workqueue)
-            renderer.clear_last_render()
+                ui.draw()
+            ui.clear()
 
 
 def flake_filter(result):
