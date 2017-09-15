@@ -20,6 +20,7 @@ from __future__ import print_function
 import contextlib
 import os
 import sys
+import termios
 
 
 def cursor_up(lines):
@@ -42,6 +43,21 @@ def goto_first_column():
 
 def clear_line():
     return '\033[K'
+
+
+@contextlib.contextmanager
+def disable_terminal_echo(fd):
+    if fd.isatty():
+        original = termios.tcgetattr(fd)
+        termattr = termios.tcgetattr(fd)
+        termattr[3] &= ~termios.ECHO
+        termios.tcsetattr(fd, termios.TCSANOW, termattr)
+        try:
+            yield
+        finally:
+            termios.tcsetattr(fd, termios.TCSANOW, original)
+    else:
+        yield
 
 
 def get_console(stream=sys.stdout):

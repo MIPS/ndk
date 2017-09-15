@@ -64,6 +64,9 @@ if [ -z "$BUILD_OUT" ]; then
   exit 1
 fi
 
+INSTALL_DIR=$BUILD_OUT/install
+BUILD_OUT=$BUILD_OUT/build
+
 set_parameters ()
 {
     ARCH="$1"
@@ -265,30 +268,15 @@ if [ "$NOTHREADS" = "yes" ] ; then
 else
     DSTFILE="gdbserver"
 fi
+
 dump "Install  : $ARCH $DSTFILE."
-INSTALL_DIR=$BUILD_OUT/install
-GDBSERVER_SUBDIR="gdbserver-$ARCH"
-DEST=$INSTALL_DIR/$GDBSERVER_SUBDIR
-mkdir -p $DEST &&
-run ${TOOLCHAIN_PREFIX}objcopy --strip-unneeded $BUILD_OUT/gdbserver $DEST/$DSTFILE
-if [ $? != 0 ] ; then
-    dump "Could not install $DSTFILE."
-    exit 1
-fi
+mkdir -p $INSTALL_DIR &&
+run ${TOOLCHAIN_PREFIX}objcopy --strip-unneeded \
+  $BUILD_OUT/gdbserver $INSTALL_DIR/$DSTFILE
+fail_panic "Could not install $DSTFILE."
 
-if [ "$PACKAGE_DIR" ]; then
-    make_repo_prop "$INSTALL_DIR/$GDBSERVER_SUBDIR"
-    cp "$SRC_DIR/../../COPYING" "$DEST/NOTICE"
-    fail_panic "Could not copy license file!"
-
-    ARCHIVE=gdbserver-$ARCH.zip
-    dump "Packaging: $ARCHIVE"
-    pack_archive "$PACKAGE_DIR/$ARCHIVE" "$INSTALL_DIR" "$GDBSERVER_SUBDIR"
-fi
-
-log "Cleaning up."
-if [ -z "$OPTION_BUILD_OUT" ] ; then
-    run rm -rf $BUILD_OUT
-fi
+make_repo_prop "$INSTALL_DIR"
+cp "$SRC_DIR/../../COPYING" "$INSTALL_DIR/NOTICE"
+fail_panic "Could not copy license file!"
 
 dump "Done."

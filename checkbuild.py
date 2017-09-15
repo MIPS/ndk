@@ -23,6 +23,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import argparse
+import copy
 import distutils.spawn
 import inspect
 import json
@@ -39,12 +40,14 @@ import traceback
 
 import config
 import build.lib.build_support as build_support
+import ndk.ansi
 import ndk.builds
 import ndk.notify
 import ndk.paths
 import ndk.test.builder
 import ndk.test.spec
 import ndk.timer
+import ndk.ui
 import ndk.workqueue
 
 import tests.printers
@@ -477,6 +480,15 @@ class GdbServer(ndk.builds.InvokeBuildModule):
     path = 'prebuilt/android-{arch}/gdbserver'
     script = 'build-gdbserver.py'
     arch_specific = True
+    split_build_by_arch = True
+
+    def install(self, out_dir, dist_dir, args):
+        src_dir = os.path.join(out_dir, self.name, self.build_arch, 'install')
+        install_path = self.get_install_path(
+            out_dir, args.system, self.build_arch)
+        if os.path.exists(install_path):
+            shutil.rmtree(install_path)
+        shutil.copytree(src_dir, install_path)
 
 
 class Gnustl(ndk.builds.InvokeExternalBuildModule):
@@ -1284,23 +1296,42 @@ class SourceProperties(ndk.builds.Module):
             ])
 
 
-def launch_build(_worker, module, out_dir, dist_dir, args, log_dir):
-    log_path = os.path.join(log_dir, module.name) + '.log'
-    tee = subprocess.Popen(["tee", log_path], stdin=subprocess.PIPE)
-    try:
-        os.dup2(tee.stdin.fileno(), sys.stdout.fileno())
-        os.dup2(tee.stdin.fileno(), sys.stderr.fileno())
-
+def launch_build(worker, module, out_dir, dist_dir, args, log_dir):
+    log_path = os.path.join(log_dir, module.log_file)
+    with open(log_path, 'w') as log_file:
+        os.dup2(log_file.fileno(), sys.stdout.fileno())
+        os.dup2(log_file.fileno(), sys.stderr.fileno())
         try:
-            print('Building {}...'.format(module.name))
+            worker.status = 'Building {}...'.format(module)
             module.build(out_dir, dist_dir, args)
-            return module.name, True, log_path
+            return module, True, log_path
         except Exception:  # pylint: disable=broad-except
             traceback.print_exc()
-            return module.name, False, log_path
-    finally:
-        tee.terminate()
-        tee.wait()
+            return module, False, log_path
+
+
+def do_install(worker, module, out_dir, dist_dir, args):
+    worker.status = 'Installing {}...'.format(module)
+    module.install(out_dir, dist_dir, args)
+
+
+def split_module_by_arch(module, arches):
+    if module.split_build_by_arch:
+        for arch in arches:
+            build_module = copy.deepcopy(module)
+            build_module.build_arch = arch
+            yield build_module
+    else:
+        yield module
+
+
+def get_modules_to_build(module_names, arches):
+    modules = []
+    for module in ALL_MODULES:
+        if module.name in module_names:
+            for build_module in split_module_by_arch(module, arches):
+                modules.append(build_module)
+    return modules
 
 
 ALL_MODULES = [
@@ -1406,6 +1437,52 @@ def parse_args():
     return parser.parse_args()
 
 
+def log_build_failure(log_path, dist_dir):
+    with open(log_path, 'r') as log_file:
+        contents = log_file.read()
+        print(contents)
+
+        # The build server has a build_error.log file that is supposed to be
+        # the short log of the failure that stopped the build. Append our
+        # failing log to that.
+        build_error_log = os.path.join(dist_dir, 'logs/build_error.log')
+        with open(build_error_log, 'a') as error_log:
+            error_log.write('\n')
+            error_log.write(contents)
+
+
+def wait_for_build(workqueue, dist_dir):
+    console = ndk.ansi.get_console()
+    ui = ndk.ui.get_build_progress_ui(console, workqueue)
+    with ndk.ansi.disable_terminal_echo(sys.stdin):
+        with console.cursor_hide_context():
+            while not workqueue.finished():
+                module, result, log_path = workqueue.get_result()
+                if not result:
+                    ui.clear()
+                    print('Build failed: {}'.format(module))
+                    log_build_failure(log_path, dist_dir)
+                    sys.exit(1)
+                elif not console.smart_console:
+                    ui.clear()
+                    print('Build succeeded: {}'.format(module))
+                ui.draw()
+            ui.clear()
+            print('Build finished')
+
+
+def wait_for_install(workqueue):
+    console = ndk.ansi.get_console()
+    ui = ndk.ui.get_build_progress_ui(console, workqueue)
+    with ndk.ansi.disable_terminal_echo(sys.stdin):
+        with console.cursor_hide_context():
+            while not workqueue.finished():
+                workqueue.get_result()
+                ui.draw()
+            ui.clear()
+            print('Install finished')
+
+
 def main():
     logging.basicConfig()
 
@@ -1421,12 +1498,12 @@ def main():
     args = parse_args()
 
     if args.modules is None:
-        modules = get_all_module_names()
+        module_names = get_all_module_names()
     else:
-        modules = args.modules
+        module_names = args.modules
 
     if args.host_only:
-        modules = [
+        module_names = [
             'clang',
             'gcc',
             'host-tools',
@@ -1438,7 +1515,7 @@ def main():
         ]
 
     required_package_modules = set(get_all_module_names())
-    have_required_modules = required_package_modules <= set(modules)
+    have_required_modules = required_package_modules <= set(module_names)
     if (args.package and have_required_modules) or args.force_package:
         do_package = True
     else:
@@ -1475,61 +1552,46 @@ def main():
     print('Cleaning up...')
     invoke_build('dev-cleanup.sh')
 
-    print('Building modules: {}'.format(' '.join(modules)))
+    print('Building modules: {}'.format(' '.join(module_names)))
     print('Machine has {} CPUs'.format(multiprocessing.cpu_count()))
+
+    arches = build_support.ALL_ARCHITECTURES
+    if args.arch is not None:
+        arches = [args.arch]
+    modules = get_modules_to_build(module_names, arches)
 
     log_dir = os.path.join(dist_dir, 'logs')
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
     build_timer = ndk.timer.Timer()
-    with build_timer:
-        workqueue = ndk.workqueue.WorkQueue(args.jobs)
-        try:
-            for module in ALL_MODULES:
-                if module.name in modules:
-                    workqueue.add_task(
-                        launch_build, module, out_dir, dist_dir, args, log_dir)
+    workqueue = ndk.workqueue.WorkQueue(args.jobs)
+    try:
+        with build_timer:
+            for module in modules:
+                workqueue.add_task(
+                    launch_build, module, out_dir, dist_dir, args, log_dir)
 
-            while not workqueue.finished():
-                build_name, result, log_path = workqueue.get_result()
-                if result:
-                    print('BUILD SUCCESSFUL: ' + build_name)
-                else:
-                    # Kill all the children so the error we print appears last.
-                    workqueue.terminate()
-                    workqueue.join()
+            wait_for_build(workqueue, dist_dir)
 
-                    print('BUILD FAILED: ' + build_name)
-                    with open(log_path, 'r') as log_file:
-                        contents = log_file.read()
-                        print(contents)
+        ndk_dir = ndk.paths.get_install_path(out_dir)
+        install_timer = ndk.timer.Timer()
+        with install_timer:
+            if not os.path.exists(ndk_dir):
+                os.makedirs(ndk_dir)
+            for module in modules:
+                workqueue.add_task(
+                    do_install, module, out_dir, dist_dir, args)
 
-                        # The build server has a build_error.log file that is
-                        # supposed to be the short log of the failure that
-                        # stopped the build. Append our failing log to that.
-                        build_error_log = os.path.join(
-                            dist_dir, 'logs/build_error.log')
-                        with open(build_error_log, 'a') as error_log:
-                            error_log.write('\n')
-                            error_log.write(contents)
-                    sys.exit(1)
-        finally:
-            workqueue.terminate()
-            workqueue.join()
-
-    ndk_dir = ndk.paths.get_install_path(out_dir)
-    install_timer = ndk.timer.Timer()
-    with install_timer:
-        if not os.path.exists(ndk_dir):
-            os.makedirs(ndk_dir)
-        for module in ALL_MODULES:
-            if module.name in modules:
-                module.install(out_dir, dist_dir, args)
+            wait_for_install(workqueue)
+    finally:
+        workqueue.terminate()
+        workqueue.join()
 
     package_timer = ndk.timer.Timer()
     with package_timer:
         if do_package:
+            print('Packaging NDK...')
             host_tag = build_support.host_to_tag(args.system)
             package_ndk(ndk_dir, dist_dir, host_tag, args.build_number)
 
