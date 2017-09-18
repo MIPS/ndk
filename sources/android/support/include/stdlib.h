@@ -41,8 +41,6 @@ int posix_memalign(void** memptr, size_t alignment, size_t size);
 #undef MB_CUR_MAX
 size_t __ctype_get_mb_cur_max(void);
 #define MB_CUR_MAX __ctype_get_mb_cur_max()
-void _Exit(int); // TODO: not needed after bionic commit 79dd9889d1701dda881bb383b212932fcf2ff25f.
-long double strtold(const char*, char**);
 long double strtold_l(const char*, char**, locale_t);
 long long strtoll_l(const char*, char**, int, locale_t);
 unsigned long long strtoull_l(const char*, char**, int, locale_t);

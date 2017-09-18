@@ -102,14 +102,6 @@ double wcstod(const wchar_t *restrict s, wchar_t **restrict p) {
   return wcstox(strtod_wrapper, s, p, 0);
 }
 
-static long double strtold_wrapper(const char* s, char** p, int) {
-  return strtold(s, p);
-}
-
-long double wcstold(const wchar_t *restrict s, wchar_t **restrict p) {
-  return wcstox(strtold_wrapper, s, p, 0);
-}
-
 long wcstol(const wchar_t *restrict s, wchar_t **restrict p, int base) {
   return wcstox(strtol, s, p, base);
 }
