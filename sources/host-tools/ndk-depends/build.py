@@ -41,7 +41,7 @@ def main(args):
     build_cmd.append(
         '--build-dir=' + os.path.join(args.out_dir, 'ndk-depends'))
 
-    build_support.build(build_cmd, args, intermediate_package=True)
+    build_support.build(build_cmd, args)
 
 if __name__ == '__main__':
     build_support.run(main)
