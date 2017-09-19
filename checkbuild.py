@@ -543,6 +543,12 @@ class Platforms(ndk.builds.Module):
     # are not included in the NDK to save space.
     skip_apis = (10, 11, 20, 25)
 
+    # We still need a numeric API level for codenamed API levels because
+    # ABI_ANDROID_API in crtbrand is an integer. We start counting the
+    # codenamed releases from 9000 and increment for each additional release.
+    # This is filled by get_apis.
+    codename_api_map = {}
+
     def prebuilt_path(self, *args):  # pylint: disable=no-self-use
         return build_support.android_path('prebuilts/ndk/platform', *args)
 
@@ -568,13 +574,22 @@ class Platforms(ndk.builds.Module):
             return 'lib'
 
     def get_apis(self):
+        codenamed_apis = []
         apis = []
         for name in os.listdir(self.prebuilt_path('platforms')):
             if not name.startswith('android-'):
                 continue
 
             _, api_str = name.split('-')
-            apis.append(int(api_str))
+            try:
+                apis.append(int(api_str))
+            except ValueError:
+                # Codenamed release like android-O, android-O-MR1, etc.
+                apis.append(api_str)
+                codenamed_apis.append(api_str)
+
+        for api_num, api_str in enumerate(sorted(codenamed_apis), start=9000):
+            self.codename_api_map[api_str] = api_num
         return sorted(apis)
 
     def get_arches(self, api):  # pylint: disable=no-self-use
@@ -616,7 +631,15 @@ class Platforms(ndk.builds.Module):
                 '{} does not contain NDK ELF note'.format(obj_file))
 
     def build_crt_object(self, dst, srcs, api, arch, build_number, defines):
-        cc_args = self.get_build_cmd(dst, srcs, api, arch, build_number)
+        try:
+            # No-op for stable releases.
+            api_num = int(api)
+        except ValueError:
+            # ValueError means this was a codenamed release. We need the
+            # integer matching this release for ABI_ANDROID_API in crtbrand.
+            api_num = self.codename_api_map[api]
+
+        cc_args = self.get_build_cmd(dst, srcs, api_num, arch, build_number)
         cc_args.extend(defines)
 
         subprocess.check_call(cc_args)
