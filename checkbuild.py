@@ -25,6 +25,7 @@ from __future__ import print_function
 import argparse
 import copy
 import distutils.spawn
+import errno
 import inspect
 import json
 import logging
@@ -395,14 +396,6 @@ class HostTools(ndk.builds.Module):
     def build(self, out_dir, dist_dir, args):
         build_args = common_build_args(out_dir, dist_dir, args)
 
-        print('Building ndk-stack...')
-        invoke_external_build(
-            'ndk/sources/host-tools/ndk-stack/build.py', build_args)
-
-        print('Building ndk-depends...')
-        invoke_external_build(
-            'ndk/sources/host-tools/ndk-depends/build.py', build_args)
-
         print('Building make...')
         invoke_external_build(
             'ndk/sources/host-tools/make-3.81/build.py', build_args)
@@ -421,58 +414,116 @@ class HostTools(ndk.builds.Module):
         print('Building YASM...')
         invoke_external_build('toolchain/yasm/build.py', build_args)
 
-        package_host_tools(out_dir, dist_dir, args.system)
+    def install(self, out_dir, _dist_dir, args):
+        install_dir = self.get_install_path(out_dir, args.system)
+
+        try:
+            os.makedirs(install_dir)
+        except OSError as ex:
+            # Another build might be trying to create this simultaneously,
+            # which we can safely ignore.
+            if ex.errno != errno.EEXIST:
+                raise
+
+        packages = [
+            'gdb-multiarch-7.11',
+            'ndk-make',
+            'ndk-python',
+            'ndk-yasm',
+        ]
+
+        files = [
+            'ndk-gdb',
+            'ndk-gdb.py',
+            'ndk-which',
+        ]
+
+        if args.system in ('windows', 'windows64'):
+            packages.append('toolbox')
+            files.append('ndk-gdb.cmd')
+
+        host_tag = build_support.host_to_tag(args.system)
+
+        package_names = [p + '-' + host_tag + '.tar.bz2' for p in packages]
+        for package_name in package_names:
+            package_path = os.path.join(out_dir, package_name)
+            subprocess.check_call(
+                ['tar', 'xf', package_path, '-C', install_dir,
+                 '--strip-components=1'])
+
+        for f in files:
+            shutil.copy2(f, os.path.join(install_dir, 'bin'))
+
+        build_support.merge_license_files(
+            os.path.join(install_dir, 'NOTICE'), [
+                build_support.android_path('toolchain/gdb/gdb-7.11/COPYING'),
+                build_support.ndk_path(
+                    'sources/host-tools/ndk-depends/NOTICE'),
+                build_support.ndk_path('sources/host-tools/make-3.81/COPYING'),
+                build_support.android_path(
+                    'toolchain/python/Python-2.7.5/LICENSE'),
+                build_support.ndk_path('sources/host-tools/ndk-stack/NOTICE'),
+                build_support.ndk_path('sources/host-tools/toolbox/NOTICE'),
+                build_support.android_path('toolchain/yasm/COPYING'),
+                build_support.android_path('toolchain/yasm/BSD.txt'),
+                build_support.android_path('toolchain/yasm/Artistic.txt'),
+                build_support.android_path('toolchain/yasm/GNU_GPL-2.0'),
+                build_support.android_path('toolchain/yasm/GNU_LGPL-2.0'),
+            ])
+
+        build_support.make_repo_prop(install_dir)
+
+        self.validate_notice(install_dir)
 
 
-def package_host_tools(out_dir, dist_dir, host):
-    packages = [
-        'gdb-multiarch-7.11',
-        'ndk-depends',
-        'ndk-make',
-        'ndk-python',
-        'ndk-stack',
-        'ndk-yasm',
-    ]
+def install_exe(out_dir, install_dir, name, system):
+    is_win = system.startswith('windows')
+    ext = '.exe' if is_win else ''
+    exe_name = name + ext
+    src = os.path.join(out_dir, exe_name)
+    dst = os.path.join(install_dir, exe_name)
 
-    files = [
-        'ndk-gdb',
-        'ndk-gdb.py',
-        'ndk-which',
-    ]
+    try:
+        os.makedirs(install_dir)
+    except OSError as ex:
+        # Another build might be trying to create this simultaneously,
+        # which we can safely ignore.
+        if ex.errno != errno.EEXIST:
+            raise
 
-    if host in ('windows', 'windows64'):
-        packages.append('toolbox')
-        files.append('ndk-gdb.cmd')
+    shutil.copy2(src, dst)
 
-    host_tag = build_support.host_to_tag(host)
 
-    package_names = [p + '-' + host_tag + '.tar.bz2' for p in packages]
-    for package_name in package_names:
-        package_path = os.path.join(out_dir, package_name)
-        subprocess.check_call(['tar', 'xf', package_path, '-C', out_dir])
+class NdkDepends(ndk.builds.InvokeExternalBuildModule):
+    name = 'ndk-depends'
+    path = 'prebuilt/{host}/bin'
+    script = 'ndk/sources/host-tools/ndk-depends/build.py'
 
-    for f in files:
-        shutil.copy2(f, os.path.join(out_dir, 'host-tools/bin'))
+    def install(self, out_dir, _dist_dir, args):
+        src = os.path.join(out_dir, self.name)
+        install_dir = self.get_install_path(out_dir, args.system)
+        install_exe(src, install_dir, self.name, args.system)
 
-    build_support.merge_license_files(
-        os.path.join(out_dir, 'host-tools/NOTICE'), [
-            build_support.android_path('toolchain/gdb/gdb-7.11/COPYING'),
-            build_support.ndk_path('sources/host-tools/ndk-depends/NOTICE'),
-            build_support.ndk_path('sources/host-tools/make-3.81/COPYING'),
-            build_support.android_path(
-                'toolchain/python/Python-2.7.5/LICENSE'),
-            build_support.ndk_path('sources/host-tools/ndk-stack/NOTICE'),
-            build_support.ndk_path('sources/host-tools/toolbox/NOTICE'),
-            build_support.android_path('toolchain/yasm/COPYING'),
-            build_support.android_path('toolchain/yasm/BSD.txt'),
-            build_support.android_path('toolchain/yasm/Artistic.txt'),
-            build_support.android_path('toolchain/yasm/GNU_GPL-2.0'),
-            build_support.android_path('toolchain/yasm/GNU_LGPL-2.0'),
-        ])
+    def validate_notice(self, _install_base):
+        # ndk-depends shares a directory with many other components. Its
+        # license is merged with the others as part of HostTools.
+        pass
 
-    package_name = 'host-tools-' + host_tag
-    path = os.path.join(out_dir, 'host-tools')
-    build_support.make_package(package_name, path, dist_dir)
+
+class NdkStack(ndk.builds.InvokeExternalBuildModule):
+    name = 'ndk-stack'
+    path = 'prebuilt/{host}/bin'
+    script = 'ndk/sources/host-tools/ndk-stack/build.py'
+
+    def install(self, out_dir, _dist_dir, args):
+        src = os.path.join(out_dir, self.name)
+        install_dir = self.get_install_path(out_dir, args.system)
+        install_exe(src, install_dir, self.name, args.system)
+
+    def validate_notice(self, _install_base):
+        # ndk-stack shares a directory with many other components. Its license
+        # is merged with the others as part of HostTools.
+        pass
 
 
 class GdbServer(ndk.builds.InvokeBuildModule):
@@ -1361,9 +1412,11 @@ ALL_MODULES = [
     NativeAppGlue(),
     NdkBuild(),
     NdkBuildShortcut(),
+    NdkDepends(),
     NdkDependsShortcut(),
     NdkGdbShortcut(),
     NdkHelper(),
+    NdkStack(),
     NdkStackShortcut(),
     NdkWhichShortcut(),
     Platforms(),

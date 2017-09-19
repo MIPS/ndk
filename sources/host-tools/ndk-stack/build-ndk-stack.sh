@@ -101,11 +101,7 @@ run make -j$NUM_JOBS
 fail_panic "Can't build $BINUTILS_SRC_DIR"
 
 NAME=$(get_host_exec_name ndk-stack)
-INSTALL_ROOT=$BUILD_DIR/install
-INSTALL_SUBDIR=host-tools/bin
-INSTALL_PATH=$INSTALL_ROOT/$INSTALL_SUBDIR
-OUT=$INSTALL_PATH/$NAME
-mkdir $INSTALL_PATH
+OUT=$BUILD_DIR/$NAME
 
 # GNU Make
 if [ -z "$GNUMAKE" ]; then
@@ -160,13 +156,6 @@ run $GNUMAKE -C $SRCDIR -f $SRCDIR/GNUmakefile \
 if [ $? != 0 ]; then
     echo "ERROR: Could not build host program!"
     exit 1
-fi
-
-if [ "$PACKAGE_DIR" ]; then
-    ARCHIVE=ndk-stack-$HOST_TAG.tar.bz2
-    dump "Packaging: $ARCHIVE"
-    pack_archive "$PACKAGE_DIR/$ARCHIVE" "$INSTALL_ROOT" "$INSTALL_SUBDIR"
-    fail_panic "Could not create package: $PACKAGE_DIR/$ARCHIVE from $OUT"
 fi
 
 log "Done!"
