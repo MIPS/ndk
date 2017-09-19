@@ -28,6 +28,8 @@
 
 #include <gtest/gtest.h>
 
+#include <stdlib.h>
+
 TEST(stdlib, posix_memalign_sweep) {
   void* ptr;
 

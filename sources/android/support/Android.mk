@@ -75,6 +75,8 @@ android_support_sources := \
     $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wmemmove.c \
     $(BIONIC_PATH)/libc/upstream-freebsd/lib/libc/string/wmemset.c \
     $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/locale/mbtowc.c \
+    $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/stdlib/imaxabs.c \
+    $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/stdlib/imaxdiv.c \
     $(BIONIC_PATH)/libm/digittoint.c \
     $(BIONIC_PATH)/libm/fake_long_double.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_acos.c \
@@ -89,6 +91,7 @@ android_support_sources := \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_log.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_log10.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_log2.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_log2f.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_logf.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_remainder.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_sinh.c \
@@ -105,6 +108,8 @@ android_support_sources := \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_erf.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_exp2.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_expm1.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_frexp.c \
+    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_frexpf.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_log1p.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_logb.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_nextafter.c \
@@ -127,12 +132,16 @@ android_support_sources += \
 
 endif
 
-# Replaces broken implementations in x86 libm.so
 ifeq (x86,$(TARGET_ARCH_ABI))
+# Replaces broken implementations in x86 libm.so
 android_support_sources += \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_scalbln.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_scalbn.c \
 
+# fake_long_double.c doesn't define this for x86.
+# TODO: seems like we don't pass .S files to the assembler?
+#android_support_c_includes += $(BIONIC_PATH)/libc/arch-x86/include
+#android_support_sources += $(BIONIC_PATH)/libm/x86/lrint.S
 endif
 
 endif  # 64-/32-bit ABIs
