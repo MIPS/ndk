@@ -440,9 +440,18 @@ def disable_verity_and_wait_for_reboot(device):
 
 
 def asan_device_setup(ndk_path, device):
-    path = os.path.join(
+    toolchain_lib_path = os.path.join(
         ndk_path, 'toolchains/llvm/prebuilt', ndk.hosts.get_host_tag(ndk_path),
-        'bin/asan_device_setup')
+        'lib64/clang')
+    # The lib64/clang directory will contain both a $MAJOR.$MINOR and a
+    # $MAJOR.$MINOR.$REVISION directory. They should be identical, so just pick
+    # one.
+    # toolchain_lib_path = os.path.join(
+    #    toolchain_lib_path, os.listdir(toolchain_lib_path)[0])
+    # FIXME: Except at the moment the toolchain install is broken and 5.0 !=
+    # 5.0.1.
+    toolchain_lib_path = os.path.join(toolchain_lib_path, '5.0')
+    path = os.path.join(toolchain_lib_path, 'bin/asan_device_setup')
     cmd = [path, '--device', device.serial]
     logger().info('%s: asan_device_setup', device.name)
     # Use call_output to keep the call quiet unless something goes wrong.

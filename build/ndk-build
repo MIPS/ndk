@@ -283,8 +283,7 @@ if [ "$NDK_ANALYZE" = 1 ]; then
             ANALYZER_OUT_FLAG="-o $NDK_ANALYZER_OUT/$ABI"
         fi
 
-        perl $LLVM_PATH/tools/scan-build/bin/scan-build \
-            --use-analyzer $LLVM_PATH/bin/${ABI}/analyzer \
+        perl $LLVM_PATH/bin/scan-build \
             --use-cc $ANALYZER_CC \
             --use-c++ $ANALYZER_CXX \
             --status-bugs \
