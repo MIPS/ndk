@@ -90,11 +90,6 @@ def main():
     triple = build.lib.build_support.arch_to_triple(arch)
     toolchain = build.lib.build_support.arch_to_toolchain(arch)
 
-    if args.abi == 'armeabi-v7a':
-        triple = 'armv7-linux-androideabi'
-
-    triple = '{}{}'.format(triple, args.platform)
-
     lit_path = build.lib.build_support.android_path(
         'external/llvm/utils/lit/lit.py')
 
