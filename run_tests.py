@@ -43,6 +43,7 @@ import ndk.test.report
 import ndk.test.result
 import ndk.test.spec
 import ndk.test.ui
+import ndk.ui
 import ndk.timer
 import ndk.workqueue
 
@@ -378,9 +379,9 @@ def adb_has_feature(feature):
     return feature in features
 
 
-def push_tests_to_device(_worker, src_dir, dest_dir, config, device,
+def push_tests_to_device(worker, src_dir, dest_dir, config, device,
                          use_sync):
-    print('Pushing {} tests to {}.'.format(config, device))
+    worker.status = 'Pushing {} tests to {}.'.format(config, device)
     logger().info('%s: mkdir %s', device.name, dest_dir)
     device.shell_nocheck(['mkdir', dest_dir])
     logger().info(
@@ -389,6 +390,18 @@ def push_tests_to_device(_worker, src_dir, dest_dir, config, device,
     device.push(src_dir, dest_dir, sync=use_sync)
     if sys.platform == 'win32':
         device.shell(['chmod', '-R', '777', dest_dir])
+
+
+def finish_workqueue_with_ui(workqueue):
+    console = ndk.ansi.get_console()
+    ui = ndk.ui.get_work_queue_ui(console, workqueue)
+    with ndk.ansi.disable_terminal_echo(sys.stdin):
+        with console.cursor_hide_context():
+            ui.draw()
+            while not workqueue.finished():
+                workqueue.get_result()
+                ui.draw()
+            ui.clear()
 
 
 def push_tests_to_devices(workqueue, test_dir, groups_for_config, use_sync):
@@ -401,8 +414,8 @@ def push_tests_to_devices(workqueue, test_dir, groups_for_config, use_sync):
                     push_tests_to_device, src_dir, dest_dir, config, device,
                     use_sync)
 
-    while not workqueue.finished():
-        workqueue.get_result()
+    finish_workqueue_with_ui(workqueue)
+    print('Finished pushing tests')
 
 
 def disable_verity_and_wait_for_reboot(device):
