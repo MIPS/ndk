@@ -19,6 +19,7 @@ from __future__ import absolute_import
 import itertools
 import json
 import logging
+import multiprocessing
 import os
 import shutil
 
@@ -130,3 +131,59 @@ class TestBuilder(object):
             self.test_options.test_filter)
         with ndk.os.modify_environ({'NDK': self.test_options.ndk_path}):
             return self.runner.run(self.obj_dir, self.dist_dir, test_filters)
+
+
+class TestBuildWorkQueue(object):
+    """Specialized work queue for building tests.
+
+    Building the libc++ tests is very demanding and we should not be running
+    more than one libc++ build at a time. The TestBuildWorkQueue has a normal
+    task queue as well as a task queue served by only one worker.
+    """
+
+    def __init__(self, num_workers=multiprocessing.cpu_count()):
+        self.manager = multiprocessing.Manager()
+        self.result_queue = self.manager.Queue()
+
+        assert num_workers >= 2
+
+        self.main_task_queue = self.manager.Queue()
+        self.serial_task_queue = self.manager.Queue()
+
+        self.main_work_queue = ndk.workqueue.WorkQueue(
+            num_workers - 1, task_queue=self.main_task_queue,
+            result_queue=self.result_queue)
+
+        self.serial_work_queue = ndk.workqueue.WorkQueue(
+            1, task_queue=self.serial_task_queue,
+            result_queue=self.result_queue)
+
+        self.num_tasks = 0
+
+    def add_task(self, func, *args, **kwargs):
+        self.main_task_queue.put(ndk.workqueue.Task(func, args, kwargs))
+        self.num_tasks += 1
+
+    def add_serial_task(self, func, *args, **kwargs):
+        self.serial_task_queue.put(ndk.workqueue.Task(func, args, kwargs))
+        self.num_tasks += 1
+
+    def get_result(self):
+        """Gets a result from the queue, blocking until one is available."""
+        result = self.result_queue.get()
+        if type(result) == ndk.workqueue.TaskError:
+            raise result
+        self.num_tasks -= 1
+        return result
+
+    def terminate(self):
+        self.main_work_queue.terminate()
+        self.serial_work_queue.terminate()
+
+    def join(self):
+        self.main_work_queue.join()
+        self.serial_work_queue.join()
+
+    def finished(self):
+        """Returns True if all tasks have completed execution."""
+        return self.num_tasks == 0

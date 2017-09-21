@@ -40,8 +40,8 @@ import ndk.test.report
 from ndk.test.result import (Success, Failure, Skipped, ExpectedFailure,
                              UnexpectedSuccess)
 import ndk.test.spec
-import ndk.ui
-import ndk.workqueue as wq
+import ndk.test.ui
+import ndk.test.builder
 import tests.filters as filters
 import tests.ndk as ndkbuild
 import tests.util as util
@@ -429,7 +429,7 @@ class TestRunner(object):
             self.build_dirs[build_dir] = (suite, test)
 
     def run(self, obj_dir, dist_dir, test_filters):
-        workqueue = wq.WorkQueue()
+        workqueue = ndk.test.builder.TestBuildWorkQueue()
         try:
             for suite, tests in self.tests.items():
                 # Each test configuration was expanded when each test was
@@ -438,9 +438,14 @@ class TestRunner(object):
                 # having too many heavy builds happening simultaneously.
                 random.shuffle(tests)
                 for test in tests:
-                    workqueue.add_task(
-                        _run_test, suite, test, obj_dir, dist_dir,
-                        test_filters)
+                    if test.name == 'libc++':
+                        workqueue.add_serial_task(
+                            _run_test, suite, test, obj_dir, dist_dir,
+                            test_filters)
+                    else:
+                        workqueue.add_task(
+                            _run_test, suite, test, obj_dir, dist_dir,
+                            test_filters)
 
             report = ndk.test.report.Report()
             self.wait_for_results(
@@ -461,7 +466,7 @@ class TestRunner(object):
     def wait_for_results(self, report, workqueue, obj_dir, dist_dir,
                          test_filters):
         console = ndk.ansi.get_console()
-        ui = ndk.ui.get_work_queue_ui(console, workqueue)
+        ui = ndk.test.ui.get_test_build_progress_ui(console, workqueue)
         with ndk.ansi.disable_terminal_echo(sys.stdin):
             with console.cursor_hide_context():
                 while not workqueue.finished():

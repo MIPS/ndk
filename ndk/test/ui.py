@@ -57,3 +57,36 @@ class TestProgressUi(ndk.ui.Ui):
                 width=self.NUM_TESTS_DIGITS))
 
         return lines
+
+
+def get_test_build_progress_ui(console, workqueue):
+    if console.smart_console:
+        ui_renderer = ndk.ui.AnsiUiRenderer(console)
+        show_worker_status = True
+    else:
+        ui_renderer = ndk.ui.DumbUiRenderer(console)
+        show_worker_status = False
+    return TestBuildProgressUi(
+        ui_renderer, show_worker_status, workqueue)
+
+
+class TestBuildProgressUi(ndk.ui.Ui):
+    NUM_TESTS_DIGITS = 6
+
+    def __init__(self, ui_renderer, show_worker_status, workqueue):
+        super(TestBuildProgressUi, self).__init__(ui_renderer)
+        self.show_worker_status = show_worker_status
+        self.workqueue = workqueue
+
+    def get_ui_lines(self):
+        lines = []
+
+        if self.show_worker_status:
+            for worker in self.workqueue.main_work_queue.workers:
+                lines.append(worker.status)
+            for worker in self.workqueue.serial_work_queue.workers:
+                lines.append(worker.status)
+
+        lines.append('{: >{width}} tests remaining'.format(
+            self.workqueue.num_tasks, width=self.NUM_TESTS_DIGITS))
+        return lines
