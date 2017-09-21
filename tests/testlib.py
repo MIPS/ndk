@@ -27,17 +27,20 @@ import random
 import re
 import shutil
 import subprocess
+import sys
 import time
 import traceback
 import xml.etree.ElementTree
 
 import build.lib.build_support
 import ndk.abis
+import ndk.ansi
 import ndk.subprocess
 import ndk.test.report
 from ndk.test.result import (Success, Failure, Skipped, ExpectedFailure,
                              UnexpectedSuccess)
 import ndk.test.spec
+import ndk.ui
 import ndk.workqueue as wq
 import tests.filters as filters
 import tests.ndk as ndkbuild
@@ -256,11 +259,11 @@ def _fixup_negative_test(result):
         return result
 
 
-def _run_test(_worker, suite, test, obj_dir, dist_dir, test_filters):
+def _run_test(worker, suite, test, obj_dir, dist_dir, test_filters):
     """Runs a given test according to the given filters.
 
     Args:
-        _worker: The worker that invoked this task.
+        worker: The worker that invoked this task.
         suite: Name of the test suite the test belongs to.
         test: The test to be run.
         obj_dir: Out directory for intermediate build artifacts.
@@ -270,6 +273,8 @@ def _run_test(_worker, suite, test, obj_dir, dist_dir, test_filters):
     Returns: Tuple of (suite, TestResult, [Test]). The [Test] element is a list
              of additional tests to be run.
     """
+    worker.status = 'Building {}'.format(test)
+
     if not test_filters.filter(test.name):
         return suite, None, []
 
@@ -455,20 +460,33 @@ class TestRunner(object):
 
     def wait_for_results(self, report, workqueue, obj_dir, dist_dir,
                          test_filters):
-        while not workqueue.finished():
-            suite, result, additional_tests = workqueue.get_result()
-            # Filtered test. Skip them entirely to avoid polluting
-            # --show-all results.
-            if result is None:
-                assert len(additional_tests) == 0
-                continue
+        console = ndk.ansi.get_console()
+        ui = ndk.ui.get_work_queue_ui(console, workqueue)
+        with ndk.ansi.disable_terminal_echo(sys.stdin):
+            with console.cursor_hide_context():
+                while not workqueue.finished():
+                    suite, result, additional_tests = workqueue.get_result()
+                    # Filtered test. Skip them entirely to avoid polluting
+                    # --show-all results.
+                    if result is None:
+                        assert len(additional_tests) == 0
+                        ui.draw()
+                        continue
 
-            assert result.passed() or len(additional_tests) == 0
-            for test in additional_tests:
-                workqueue.add_task(
-                    _run_test, suite, test, obj_dir, dist_dir, test_filters)
-            report.add_result(suite, result)
-            self.printer.print_result(result)
+                    assert result.passed() or len(additional_tests) == 0
+                    for test in additional_tests:
+                        workqueue.add_task(
+                            _run_test, suite, test, obj_dir, dist_dir,
+                            test_filters)
+                    if logger().isEnabledFor(logging.INFO):
+                        ui.clear()
+                        self.printer.print_result(result)
+                    elif result.failed():
+                        ui.clear()
+                        self.printer.print_result(result)
+                    report.add_result(suite, result)
+                    ui.draw()
+                ui.clear()
 
 
 class Test(object):
@@ -1431,9 +1449,11 @@ class LibcxxTest(Test):
         # an exception anyway.
         with open('/dev/null', 'w') as dev_null:
             stdout = dev_null
+            stderr = dev_null
             if logger().isEnabledFor(logging.INFO):
                 stdout = None
-            subprocess.call(cmd, stdout=stdout)
+                stderr = None
+            subprocess.call(cmd, stdout=stdout, stderr=stderr)
 
         for root, _, files in os.walk(libcxx_test_path):
             for test_file in files:
