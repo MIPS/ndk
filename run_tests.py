@@ -461,8 +461,8 @@ def asan_device_setup(ndk_path, device):
             device, out))
 
 
-def setup_asan_for_device(_worker, ndk_path, device):
-    print('Performing ASAN setup for {}'.format(device))
+def setup_asan_for_device(worker, ndk_path, device):
+    worker.status = 'Performing ASAN setup for {}'.format(device)
     disable_verity_and_wait_for_reboot(device)
     asan_device_setup(ndk_path, device)
 
@@ -482,8 +482,8 @@ def perform_asan_setup(workqueue, ndk_path, groups_for_config):
         if device.can_use_asan():
             workqueue.add_task(setup_asan_for_device, ndk_path, device)
 
-    while not workqueue.finished():
-        workqueue.get_result()
+    finish_workqueue_with_ui(workqueue)
+    print('Finished ASAN setup')
 
 
 def run_test(worker, test):
