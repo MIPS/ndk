@@ -20,7 +20,12 @@ from __future__ import print_function
 import contextlib
 import os
 import sys
-import termios
+
+try:
+    import termios
+    HAVE_TERMIOS = True
+except ImportError:
+    HAVE_TERMIOS = False
 
 
 def cursor_up(lines):
@@ -47,7 +52,7 @@ def clear_line():
 
 @contextlib.contextmanager
 def disable_terminal_echo(fd):
-    if fd.isatty():
+    if HAVE_TERMIOS and fd.isatty():
         original = termios.tcgetattr(fd)
         termattr = termios.tcgetattr(fd)
         termattr[3] &= ~termios.ECHO
