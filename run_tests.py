@@ -152,7 +152,7 @@ class LibcxxTestCase(TestCase):
         if suite == 'libc++':
             filter_name = executable
         else:
-            filter_name = suite[len('libc++/'):] + executable
+            filter_name = os.path.join(suite[len('libc++/'):], executable)
 
         # The executable name ends with .exe. Remove that so it matches the
         # filter that would be used to build the test.
