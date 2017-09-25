@@ -244,7 +244,7 @@ case $(uname -s) in
       HOST_TAG=darwin-$HOST_ARCH
       ;;
     Linux)
-      HOST_TAG=linux-$(uname -p)
+      HOST_TAG=linux-$(uname -m)
       ;;
     *)
       echo "WARNING: This test cannot run on this machine!" >&2
