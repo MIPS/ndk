@@ -78,7 +78,6 @@ android_support_sources := \
     $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/stdlib/imaxabs.c \
     $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/stdlib/imaxdiv.c \
     $(BIONIC_PATH)/libm/digittoint.c \
-    $(BIONIC_PATH)/libm/fake_long_double.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_acos.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_acosh.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/e_asin.c \
@@ -118,19 +117,10 @@ android_support_sources := \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_sin.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_tan.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_tanh.c \
-    src/_Exit.cpp \
     src/iswblank.cpp \
     src/posix_memalign.cpp \
-    src/stdlib_support.cpp \
     src/swprintf.cpp \
     src/wcstox.cpp \
-
-ifneq (armeabi,$(TARGET_ARCH_ABI))
-# The file uses instructions that aren't available in arm5.
-android_support_sources += \
-    $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_nearbyint.c \
-
-endif
 
 ifeq (x86,$(TARGET_ARCH_ABI))
 # Replaces broken implementations in x86 libm.so

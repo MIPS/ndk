@@ -41,7 +41,6 @@ size_t mbsnrtowcs(wchar_t*, const char**, size_t, size_t, mbstate_t*);
 size_t wcsnrtombs(char*, const wchar_t**, size_t, size_t, mbstate_t*);
 float wcstof(const wchar_t*, wchar_t**);
 long long wcstoll(const wchar_t*, wchar_t**, int);
-long double wcstold(const wchar_t*, wchar_t**);
 unsigned long long wcstoull(const wchar_t*, wchar_t**, int);
 #endif
 
