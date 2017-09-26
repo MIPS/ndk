@@ -97,7 +97,7 @@ TARGET_arm_release_CFLAGS := \
 
 TARGET_thumb_release_CFLAGS := \
     -mthumb \
-    -Os \
+    -Oz \
     -DNDEBUG \
 
 TARGET_arm_debug_CFLAGS := \
