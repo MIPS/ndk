@@ -18,7 +18,6 @@
 from __future__ import print_function
 
 import argparse
-import contextlib
 import json
 import logging
 import multiprocessing
@@ -28,7 +27,6 @@ import random
 import site
 import subprocess
 import sys
-import termios
 import time
 import traceback
 
