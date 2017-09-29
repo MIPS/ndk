@@ -738,6 +738,50 @@ class ShardingWorkQueue(object):
         return self.num_tasks == 0
 
 
+class DummyShardingWorkQueue(object):
+    # pylint: disable=unused-argument
+    def __init__(self, device_groups, procs_per_device):
+        self.work_queues = {}
+        for group in device_groups:
+            # We're not actually sharding, so there's no point in using more
+            # than one device from the group.
+            device = group.devices[0]
+            self.work_queues[group] = ndk.workqueue.DummyWorkQueue(
+                worker_data=[device])
+        self.num_tasks = 0
+    # pylint: enable=unused-argument
+
+    def add_task(self, group, func, *args, **kwargs):
+        self.work_queues[group].add_task(func, *args, **kwargs)
+        self.num_tasks += 1
+
+    def get_result(self):
+        """Gets a result from the queue, blocking until one is available."""
+        assert self.num_tasks >= 1
+        for work_queue in self.work_queues.values():
+            if work_queue.num_tasks >= 1:
+                result = work_queue.get_result()
+                self.num_tasks -= 1
+                return result
+        raise RuntimeError('Could not find any workqueues with tasks')
+
+    def terminate(self):
+        pass
+
+    def join(self):
+        pass
+
+    def finished(self):
+        """Returns True if all tasks have completed execution."""
+        return self.num_tasks == 0
+
+
+if os.name == 'nt':
+    TestWorkQueue = DummyShardingWorkQueue
+else:
+    TestWorkQueue = ShardingWorkQueue
+
+
 def main():
     total_timer = ndk.timer.Timer()
     total_timer.start()
@@ -844,7 +888,7 @@ def main():
         workqueue.terminate()
         workqueue.join()
 
-    shard_queue = ShardingWorkQueue(fleet.get_unique_device_groups(), 4)
+    shard_queue = TestWorkQueue(fleet.get_unique_device_groups(), 4)
     try:
         # Need an input queue per device group, a single result queue, and a
         # pool of threads per device.

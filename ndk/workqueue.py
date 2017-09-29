@@ -254,16 +254,24 @@ class ProcessPoolWorkQueue(object):
             self.workers.append(worker)
 
 
+class DummyWorker(object):
+    def __init__(self, data):
+        self.data = data
+
+
 class DummyWorkQueue(object):
     """A fake WorkQueue that does not parallelize.
 
     Useful for debugging when trying to determine if an issue is being caused
     by multiprocess specific behavior.
     """
-    def __init__(self, worker_data=None):
+    # pylint: disable=unused-argument
+    def __init__(self, num_workers=None, task_queue=None, result_queue=None,
+                 worker_data=None):
         """Creates a SerialWorkQueue."""
         self.task_queue = collections.deque()
         self.worker_data = worker_data
+    # pylint: enable=unused-argument
 
     def add_task(self, func, *args, **kwargs):
         """Queues up a new task for execution.
@@ -281,7 +289,7 @@ class DummyWorkQueue(object):
         """Executes a task and returns the result."""
         task = self.task_queue.popleft()
         try:
-            return task.run(self.worker_data)
+            return task.run(DummyWorker(self.worker_data))
         except:
             trace = ''.join(traceback.format_exception(*sys.exc_info()))
             raise TaskError(trace)
@@ -294,9 +302,13 @@ class DummyWorkQueue(object):
         """Does nothing."""
         pass
 
+    @property
+    def num_tasks(self):
+        return len(self.task_queue)
+
     def finished(self):
         """Returns True if all tasks have completed execution."""
-        return len(self.task_queue) == 0
+        return self.num_tasks == 0
 
 
 if sys.platform == 'win32':
