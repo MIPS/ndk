@@ -275,9 +275,6 @@ def _run_test(worker, suite, test, obj_dir, dist_dir, test_filters):
     """
     worker.status = 'Building {}'.format(test)
 
-    if not test_filters.filter(test.name):
-        return suite, None, []
-
     config = test.check_unsupported()
     if config is not None:
         message = 'test unsupported for {}'.format(config)
@@ -438,6 +435,9 @@ class TestRunner(object):
                 # having too many heavy builds happening simultaneously.
                 random.shuffle(tests)
                 for test in tests:
+                    if not test_filters.filter(test.name):
+                        continue
+
                     if test.name == 'libc++':
                         workqueue.add_serial_task(
                             _run_test, suite, test, obj_dir, dist_dir,
