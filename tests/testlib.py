@@ -22,13 +22,11 @@ import imp
 import logging
 import multiprocessing
 import os
-import posixpath
 import random
 import re
 import shutil
 import subprocess
 import sys
-import time
 import traceback
 import xml.etree.ElementTree
 
@@ -66,10 +64,6 @@ def _get_jobs_args():
     return ['-j{}'.format(cpus), '-l{}'.format(cpus)]
 
 
-def _make_subtest_name(test, case):
-    return '.'.join([test, case])
-
-
 class TestScanner(object):
     """Creates a Test objects for a given test directory.
 
@@ -86,32 +80,6 @@ class TestScanner(object):
         Returns: List of Tests, possibly empty.
         """
         raise NotImplementedError
-
-
-class DeviceConfiguration(ndk.test.spec.BuildConfiguration):
-    def __init__(self, abi, api, toolchain, force_pie, verbose, device,
-                 device_api, skip_run):
-        super(DeviceConfiguration, self).__init__(
-            abi, api, toolchain, force_pie, verbose)
-        self.device = device
-        self.device_api = device_api
-        self.skip_run = skip_run
-
-    def __eq__(self, other):
-        if not super(DeviceConfiguration, self).__eq__(other):
-            return False
-        if self.device != other.device:
-            return False
-        if self.device_api != other.device_api:
-            return False
-        if self.skip_run != other.skip_run:
-            return False
-        return True
-
-    def __str__(self):
-        build_str = super(DeviceConfiguration, self).__str__()
-        serial = 'no-device' if self.device is None else self.device.serial
-        return '{}-{}'.format(build_str, serial)
 
 
 class BuildTestScanner(TestScanner):
@@ -167,41 +135,6 @@ class BuildTestScanner(TestScanner):
         tests = []
         for config in self.build_configurations:
             tests.append(CMakeBuildTest(name, path, config, self.dist))
-        return tests
-
-
-class DeviceTestScanner(TestScanner):
-    def __init__(self):
-        self.device_configurations = set()
-
-    def add_device_configuration(self, abi, api, toolchain, force_pie, verbose,
-                                 device, device_api, skip_run):
-        self.device_configurations.add(DeviceConfiguration(
-            abi, api, toolchain, force_pie, verbose, device, device_api,
-            skip_run))
-
-    def find_tests(self, path, name):
-        # If we have a build.sh, that takes precedence over the Android.mk.
-        tests = []
-        android_mk_path = os.path.join(path, 'jni/Android.mk')
-        if os.path.exists(android_mk_path):
-            tests.extend(self.make_ndk_build_tests(path, name))
-
-        cmake_lists_path = os.path.join(path, 'CMakeLists.txt')
-        if os.path.exists(cmake_lists_path):
-            tests.extend(self.make_cmake_tests(path, name))
-        return tests
-
-    def make_ndk_build_tests(self, path, name):
-        tests = []
-        for config in self.device_configurations:
-            tests.append(NdkBuildDeviceTest(name, path, config))
-        return tests
-
-    def make_cmake_tests(self, path, name):
-        tests = []
-        for config in self.device_configurations:
-            tests.append(CMakeDeviceTest(name, path, config))
         return tests
 
 
@@ -295,50 +228,6 @@ def _run_test(worker, suite, test, obj_dir, dist_dir, test_filters):
     return suite, result, additional_tests
 
 
-def flake_filter(result):
-    # Only device tests can be flaky.
-    if not result.test.is_flaky:
-        return False
-
-    if isinstance(result, UnexpectedSuccess):
-        # There are no flaky successes.
-        return False
-
-    # adb might return no text at all under high load.
-    if 'Did not receive exit status from test.' in result.message:
-        return True
-
-    # adb can return from push before it's fully pushed the test.
-    if is_text_busy(result.message):
-        return True
-
-    return False
-
-
-def get_rerun_tests(report):
-    """Returns tests to be rerun.
-
-    Returns:
-        A tuple of (rerun_tests, libcxx_tests). rerun_tests are normal NDK
-        tests that can simply be run again with test.run(). libcxx_tests are
-        XunitResult tests from LIT that need to be grouped and rerun via LIT as
-        a batch.
-    """
-    flaky_failures = report.remove_all_failing_flaky(flake_filter)
-
-    # libc++ tests are a special case because we can't run them
-    # individually. We need to collect all of the ones that failed and
-    # kick off a new run of their parent test case.
-    rerun_tests = []
-    libcxx_tests = []
-    for flaky_report in flaky_failures:
-        if isinstance(flaky_report.result.test, XunitResult):
-            libcxx_tests.append(flaky_report)
-        else:
-            rerun_tests.append(flaky_report)
-    return rerun_tests, libcxx_tests
-
-
 def get_libcxx_test_filter(failing_libcxx_reports):
     """Builds a test filter to rerun only the flaky libc++ test failures.
 
@@ -365,32 +254,6 @@ def get_libcxx_test_filter(failing_libcxx_reports):
             libcxx_test_filters.append(test_file)
 
     return filters.TestFilter(libcxx_test_filters)
-
-
-def restart_flaky_tests(report, workqueue, obj_dir, dist_dir, test_filters):
-    """Finds and restarts any failing flaky tests."""
-    rerun_tests, libcxx_tests = get_rerun_tests(report)
-    num_flaky_failures = len(rerun_tests) + len(libcxx_tests)
-    if num_flaky_failures > 0:
-        cooldown = 10
-        logger().warning(
-            'Found %d flaky failures. Sleeping for %d seconds to let '
-            'device recover.', num_flaky_failures, cooldown)
-        time.sleep(cooldown)
-
-    for flaky_report in rerun_tests:
-        workqueue.add_task(
-            _run_test, flaky_report.suite,
-            flaky_report.result.test, obj_dir, dist_dir, test_filters)
-
-    if len(libcxx_tests) > 0:
-        libcxx_test_dir = build.lib.build_support.ndk_path('tests/libc++')
-        libcxx_filter = get_libcxx_test_filter(libcxx_tests)
-        config = libcxx_tests[0].result.test.config
-        rerun_test = LibcxxTest(
-            'libc++', libcxx_test_dir, config)
-        workqueue.add_task(
-            _run_test, 'libc++', rerun_test, obj_dir, dist_dir, libcxx_filter)
 
 
 class TestRunner(object):
@@ -448,13 +311,6 @@ class TestRunner(object):
                             test_filters)
 
             report = ndk.test.report.Report()
-            self.wait_for_results(
-                report, workqueue, obj_dir, dist_dir, test_filters)
-
-            # adb can be very flaky under the high load we throw at the device.
-            # If we have failures on device tests, retry those tests.
-            restart_flaky_tests(
-                report, workqueue, obj_dir, dist_dir, test_filters)
             self.wait_for_results(
                 report, workqueue, obj_dir, dist_dir, test_filters)
 
@@ -1050,275 +906,6 @@ class CMakeBuildTest(BuildTest):
             self, obj_dir, dist_dir, self.test_dir, self.cmake_flags, self.abi,
             self.platform, self.toolchain)
         return result, []
-
-
-def is_text_busy(out):
-    # Anything longer than this isn't going to be a text busy message, so don't
-    # waste time scanning it.
-    if len(out) > 1024:
-        return False
-    # 'text busy' was printed on Gingerbread.
-    if 'text busy' in out:
-        return True
-    # 'Text file busy' was printed on Jelly Bean (not sure exactly when this
-    # changed).
-    if 'Text file busy' in out:
-        return True
-    return False
-
-
-class DeviceTest(Test):
-    def __init__(self, name, test_dir, config):
-        api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
-        config = DeviceConfiguration(
-            config.abi, api, config.toolchain, config.force_pie,
-            config.verbose, config.device, config.device_api, config.skip_run)
-        super(DeviceTest, self).__init__(name, test_dir, config)
-
-    @property
-    def abi(self):
-        return self.config.abi
-
-    @property
-    def api(self):
-        return self.config.api
-
-    @property
-    def platform(self):
-        return self.api
-
-    @property
-    def toolchain(self):
-        return self.config.toolchain
-
-    @property
-    def device(self):
-        return self.config.device
-
-    @property
-    def device_api(self):
-        return self.config.device_api
-
-    @property
-    def skip_run(self):
-        return self.config.skip_run
-
-    def check_broken(self):
-        return self.get_test_config().build_broken(
-            self.abi, self.platform, self.toolchain)
-
-    def check_unsupported(self):
-        return self.get_test_config().build_unsupported(
-            self.abi, self.platform, self.toolchain)
-
-    def is_negative_test(self):
-        return False
-
-    def run(self, obj_dir, dist_dir, test_filters):
-        raise NotImplementedError
-
-    def get_device_subdir(self):
-        raise NotImplementedError
-
-    def get_device_dir(self):
-        return posixpath.join(
-            '/data/local/tmp', self.get_device_subdir(), self.name)
-
-    def copy_test_to_device(self, build_dir, test_filters):
-        self.device.shell_nocheck(['rm -r {}'.format(self.get_device_dir())])
-
-        abi_dir = os.path.join(build_dir, 'libs', self.abi)
-        if not os.path.isdir(abi_dir):
-            raise RuntimeError('No libraries for {}'.format(self.abi))
-
-        logger().info('Pushing %s to %s...', abi_dir, self.get_device_dir())
-        self.device.push(abi_dir, self.get_device_dir())
-        for test_file in os.listdir(abi_dir):
-            if test_file in ('gdbserver', 'gdb.setup'):
-                continue
-
-            file_is_lib = True
-            if not test_file.endswith('.so'):
-                file_is_lib = False
-                case_name = _make_subtest_name(self.name, test_file)
-                if not test_filters.filter(case_name):
-                    continue
-
-            # Binaries pushed from Windows may not have execute permissions.
-            if not file_is_lib:
-                file_path = posixpath.join(self.get_device_dir(), test_file)
-                # Can't use +x because apparently old versions of Android
-                # didn't support that...
-                self.device.shell(['chmod', '777', file_path])
-
-    def get_test_executables(self, build_dir, test_filters):
-        abi_dir = os.path.join(build_dir, 'libs', self.abi)
-        if not os.path.isdir(abi_dir):
-            raise RuntimeError('No libraries for {}'.format(self.abi))
-
-        test_cases = []
-        for test_file in os.listdir(abi_dir):
-            if test_file in ('gdbserver', 'gdb.setup'):
-                continue
-
-            if test_file.endswith('.so'):
-                continue
-
-            case_name = _make_subtest_name(self.name, test_file)
-            if not test_filters.filter(case_name):
-                continue
-            test_cases.append(test_file)
-
-        if len(test_cases) == 0:
-            raise RuntimeError('Could not find any test executables.')
-
-        return test_cases
-
-    def get_additional_tests(self, dist_dir, test_filters):
-        additional_tests = []
-        self.copy_test_to_device(dist_dir, test_filters)
-        for exe in self.get_test_executables(dist_dir, test_filters):
-            name = _make_subtest_name(self.name, exe)
-            run_test = DeviceRunTest(
-                name, self.test_dir, exe, self.get_device_dir(), self.config)
-            additional_tests.append(run_test)
-        return additional_tests
-
-
-class NdkBuildDeviceTest(DeviceTest):
-    def __init__(self, name, test_dir, config):
-        super(NdkBuildDeviceTest, self).__init__(name, test_dir, config)
-
-    def get_extra_ndk_build_flags(self):
-        return self.get_test_config().extra_ndk_build_flags()
-
-    @property
-    def ndk_build_flags(self):
-        flags = self.config.get_extra_ndk_build_flags()
-        if flags is None:
-            flags = []
-        return flags + self.get_extra_ndk_build_flags()
-
-    def get_device_subdir(self):
-        return 'ndk-tests'
-
-    def get_build_dir(self, out_dir):
-        return os.path.join(out_dir, str(self.config), 'ndk-build', self.name)
-
-    def run(self, obj_dir, dist_dir, test_filters):
-        logger().info('Building device test with ndk-build: %s', self.name)
-        obj_dir = self.get_build_dir(obj_dir)
-        dist_dir = self.get_build_dir(dist_dir)
-        build_result = _run_ndk_build_test(
-            self, obj_dir, dist_dir, self.test_dir, self.ndk_build_flags,
-            self.abi, self.platform, self.toolchain)
-        if not build_result.passed():
-            return build_result, []
-
-        if self.skip_run:
-            return build_result, []
-
-        return build_result, self.get_additional_tests(dist_dir, test_filters)
-
-
-class CMakeDeviceTest(DeviceTest):
-    def __init__(self, name, test_dir, config):
-        super(CMakeDeviceTest, self).__init__(name, test_dir, config)
-
-    def get_extra_cmake_flags(self):
-        return self.get_test_config().extra_cmake_flags()
-
-    @property
-    def cmake_flags(self):
-        flags = self.config.get_extra_cmake_flags()
-        if flags is None:
-            flags = []
-        return flags + self.get_extra_cmake_flags()
-
-    def get_device_subdir(self):
-        return 'cmake-tests'
-
-    def get_build_dir(self, out_dir):
-        return os.path.join(out_dir, str(self.config), 'cmake', self.name)
-
-    def run(self, obj_dir, dist_dir, test_filters):
-        logger().info('Building device test with cmake: %s', self.name)
-        obj_dir = self.get_build_dir(obj_dir)
-        dist_dir = self.get_build_dir(dist_dir)
-        build_result = _run_cmake_build_test(
-            self, obj_dir, dist_dir, self.test_dir, self.cmake_flags, self.abi,
-            self.platform, self.toolchain)
-        if not build_result.passed():
-            return build_result, []
-
-        if self.skip_run:
-            return build_result, []
-
-        return build_result, self.get_additional_tests(dist_dir, test_filters)
-
-
-class DeviceRunTest(Test):
-    def __init__(self, name, test_dir, case_name, device_dir, config):
-        super(DeviceRunTest, self).__init__(name, test_dir, config)
-        self.case_name = case_name
-        self.device_dir = device_dir
-
-    @property
-    def is_flaky(self):
-        return True
-
-    @property
-    def abi(self):
-        return self.config.abi
-
-    @property
-    def build_api(self):
-        return self.config.api
-
-    @property
-    def toolchain(self):
-        return self.config.toolchain
-
-    @property
-    def device(self):
-        return self.config.device
-
-    @property
-    def device_api(self):
-        return self.config.device_api
-
-    def get_test_config(self):
-        return DeviceTestConfig.from_test_dir(self.test_dir)
-
-    def check_broken(self):
-        return self.get_test_config().run_broken(
-            self.abi, self.device_api, self.toolchain, self.case_name)
-
-    def check_unsupported(self):
-        if self.build_api > self.device_api:
-            return 'device platform {} < build platform {}'.format(
-                self.device_api, self.build_api)
-        return self.get_test_config().run_unsupported(
-            self.abi, self.device_api, self.toolchain, self.case_name)
-
-    def is_negative_test(self):
-        return False
-
-    def run(self, _obj_dir, _dist_dir, _test_filters):
-        cmd = 'cd {} && LD_LIBRARY_PATH={} ./{} 2>&1'.format(
-            self.device_dir, self.device_dir, self.case_name)
-        for _ in range(8):
-            result, out, _ = self.device.shell_nocheck([cmd])
-            if result == 0:
-                break
-            if not is_text_busy(out):
-                break
-            time.sleep(1)
-
-        if result == 0:
-            return Success(self), []
-        else:
-            return Failure(self, out), []
 
 
 def get_xunit_reports(xunit_file, config):
