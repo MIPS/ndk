@@ -36,9 +36,13 @@ class UiRenderer(object):
 
 
 class AnsiUiRenderer(UiRenderer):
-    def __init__(self, console):
+    # Number of seconds to delay between each draw command when debugging.
+    debug_draw_delay = 0.1
+
+    def __init__(self, console, debug_draw=False):
         super(AnsiUiRenderer, self).__init__(console)
         self.last_rendered_lines = []
+        self.debug_draw = debug_draw
 
     def get_ui_lines(self):
         raise NotImplementedError
@@ -53,6 +57,14 @@ class AnsiUiRenderer(UiRenderer):
     def clear_last_render(self):
         self.console.clear_lines(len(self.last_rendered_lines))
         self.last_rendered_lines = []
+
+    def draw(self, commands):
+        if self.debug_draw:
+            for cmd in commands:
+                self.console.print(cmd, end='')
+                time.sleep(self.debug_draw_delay)
+        else:
+            self.console.print(''.join(commands), end='')
 
     def render(self, lines):
         if not self.last_rendered_lines:
@@ -72,10 +84,10 @@ class AnsiUiRenderer(UiRenderer):
             if redraw_commands:
                 total_lines = len(self.last_rendered_lines)
                 goto_top = ndk.ansi.cursor_up(total_lines - 1)
-                goto_bottom = ndk.ansi.cursor_down(total_lines - last_idx)
-                self.console.print(
-                    goto_top + ''.join(redraw_commands) + goto_bottom,
-                    end='')
+                goto_bottom = ndk.ansi.cursor_down(total_lines - last_idx - 1)
+
+                self.draw([goto_top] + redraw_commands + [goto_bottom])
+
         self.last_rendered_lines = lines
 
 
