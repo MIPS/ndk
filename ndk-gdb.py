@@ -366,9 +366,13 @@ def fetch_abi(args):
     error(msg)
 
 
+def get_run_as_cmd(user, cmd):
+    return ["run-as", user] + cmd
+
+
 def get_app_data_dir(args, package_name):
     cmd = ["/system/bin/sh", "-c", "pwd", "2>/dev/null"]
-    cmd = gdbrunner.get_run_as_cmd(package_name, cmd)
+    cmd = get_run_as_cmd(package_name, cmd)
     (rc, stdout, _) = args.device.shell_nocheck(cmd)
     if rc != 0:
         error("Could not find application's data directory. Are you sure that "
@@ -381,7 +385,7 @@ def get_app_data_dir(args, package_name):
     # chmod the directory.
     if get_api_level(args.device) >= 24:
         chmod_cmd = ["/system/bin/chmod", "a+x", data_dir]
-        chmod_cmd = gdbrunner.get_run_as_cmd(package_name, chmod_cmd)
+        chmod_cmd = get_run_as_cmd(package_name, chmod_cmd)
         (rc, _, _) = args.device.shell_nocheck(chmod_cmd)
         if rc != 0:
             error("Failed to make application data directory world executable")
@@ -402,7 +406,7 @@ def abi_to_arch(abi):
 def get_gdbserver_path(args, package_name, app_data_dir, arch):
     app_gdbserver_path = "{}/lib/gdbserver".format(app_data_dir)
     cmd = ["ls", app_gdbserver_path, "2>/dev/null"]
-    cmd = gdbrunner.get_run_as_cmd(package_name, cmd)
+    cmd = get_run_as_cmd(package_name, cmd)
     (rc, _, _) = args.device.shell_nocheck(cmd)
     if rc == 0:
         log("Found app gdbserver: {}".format(app_gdbserver_path))
