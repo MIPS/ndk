@@ -27,6 +27,7 @@ import build.lib.build_support
 import ndk.abis
 import ndk.os
 import ndk.test.spec
+import ndk.workqueue
 
 import tests.filters as filters
 import tests.testlib as testlib
@@ -133,12 +134,12 @@ class TestBuilder(object):
             return self.runner.run(self.obj_dir, self.dist_dir, test_filters)
 
 
-class TestBuildWorkQueue(object):
+class LoadRestrictingWorkQueue(object):
     """Specialized work queue for building tests.
 
     Building the libc++ tests is very demanding and we should not be running
-    more than one libc++ build at a time. The TestBuildWorkQueue has a normal
-    task queue as well as a task queue served by only one worker.
+    more than one libc++ build at a time. The LoadRestrictingWorkQueue has a
+    normal task queue as well as a task queue served by only one worker.
     """
 
     def __init__(self, num_workers=multiprocessing.cpu_count()):
@@ -148,14 +149,14 @@ class TestBuildWorkQueue(object):
         assert num_workers >= 2
 
         self.main_task_queue = self.manager.Queue()
-        self.serial_task_queue = self.manager.Queue()
+        self.restricted_task_queue = self.manager.Queue()
 
         self.main_work_queue = ndk.workqueue.WorkQueue(
             num_workers - 1, task_queue=self.main_task_queue,
             result_queue=self.result_queue)
 
-        self.serial_work_queue = ndk.workqueue.WorkQueue(
-            1, task_queue=self.serial_task_queue,
+        self.restricted_work_queue = ndk.workqueue.WorkQueue(
+            1, task_queue=self.restricted_task_queue,
             result_queue=self.result_queue)
 
         self.num_tasks = 0
@@ -164,8 +165,8 @@ class TestBuildWorkQueue(object):
         self.main_task_queue.put(ndk.workqueue.Task(func, args, kwargs))
         self.num_tasks += 1
 
-    def add_serial_task(self, func, *args, **kwargs):
-        self.serial_task_queue.put(ndk.workqueue.Task(func, args, kwargs))
+    def add_load_restricted_task(self, func, *args, **kwargs):
+        self.restricted_task_queue.put(ndk.workqueue.Task(func, args, kwargs))
         self.num_tasks += 1
 
     def get_result(self):
@@ -178,12 +179,27 @@ class TestBuildWorkQueue(object):
 
     def terminate(self):
         self.main_work_queue.terminate()
-        self.serial_work_queue.terminate()
+        self.restricted_work_queue.terminate()
 
     def join(self):
         self.main_work_queue.join()
-        self.serial_work_queue.join()
+        self.restricted_work_queue.join()
 
     def finished(self):
         """Returns True if all tasks have completed execution."""
         return self.num_tasks == 0
+
+
+class DummyLoadRestrictingWorkQueue(ndk.workqueue.DummyWorkQueue):
+    def __init__(self, num_workers=multiprocessing.cpu_count()):
+        super(DummyLoadRestrictingWorkQueue, self).__init__(
+            num_workers=num_workers)
+
+    def add_load_restricted_task(self, func, *args, **kwargs):
+        self.add_task(func, *args, **kwargs)
+
+
+if os.name == 'nt':
+    TestBuildWorkQueue = DummyLoadRestrictingWorkQueue
+else:
+    TestBuildWorkQueue = LoadRestrictingWorkQueue

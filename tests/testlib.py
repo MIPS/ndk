@@ -302,7 +302,7 @@ class TestRunner(object):
                         continue
 
                     if test.name == 'libc++':
-                        workqueue.add_serial_task(
+                        workqueue.add_load_restricted_task(
                             _run_test, suite, test, obj_dir, dist_dir,
                             test_filters)
                     else:
