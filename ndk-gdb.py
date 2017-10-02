@@ -313,7 +313,7 @@ def get_api_level(device):
     # Check the device API level
     try:
         api_level = int(device.get_prop("ro.build.version.sdk"))
-    except ValueError:
+    except (TypeError, ValueError):
         error("Failed to find target device's supported API level.\n"
               "ndk-gdb only supports devices running Android 2.2 or higher.")
     if api_level < 8:
@@ -339,13 +339,13 @@ def fetch_abi(args):
     new_abi_props = ["ro.product.cpu.abilist"]
     old_abi_props = ["ro.product.cpu.abi", "ro.product.cpu.abi2"]
     abi_props = new_abi_props
-    if args.device.get_prop("ro.product.cpu.abilist") == "":
+    if args.device.get_prop("ro.product.cpu.abilist") is None:
         abi_props = old_abi_props
 
     device_abis = []
     for key in abi_props:
         value = args.device.get_prop(key)
-        if value != "":
+        if value is not None:
             device_abis.extend(value.split(","))
 
     device_abis_msg = "Device ABIs: {}".format(", ".join(device_abis))
