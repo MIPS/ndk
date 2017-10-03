@@ -30,6 +30,11 @@ ifndef NDK_TOOLCHAIN
     TARGET_TOOLCHAIN_LIST := \
         $(strip $(sort $(NDK_ABI.$(TARGET_ARCH_ABI).toolchains)))
 
+    ifneq ($(words $(TARGET_TOOLCHAIN_LIST)),2)
+        $(call __ndk_error,Expected two items in TARGET_TOOLCHAIN_LIST, \
+            found "$(TARGET_TOOLCHAIN_LIST)")
+    endif
+
     ifndef TARGET_TOOLCHAIN_LIST
         $(call __ndk_info,There is no toolchain that supports the $(TARGET_ARCH_ABI) ABI.)
         $(call __ndk_info,Please modify the APP_ABI definition in $(NDK_APP_APPLICATION_MK) to use)
@@ -37,8 +42,8 @@ ifndef NDK_TOOLCHAIN
         $(call __ndk_error,Aborting)
     endif
 
-    # We default to using GCC, which is the first item in the list.
-    TARGET_TOOLCHAIN := $(firstword $(TARGET_TOOLCHAIN_LIST))
+    # We default to using Clang, which is the last item in the list.
+    TARGET_TOOLCHAIN := $(lastword $(TARGET_TOOLCHAIN_LIST))
 
     # If NDK_TOOLCHAIN_VERSION is defined, we replace the toolchain version
     # suffix with it.
