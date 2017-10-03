@@ -109,7 +109,6 @@ Prerequisites
     * python-lxml (used for Vulkan validation layer generation)
     * python-nose
     * python3 (used for Vulkan validation layer generation)
-    * ruby-pygments.rb
     * texinfo
     * zip
 * Mac OS X also requires Xcode.
