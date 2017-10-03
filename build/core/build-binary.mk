@@ -17,6 +17,13 @@
 $(call assert-defined,LOCAL_MODULE)
 $(call module-restore-locals,$(LOCAL_MODULE))
 
+# As in build-module.mk, eval sucks. Manually unstash the cflags variations to
+# preserve -Werror=#warnings.
+LOCAL_CFLAGS := $(__ndk_modules.$(LOCAL_MODULE).CFLAGS)
+LOCAL_CONLYFLAGS := $(__ndk_modules.$(LOCAL_MODULE).CONLYFLAGS)
+LOCAL_CPPFLAGS := $(__ndk_modules.$(LOCAL_MODULE).CPPFLAGS)
+LOCAL_CXXFLAGS := $(__ndk_modules.$(LOCAL_MODULE).CXXFLAGS)
+
 # For now, only support target (device-specific modules).
 # We may want to introduce support for host modules in the future
 # but that is too experimental for now.
