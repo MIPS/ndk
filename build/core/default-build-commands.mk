@@ -127,10 +127,10 @@ LLVM_TOOLCHAIN_PREFIX := $(LLVM_TOOLCHAIN_PREBUILT_ROOT)/bin/
 
 ifneq ($(findstring ccc-analyzer,$(CC)),)
     TARGET_CC = $(CC)
-else ifeq ($(NDK_TOOLCHAIN_VERSION),clang)
-    TARGET_CC = $(LLVM_TOOLCHAIN_PREFIX)clang$(HOST_EXEEXT)
-else
+else ifeq ($(NDK_TOOLCHAIN_VERSION),4.9)
     TARGET_CC = $(TOOLCHAIN_PREFIX)gcc
+else
+    TARGET_CC = $(LLVM_TOOLCHAIN_PREFIX)clang$(HOST_EXEEXT)
 endif
 
 TARGET_CFLAGS   =
@@ -138,10 +138,10 @@ TARGET_CONLYFLAGS =
 
 ifneq ($(findstring c++-analyzer,$(CXX)),)
     TARGET_CXX = $(CXX)
-else ifeq ($(NDK_TOOLCHAIN_VERSION),clang)
-    TARGET_CXX = $(LLVM_TOOLCHAIN_PREFIX)clang++$(HOST_EXEEXT)
-else
+else ifeq ($(NDK_TOOLCHAIN_VERSION),4.9)
     TARGET_CXX = $(TOOLCHAIN_PREFIX)g++
+else
+    TARGET_CXX = $(LLVM_TOOLCHAIN_PREFIX)clang++$(HOST_EXEEXT)
 endif
 
 TARGET_CXXFLAGS = $(TARGET_CFLAGS) -fno-exceptions -fno-rtti
@@ -161,9 +161,8 @@ TARGET_ASMFLAGS =
 TARGET_LD       = $(TOOLCHAIN_PREFIX)ld
 TARGET_LDFLAGS :=
 
-# Use *-gcc-ar instead of *-ar for better LTO support, except for
-# gcc4.6 which doesn't have gcc-ar
-ifneq (clang,$(NDK_TOOLCHAIN_VERSION))
+# Use *-gcc-ar instead of *-ar for better LTO support when using GCC.
+ifeq (4.9,$(NDK_TOOLCHAIN_VERSION))
     TARGET_AR = $(TOOLCHAIN_PREFIX)gcc-ar
 else
     TARGET_AR = $(TOOLCHAIN_PREFIX)ar
