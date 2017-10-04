@@ -73,7 +73,7 @@ if [ "$HOST_OS" != "darwin" -a "$DARWIN" != "yes" ]; then
 else
     # In darwin libbfd has to be built with some *linux* target or it won't understand ELF
     # Disable -Werror because binutils uses deprecated functions (e.g. sbrk).
-    EXTRA_CONFIG="-target=arm-linux-androideabi --disable-werror"
+    EXTRA_CONFIG="-target=aarch64-linux-android --disable-werror"
 fi
 
 if [ "$MINGW" = "yes" ]; then
