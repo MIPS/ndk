@@ -43,10 +43,10 @@ for opt do
 done
 
 if [ -z "$APP_ABI" -o "$APP_ABI" = "all" ]; then
-    APP_ABI="armeabi,armeabi-v7a"
+    APP_ABI="armeabi-v7a"
 fi
 
-# Only test for armeabi and armeabi-v7a
+# Only test for armeabi-v7a
 if [ "$APP_ABI" != "${APP_ABI%%armeabi*}" ]; then
     APP_ABI=`echo $APP_ABI | tr ',' ' '`
     for ABI in $APP_ABI; do
