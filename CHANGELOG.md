@@ -25,27 +25,39 @@ Announcements
  * `libc++` is out of beta and is now the preferred STL in the NDK. Starting in
    r17, `libc++` is the default STL for CMake and standalone toolchains. If you
    manually selected a different STL, we strongly encourage you to move to
-   `libc++`. For more details, see this blog post. TODO: Create blog post.
+   `libc++`. For more details, see [this blog post].
 
  * Support for ARM5 (armeabi) is deprecated. It will no longer build by default
    with ndk-build, but is still buildable if it is explicitly named, and will be
-   included by "all" and "all32".
+   included by "all" and "all32". Support for ARM5 has been removed in r17.
 
    Both CMake and ndk-build will issue a warning if you target this ABI.
 
 [Unified Headers]: docs/UnifiedHeaders.md
 [Unified Headers Migration Notes]: docs/UnifiedHeadersMigration.md
+[this blog post]: https://android-developers.googleblog.com/2017/09/introducing-android-native-development.html
 
 NDK
-===
+---
 
  * ndk-build and CMake now link libatomic by default. Manually adding `-latomic`
    to your ldflags should no longer be necessary.
  * Clang static analyzer support for ndk-build has been fixed to work with Clang
    as a compiler. See https://github.com/android-ndk/ndk/issues/362.
+ * Clang now defaults to -Oz instead of -Os. This should reduce generated code
+   size increases compared to GCC.
+ * GCC no longer uses -Bsymbolic by default. This allows symbol preemption as
+   specified by the C++ standard and as required by ASAN. For libraries with
+   large numbers of public symbols, this may increase the size of your binaries.
+ * Updated binutils to version 2.27. This includes the fix for miscompiles for
+   aarch64: https://sourceware.org/bugzilla/show_bug.cgi?id=21491.
+ * Improved compatibility between our CMake toolchain file and newer CMake
+   versions. The NDK's CMake toolchain file now completely supercedes CMake's
+   built-in NDK support.
+ * ndk-stack now works for arm64 on Darwin.
 
 libc++
-======
+------
 
  * libandroid\_support now contains only APIs needed for supporting libc++ on
    old devices. See https://github.com/android-ndk/ndk/issues/300.
