@@ -382,6 +382,28 @@ class Gcc(ndk.builds.Module):
             shutil.copy2(libcxx, lib_dir)
             shutil.copy2(libllvm, lib_dir)
 
+        if arch.startswith('mips'):
+            # The mips toolchains are older than the others and don't have the
+            # toolchain wrapper scripts.
+            return
+
+        # Remove the toolchain wrappers. These don't work on Windows and we
+        # don't want them anyway.
+        bin_path = os.path.join(install_path, 'bin')
+        triple = build_support.arch_to_triple(arch)
+        for name in ('gcc', 'g++'):
+            tool_name = triple + '-' + name
+            real_name = 'real-' + tool_name
+
+            # For some reason the scripts are .exe and the executables aren't.
+            if host.startswith('windows'):
+                tool_name += '.exe'
+
+            tool_path = os.path.join(bin_path, tool_name)
+            real_path = os.path.join(bin_path, real_name)
+            os.remove(tool_path)
+            os.rename(real_path, tool_path)
+
 
 class ShaderTools(ndk.builds.InvokeBuildModule):
     name = 'shader-tools'
