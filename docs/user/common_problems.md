@@ -6,6 +6,52 @@ by no means complete, but represents some of the most common non-bugs we see
 filed.
 
 
+Using `_FILE_OFFSET_BITS=64` With Early API Levels
+--------------------------------------------------
+
+Prior to [Unified Headers], the NDK did not support `_FILE_OFFSET_BITS=64`. If
+you defined it when building, it was silently ignored. With [Unified Headers]
+the `_FILE_OFFSET_BITS=64` option is now supported, but on old versions of
+Android very few of the `off_t` APIs were available as an `off64_t` variant, so
+using this feature with old API levels will result in fewer functions being
+available.
+
+This problem is explained in detail in the [r16 blog post] and in the [bionic
+documentation].
+
+[Unified Headers]: ../UnifiedHeaders.md
+[r16 blog post]: https://android-developers.googleblog.com/2017/09/introducing-android-native-development.html
+[bionic documentation]: https://android.googlesource.com/platform/bionic/+/master/docs/32-bit-abi.md
+
+**Problem**: Your build is asking for APIs that do not exist in your
+`minSdkVersion`.
+
+**Solution**: Disable `_FILE_OFFSET_BITS=64` or raise your `minSdkVersion`.
+
+### Undeclared or implicit definition of `mmap`
+
+In C++:
+
+> error: use of undeclared identifier 'mmap'
+
+In C:
+
+> warning: implicit declaration of function 'mmap' is invalid in C99
+
+Using `_FILE_OFFSET_BITS=64` instructs the C library to use `mmap64` instead of
+`mmap`. `mmap64` was not available until android-21. If your `minSdkVersion`
+value is lower than 21, the C library does not contain an `mmap` that is
+compatible with `_FILE_OFFSET_BITS=64`, so the function is unavailable.
+
+**Note**: `mmap` is only the most common manifestation of this problem. The same
+is true of any function in the C library that has an `off_t` parameter.
+
+**Note**: As of r16 beta 2, the C library exposes `mmap64` as an inline function
+to mitigate this instance of this issue.
+
+TODO: Update this section once we know what the next most common problem is.
+
+
 Target API Set Higher Than Device API
 -------------------------------------
 
