@@ -24,7 +24,7 @@ test cases. A good test case:
  * Does not require Android Studio or Gradle (if your bug cannot be reproduced
    without either of those, it's a bug in Studio or Gradle, and should be
    reported to Android Studio).
- * Is complete. Snippets that would not compile even in the abscence of the bug
+ * Is complete. Snippets that would not compile even in the absence of the bug
    you are reporting slow down the process.
 
 Here's an example of a good test case:
