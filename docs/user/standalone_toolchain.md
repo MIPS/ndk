@@ -20,19 +20,7 @@ Selecting Your Toolchain
 ------------------------
 
 Before anything else, you need to decide which processor architecture your
-standalone toolchain is going to target. Each architecture corresponds to a
-different toolchain name, as Table 1 shows.
-
-**Table 1.** Toolchain names for different instruction sets.
-
-| Architecture | Toolchain name                         |
-| ------------ | -------------------------------------- |
-| ARM-based    | `arm-linux-androideabi-<gcc-version>`  |
-| x86-based    | `x86-<gcc-version>`                    |
-| MIPS-based   | `mipsel-linux-android-<gcc-version>`   |
-| ARM64-based  | `aarch64-linux-android-<gcc-version>`  |
-| X86-64-based | `x86_64-<gcc-version>`                 |
-| MIPS64-based | `mips64el-linux-android-<gcc-version>` |
+standalone toolchain is going to target. This is done with the `--arch` flag.
 
 Selecting Your Sysroot
 ----------------------
@@ -42,9 +30,9 @@ containing the system headers and libraries for your target. To define the
 sysroot, you must must know the Android API level you want to target for native
 support; available native APIs vary by Android API level.
 
-Native APIs for the respective [Android API levels] reside under
+Libraries for native APIs for the respective [Android API levels] reside under
 `$NDK/platforms/`; each API-level directory, in turn, contains subdirectories
-for the various CPUs and architectures.
+for the various CPUs and architectures. The headers reside in `$NDK/sysroot`.
 
 For more detail about the Android API levels and the respective native APIs they
 support, see [Native APIs](stable_apis.html).
@@ -73,7 +61,7 @@ $NDK/build/tools/make_standalone_toolchain.py \
 
 This command creates a directory named `/tmp/my-android-toolchain/`, containing
 a copy of the `android-21/arch-arm` sysroot, and of the toolchain binaries for a
-32-bit ARM architecture.
+32-bit ARM target.
 
 Note that the toolchain binaries do not depend on or contain host-specific
 paths. In other words, you can install them in any location or even move them if
@@ -81,13 +69,12 @@ you need to.
 
 The `--arch` argument is required, but the STL will default to gnustl and the
 API level will be set to the minimum supported level for the given architecture
-(currently 9 for 32-bit architectures and 21 for 64-bit architectures) if not
+(currently 14 for 32-bit architectures and 21 for 64-bit architectures) if not
 explicitly stated.
 
-Unlike the old tool, Clang is always copied into the toolchain. Every standalone
-toolchain is useable for both Clang and GCC. For more information about Clang,
-see [Clang's website](http://clang.llvm.org/), especially the GCC compatibility
-section.
+Every standalone toolchain is useable for both Clang and GCC. For more
+information about Clang, see [Clang's website](http://clang.llvm.org/),
+especially the GCC compatibility section.
 
 You may specify `--stl=stlport` to copy `libstlport` instead of the default
 `libgnustl`. If you do so, and you wish to link against the shared library, you
@@ -114,11 +101,10 @@ For more options and details, use `--help`.
 Working with Clang
 ------------------
 
-Clang binaries are automatically included in standalone toolchains created with
-the new tool.
+Clang binaries are automatically included in standalone toolchains.
 
-Note: Clang binaries are copied along with the GCC ones, because they rely on
-the same assembler, linker, headers, libraries, and C++ STL implementation.
+Note: GCC binaries are also included, because Clang relies on the same
+assembler, linker, headers, libraries included in the GCC distribution.
 
 This operation also installs two wrapper scripts, named `clang` and `clang++`,
 under `<install-dir>/bin`. These scripts invoke the `clang` binary with the
@@ -131,7 +117,7 @@ setting the `CC` and `CXX` environment variables to point to them.
 When building for ARM, Clang changes the target based on the presence of the
 `-march=armv7-a` and/or `-mthumb` compiler flags:
 
-**Table 2.** Specifiable `-march` values and their resulting targets.
+**Table 1.** Specifiable `-march` values and their resulting targets.
 
 | `-march` value                      | Resulting target                 |
 | ----------------------------------- | -------------------------------- |
@@ -221,7 +207,7 @@ need to link your project with the proper library:
 * Alternatively, use `-lgnustl_shared` to link against the shared library
   version of GNU `libstdc++`. If you use this option, you must also make sure to
   package `libgnustl_shared.so` with your app in order for your code to load
-  properly. Table 3 shows where this file is for each toolchain type.
+  properly. Table 2 shows where this file is for each toolchain type.
 
   Note: GNU libstdc++ is licensed under the GPLv3 license, with a linking
   exception. If you cannot comply with its requirements, you cannot redistribute
@@ -230,13 +216,13 @@ need to link your project with the proper library:
 * Use `-lstlport_shared` to link against the shared library version of STLport.
   When you do so, you need to make sure that you also package
   `libstlport_shared.so` with your app in order for your code to load properly.
-  Table 3 shows where this file is for each toolchain:
+  Table 2 shows where this file is for each toolchain:
 
 * The shared library version of libc++ will be used by default. If you use this
   option, `libc++_shared.so` must be packaged with your app or your code will
-  not load.  Table 3 shows where this file is for each architecture.
+  not load.  Table 2 shows where this file is for each architecture.
 
-  **Table 3.** Specifiable `-march` values and their resulting targets.
+  **Table 2.** Specifiable `-march` values and their resulting targets.
 
   | Toolchain | Location                                 |
   | --------- | ---------------------------------------- |
