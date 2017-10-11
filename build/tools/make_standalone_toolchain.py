@@ -71,7 +71,7 @@ def get_triple(arch):
 def get_abis(arch):
     """Return the ABIs supported for the given architecture."""
     return {
-        'arm': ['armeabi', 'armeabi-v7a'],
+        'arm': ['armeabi-v7a'],
         'arm64': ['arm64-v8a'],
         'mips': ['mips'],
         'mips64': ['mips64'],

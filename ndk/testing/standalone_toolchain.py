@@ -68,6 +68,10 @@ def test_standalone_toolchain(arch, toolchain, install_dir, test_source,
         # x86 toolchain names are dumb: http://b/25800583
         if arch == 'x86':
             triple = 'i686-linux-android'
+        elif arch == 'arm':
+            # This is added by default for Clang, but we don't wrap the GCC
+            # compilers.
+            flags.append('-march=armv7-a')
         compiler_name = triple + '-g++'
     elif toolchain == 'clang':
         compiler_name = 'clang++'

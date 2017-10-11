@@ -1,15 +1,12 @@
 {
   "devices": {
     "15": [
-      "armeabi",
       "armeabi-v7a"
     ],
     "16": [
-      "armeabi",
       "armeabi-v7a"
     ],
     "26": [
-      "armeabi",
       "armeabi-v7a",
       "arm64-v8a",
       "x86",

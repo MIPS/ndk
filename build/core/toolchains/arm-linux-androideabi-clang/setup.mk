@@ -56,32 +56,17 @@ TARGET_LDFLAGS += \
     -gcc-toolchain $(call host-path,$(TOOLCHAIN_ROOT)) \
     -no-canonical-prefixes
 
-ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
-    LLVM_TRIPLE := armv7-none-linux-androideabi$(APP_PLATFORM_LEVEL)
+LLVM_TRIPLE := armv7-none-linux-androideabi$(APP_PLATFORM_LEVEL)
 
-    TARGET_CFLAGS += -target $(LLVM_TRIPLE) \
-                     -march=armv7-a \
-                     -mfloat-abi=softfp \
-                     -mfpu=vfpv3-d16
+TARGET_CFLAGS += -target $(LLVM_TRIPLE) \
+                 -march=armv7-a \
+                 -mfloat-abi=softfp \
+                 -mfpu=vfpv3-d16
 
-    TARGET_LDFLAGS += -target $(LLVM_TRIPLE) \
-                      -Wl,--fix-cortex-a8
+TARGET_LDFLAGS += -target $(LLVM_TRIPLE) \
+                  -Wl,--fix-cortex-a8
 
-    GCCLIB_SUBDIR := armv7-a
-else ifeq ($(TARGET_ARCH_ABI),armeabi)
-    LLVM_TRIPLE := armv5te-none-linux-androideabi$(APP_PLATFORM_LEVEL)
-
-    TARGET_CFLAGS += -target $(LLVM_TRIPLE) \
-                     -march=armv5te \
-                     -mtune=xscale \
-                     -msoft-float
-
-    TARGET_LDFLAGS += -target $(LLVM_TRIPLE)
-
-    GCCLIB_SUBDIR :=
-else
-    $(call __ndk_error,Unsupported ABI: $(TARGET_ARCH_ABI))
-endif
+GCCLIB_SUBDIR := armv7-a
 
 # Append the platform level for __attribute__((availability)).
 LLVM_TRIPLE := $(LLVM_TRIPLE)$(APP_PLATFORM_LEVEL)
