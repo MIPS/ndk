@@ -34,7 +34,8 @@
 __BEGIN_DECLS
 
 #if __ANDROID_API__ < __ANDROID_API_L__
-int iswblank(wint_t);
+#include <ctype.h>
+static __inline int iswblank(wint_t ch) { return isblank(ch); }
 #endif
 
 __END_DECLS
