@@ -28,6 +28,8 @@
 #ifndef ANDROID_SUPPORT_UNIQUE_PTR_H
 #define ANDROID_SUPPORT_UNIQUE_PTR_H
 
+namespace {
+
 #define DISALLOW_COPY_AND_ASSIGN(TypeName) \
   TypeName(const TypeName&) = delete;      \
   void operator=(const TypeName&) = delete
@@ -131,5 +133,7 @@ class UniquePtr<T[], D> {
 
   DISALLOW_COPY_AND_ASSIGN(UniquePtr);
 };
+
+} // anonymous namespace
 
 #endif  /* ANDROID_SUPPORT_UNIQUE_PTR_H */
