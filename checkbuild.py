@@ -1103,20 +1103,9 @@ class Vulkan(ndk.builds.Module):
                 'source_dir': vulkan_root_dir,
                 'dest_dir': 'vulkan/src',
                 'files': [
-                    'vk-generate.py',
-                    'vk_helper.py',
-                    'generator.py',
-                    'lvl_genvk.py',
-                    'threading_generator.py',
-                    'parameter_validation_generator.py',
-                    'unique_objects_generator.py',
-                    'reg.py',
-                    'source_line_info.py',
-                    'vulkan.py',
-                    'vk.xml'
                 ],
                 'dirs': [
-                    'layers', 'include', 'tests', 'common', 'libs'
+                    'layers', 'include', 'tests', 'common', 'libs', 'scripts'
                 ],
             },
             {
