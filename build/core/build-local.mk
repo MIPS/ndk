@@ -216,6 +216,7 @@ $(foreach _app,$(NDK_APPS),\
   $(eval include $(BUILD_SYSTEM)/setup-app.mk)\
 )
 
+.PHONY : DUMP_$(DUMP_VAR)
 DUMP_$(DUMP_VAR):
 	@echo $($(DUMP_VAR))
 else
