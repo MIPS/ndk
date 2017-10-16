@@ -306,7 +306,7 @@ def dump_var(args, variable, abi=None):
             make_output = subprocess.check_output(make_args, cwd=args.project)
         except subprocess.CalledProcessError:
             error("Failed to retrieve application ABI from Android.mk.")
-    return make_output.splitlines()[0]
+    return make_output.splitlines()[-1]
 
 
 def get_api_level(device):
