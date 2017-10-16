@@ -188,18 +188,3 @@ class LoadRestrictingWorkQueue(object):
     def finished(self):
         """Returns True if all tasks have completed execution."""
         return self.num_tasks == 0
-
-
-class DummyLoadRestrictingWorkQueue(ndk.workqueue.DummyWorkQueue):
-    def __init__(self, num_workers=multiprocessing.cpu_count()):
-        super(DummyLoadRestrictingWorkQueue, self).__init__(
-            num_workers=num_workers)
-
-    def add_load_restricted_task(self, func, *args, **kwargs):
-        self.add_task(func, *args, **kwargs)
-
-
-if os.name == 'nt':
-    TestBuildWorkQueue = DummyLoadRestrictingWorkQueue
-else:
-    TestBuildWorkQueue = LoadRestrictingWorkQueue

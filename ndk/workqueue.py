@@ -48,6 +48,34 @@ class TaskError(Exception):
         super(TaskError, self).__init__(trace)
 
 
+def create_windows_process_group():
+    import ndk.win32
+    job = ndk.win32.CreateJobObject()
+
+    limit_info = ndk.win32.JOBOBJECT_EXTENDED_LIMIT_INFORMATION(
+        BasicLimitInformation=ndk.win32.JOBOBJECT_BASIC_LIMIT_INFORMATION(
+            LimitFlags=ndk.win32.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE))
+
+    ndk.win32.SetInformationJobObject(
+        job, ndk.win32.JobObjectExtendedLimitInformation, limit_info)
+    ndk.win32.AssignProcessToJobObject(job, ndk.win32.GetCurrentProcess())
+
+
+def assign_self_to_new_process_group():
+    if sys.platform == 'win32':
+        return create_windows_process_group()
+    else:
+        return os.setpgrp()
+
+
+def kill_process_group(group):
+    if sys.platform == 'win32':
+        import ndk.win32
+        ndk.win32.CloseHandle(group)
+    else:
+        os.kill(0, signal.SIGTERM)
+
+
 class Worker(object):
     IDLE_STATUS = 'IDLE'
     EXCEPTION_STATUS = 'EXCEPTION'
@@ -101,7 +129,7 @@ class Worker(object):
 
     def main(self):
         """Main loop for worker processes."""
-        os.setpgrp()
+        group = assign_self_to_new_process_group()
         signal.signal(signal.SIGTERM, worker_sigterm_handler)
         try:
             while True:
@@ -121,7 +149,7 @@ class Worker(object):
             # multiprocessing.Process.terminate() doesn't kill our descendents.
             signal.signal(signal.SIGTERM, signal.SIG_IGN)
             logger().debug('worker %d killing process group', os.getpid())
-            os.kill(0, signal.SIGTERM)
+            kill_process_group(group)
             signal.signal(signal.SIGTERM, signal.SIG_DFL)
         logger().debug('worker %d exiting', os.getpid())
 
@@ -168,12 +196,6 @@ class ProcessPoolWorkQueue(object):
             worker_data: Data to be passed to every task run by this work
                 queue.
         """
-        if sys.platform == 'win32':
-            # TODO(danalbert): Port ProcessPoolWorkQueue to Windows.
-            # Our implementation of ProcessPoolWorkQueue depends on process
-            # groups, which are not supported on Windows.
-            raise NotImplementedError
-
         self.manager = multiprocessing.Manager()
 
         self.task_queue = task_queue
@@ -311,7 +333,4 @@ class DummyWorkQueue(object):
         return self.num_tasks == 0
 
 
-if sys.platform == 'win32':
-    WorkQueue = DummyWorkQueue
-else:
-    WorkQueue = ProcessPoolWorkQueue
+WorkQueue = ProcessPoolWorkQueue
