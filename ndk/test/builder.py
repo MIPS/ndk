@@ -56,8 +56,9 @@ def build_test_runner(test_spec, test_options, printer):
         test_spec.toolchains,
         test_spec.pie_config)
 
-    scanner = testlib.BuildTestScanner()
-    nodist_scanner = testlib.BuildTestScanner(dist=False)
+    scanner = testlib.BuildTestScanner(test_options.ndk_path)
+    nodist_scanner = testlib.BuildTestScanner(
+        test_options.ndk_path, dist=False)
     libcxx_scanner = testlib.LibcxxTestScanner(test_options.ndk_path)
     for abi, toolchain, pie_config in build_configs:
         if pie_config and abi in ndk.abis.LP64_ABIS:
@@ -130,8 +131,7 @@ class TestBuilder(object):
 
         test_filters = filters.TestFilter.from_string(
             self.test_options.test_filter)
-        with ndk.os.modify_environ({'NDK': self.test_options.ndk_path}):
-            return self.runner.run(self.obj_dir, self.dist_dir, test_filters)
+        return self.runner.run(self.obj_dir, self.dist_dir, test_filters)
 
 
 class LoadRestrictingWorkQueue(object):

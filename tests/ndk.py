@@ -21,25 +21,24 @@ import os
 import sys
 
 import ndk.hosts
-import tests.util as util
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 NDK_ROOT = os.path.realpath(os.path.join(THIS_DIR, '..'))
 
 
-def get_tool(tool):
+def get_tool(ndk_path, tool):
     ext = ''
     if sys.platform == 'win32':
         ext = '.exe'
 
-    host_tag = ndk.hosts.get_host_tag(os.environ['NDK'])
-    prebuilt_path = os.path.join(os.environ['NDK'], 'prebuilt', host_tag)
+    host_tag = ndk.hosts.get_host_tag(ndk_path)
+    prebuilt_path = os.path.join(ndk_path, 'prebuilt', host_tag)
     return os.path.join(prebuilt_path, 'bin', tool) + ext
 
 
-def build(build_flags):
-    ndk_build_path = os.path.join(os.environ['NDK'], 'ndk-build')
+def build(ndk_path, build_flags):
+    ndk_build_path = os.path.join(ndk_path, 'ndk-build')
     if os.name == 'nt':
         return ndk.subprocess.call_output(
             ['cmd', '/c', ndk_build_path] + build_flags)

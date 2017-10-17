@@ -16,6 +16,7 @@
 import ndk.testing.standalone_toolchain
 
 
-def run_test(abi, api, toolchain, _build_flags):
+def run_test(ndk_path, abi, api, toolchain, _build_flags):
     return ndk.testing.standalone_toolchain.run_test(
-        abi, api, toolchain, 'foo.cpp', ['--stl=libc++'], ['-mthumb'])
+        ndk_path, abi, api, toolchain, 'foo.cpp', ['--stl=libc++'],
+        ['-mthumb'])

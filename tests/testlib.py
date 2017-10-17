@@ -40,7 +40,6 @@ from ndk.test.result import (Success, Failure, Skipped, ExpectedFailure,
 import ndk.test.spec
 import ndk.test.ui
 import ndk.test.builder
-import tests.filters as filters
 import tests.ndk as ndkbuild
 import tests.util as util
 
@@ -83,7 +82,8 @@ class TestScanner(object):
 
 
 class BuildTestScanner(TestScanner):
-    def __init__(self, dist=True):
+    def __init__(self, ndk_path, dist=True):
+        self.ndk_path = ndk_path
         self.dist = dist
         self.build_configurations = set()
 
@@ -116,25 +116,27 @@ class BuildTestScanner(TestScanner):
     def make_build_sh_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
-            tests.append(ShellBuildTest(name, path, config))
+            tests.append(ShellBuildTest(name, path, config, self.ndk_path))
         return tests
 
     def make_test_py_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
-            tests.append(PythonBuildTest(name, path, config))
+            tests.append(PythonBuildTest(name, path, config, self.ndk_path))
         return tests
 
     def make_ndk_build_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
-            tests.append(NdkBuildTest(name, path, config, self.dist))
+            tests.append(
+                NdkBuildTest(name, path, config, self.ndk_path, self.dist))
         return tests
 
     def make_cmake_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
-            tests.append(CMakeBuildTest(name, path, config, self.dist))
+            tests.append(
+                CMakeBuildTest(name, path, config, self.ndk_path, self.dist))
         return tests
 
 
@@ -142,8 +144,9 @@ class LibcxxTestScanner(TestScanner):
     ALL_TESTS = []
 
     def __init__(self, ndk_path):
+        self.ndk_path = ndk_path
         self.build_configurations = set()
-        LibcxxTestScanner.find_all_libcxx_tests(ndk_path)
+        LibcxxTestScanner.find_all_libcxx_tests(self.ndk_path)
 
     def add_build_configuration(self, abi, api, toolchain, force_pie, verbose):
         self.build_configurations.add(ndk.test.spec.BuildConfiguration(
@@ -152,7 +155,7 @@ class LibcxxTestScanner(TestScanner):
     def find_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
-            tests.append(LibcxxTest('libc++', path, config))
+            tests.append(LibcxxTest('libc++', path, config, self.ndk_path))
         return tests
 
     @classmethod
@@ -226,34 +229,6 @@ def _run_test(worker, suite, test, obj_dir, dist_dir, test_filters):
         result = Failure(test, traceback.format_exc())
         additional_tests = []
     return suite, result, additional_tests
-
-
-def get_libcxx_test_filter(failing_libcxx_reports):
-    """Builds a test filter to rerun only the flaky libc++ test failures.
-
-    We can't rerun each libc++ "test" failure individually because each of them
-    is actually just a stub to expose the result from the monolithic LIT test
-    run.
-    """
-    ndk_path = os.environ['NDK']
-    test_base_dir = os.path.join(
-        ndk_path, 'sources/cxx-stl/llvm-libc++/test')
-
-    libcxx_test_filters = []
-    for libcxx_report in failing_libcxx_reports:
-        name = libcxx_report.result.test.name
-        test_files = find_original_libcxx_test(name)
-        if len(test_files) == 0:
-            raise RuntimeError('Found no libc++ tests matching ' + name)
-
-        for test_file in test_files:
-            logger().info('Found match %s', test_file)
-            logger().info(
-                'Adding filter %s',
-                os.path.relpath(test_file, test_base_dir))
-            libcxx_test_filters.append(test_file)
-
-    return filters.TestFilter(libcxx_test_filters)
 
 
 class TestRunner(object):
@@ -351,10 +326,11 @@ class TestRunner(object):
 
 
 class Test(object):
-    def __init__(self, name, test_dir, config):
+    def __init__(self, name, test_dir, config, ndk_path):
         self.name = name
         self.test_dir = test_dir
         self.config = config
+        self.ndk_path = ndk_path
 
     @property
     def is_flaky(self):
@@ -559,12 +535,13 @@ class DeviceTestConfig(TestConfig):
             pass
 
 
-def _run_build_sh_test(test, build_dir, test_dir, ndk_build_flags, abi,
-                       platform, toolchain):
+def _run_build_sh_test(test, build_dir, test_dir, ndk_path, ndk_build_flags,
+                       abi, platform, toolchain):
     _prep_build_dir(test_dir, build_dir)
     with util.cd(build_dir):
         build_cmd = ['bash', 'build.sh'] + _get_jobs_args() + ndk_build_flags
         test_env = dict(os.environ)
+        test_env['NDK'] = ndk_path
         if abi is not None:
             test_env['APP_ABI'] = abi
         test_env['APP_PLATFORM'] = 'android-{}'.format(platform)
@@ -577,8 +554,8 @@ def _run_build_sh_test(test, build_dir, test_dir, ndk_build_flags, abi,
             return Failure(test, out)
 
 
-def _run_ndk_build_test(test, obj_dir, dist_dir, test_dir, ndk_build_flags,
-                        abi, platform, toolchain):
+def _run_ndk_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
+                        ndk_build_flags, abi, platform, toolchain):
     _prep_build_dir(test_dir, obj_dir)
     with util.cd(obj_dir):
         args = [
@@ -589,15 +566,15 @@ def _run_ndk_build_test(test, obj_dir, dist_dir, test_dir, ndk_build_flags,
         args.extend(_get_jobs_args())
         if platform is not None:
             args.append('APP_PLATFORM=android-{}'.format(platform))
-        rc, out = ndkbuild.build(args + ndk_build_flags)
+        rc, out = ndkbuild.build(ndk_path, args + ndk_build_flags)
         if rc == 0:
             return Success(test)
         else:
             return Failure(test, out)
 
 
-def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, cmake_flags, abi,
-                          platform, toolchain):
+def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
+                          cmake_flags, abi, platform, toolchain):
     _prep_build_dir(test_dir, obj_dir)
 
     # Add prebuilts to PATH.
@@ -617,7 +594,7 @@ def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, cmake_flags, abi,
     if version < [3, 6]:
         return Skipped(test, 'cmake 3.6 or above required')
 
-    toolchain_file = os.path.join(os.environ['NDK'], 'build', 'cmake',
+    toolchain_file = os.path.join(ndk_path, 'build', 'cmake',
                                   'android.toolchain.cmake')
     objs_dir = os.path.join(obj_dir, abi)
     libs_dir = os.path.join(dist_dir, abi)
@@ -652,8 +629,8 @@ def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, cmake_flags, abi,
 
 
 class BuildTest(Test):
-    def __init__(self, name, test_dir, config):
-        super(BuildTest, self).__init__(name, test_dir, config)
+    def __init__(self, name, test_dir, config, ndk_path):
+        super(BuildTest, self).__init__(name, test_dir, config, ndk_path)
 
         if self.api is None:
             raise ValueError
@@ -723,14 +700,14 @@ class PythonBuildTest(BuildTest):
     ndk_build_flags: Additional build flags that should be passed to ndk-build
                      if invoked as a list of strings.
     """
-    def __init__(self, name, test_dir, config):
+    def __init__(self, name, test_dir, config, ndk_path):
         api = config.api
         if api is None:
             api = build.lib.build_support.minimum_platform_level(config.abi)
         config = ndk.test.spec.BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
             config.verbose)
-        super(PythonBuildTest, self).__init__(name, test_dir, config)
+        super(PythonBuildTest, self).__init__(name, test_dir, config, ndk_path)
 
         if self.abi not in build.lib.build_support.ALL_ABIS:
             raise ValueError('{} is not a valid ABI'.format(self.abi))
@@ -759,7 +736,8 @@ class PythonBuildTest(BuildTest):
         with util.cd(build_dir):
             module = imp.load_source('test', 'test.py')
             success, failure_message = module.run_test(
-                self.abi, self.platform, self.toolchain, self.ndk_build_flags)
+                self.ndk_path, self.abi, self.platform, self.toolchain,
+                self.ndk_build_flags)
             if success:
                 return Success(self), []
             else:
@@ -767,14 +745,14 @@ class PythonBuildTest(BuildTest):
 
 
 class ShellBuildTest(BuildTest):
-    def __init__(self, name, test_dir, config):
+    def __init__(self, name, test_dir, config, ndk_path):
         api = config.api
         if api is None:
             api = build.lib.build_support.minimum_platform_level(config.abi)
         config = ndk.test.spec.BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
             config.verbose)
-        super(ShellBuildTest, self).__init__(name, test_dir, config)
+        super(ShellBuildTest, self).__init__(name, test_dir, config, ndk_path)
 
     def get_build_dir(self, out_dir):
         return os.path.join(out_dir, str(self.config), 'build.sh', self.name)
@@ -787,8 +765,8 @@ class ShellBuildTest(BuildTest):
             return Skipped(self, reason), []
         else:
             result = _run_build_sh_test(
-                self, build_dir, self.test_dir, self.ndk_build_flags,
-                self.abi, self.platform, self.toolchain)
+                self, build_dir, self.test_dir, self.ndk_path,
+                self.ndk_build_flags, self.abi, self.platform, self.toolchain)
             return result, []
 
 
@@ -853,12 +831,12 @@ def _get_or_infer_app_platform(platform_from_user, test_dir, abi):
 
 
 class NdkBuildTest(BuildTest):
-    def __init__(self, name, test_dir, config, dist):
+    def __init__(self, name, test_dir, config, ndk_path, dist):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
         config = ndk.test.spec.BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
             config.verbose)
-        super(NdkBuildTest, self).__init__(name, test_dir, config)
+        super(NdkBuildTest, self).__init__(name, test_dir, config, ndk_path)
         self.dist = dist
 
     def get_dist_dir(self, obj_dir, dist_dir):
@@ -875,18 +853,18 @@ class NdkBuildTest(BuildTest):
         obj_dir = self.get_build_dir(obj_dir)
         dist_dir = self.get_dist_dir(obj_dir, dist_dir)
         result = _run_ndk_build_test(
-            self, obj_dir, dist_dir, self.test_dir, self.ndk_build_flags,
-            self.abi, self.platform, self.toolchain)
+            self, obj_dir, dist_dir, self.test_dir, self.ndk_path,
+            self.ndk_build_flags, self.abi, self.platform, self.toolchain)
         return result, []
 
 
 class CMakeBuildTest(BuildTest):
-    def __init__(self, name, test_dir, config, dist):
+    def __init__(self, name, test_dir, config, ndk_path, dist):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
         config = ndk.test.spec.BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
             config.verbose)
-        super(CMakeBuildTest, self).__init__(name, test_dir, config)
+        super(CMakeBuildTest, self).__init__(name, test_dir, config, ndk_path)
         self.dist = dist
 
     def get_dist_dir(self, obj_dir, dist_dir):
@@ -903,12 +881,12 @@ class CMakeBuildTest(BuildTest):
         dist_dir = self.get_dist_dir(obj_dir, dist_dir)
         logger().info('Building test: %s', self.name)
         result = _run_cmake_build_test(
-            self, obj_dir, dist_dir, self.test_dir, self.cmake_flags, self.abi,
-            self.platform, self.toolchain)
+            self, obj_dir, dist_dir, self.test_dir, self.ndk_path,
+            self.cmake_flags, self.abi, self.platform, self.toolchain)
         return result, []
 
 
-def get_xunit_reports(xunit_file, config):
+def get_xunit_reports(xunit_file, config, ndk_path):
     tree = xml.etree.ElementTree.parse(xunit_file)
     root = tree.getroot()
     cases = root.findall('.//testcase')
@@ -936,7 +914,7 @@ def get_xunit_reports(xunit_file, config):
 
         failure_nodes = test_case.findall('failure')
         if len(failure_nodes) == 0:
-            reports.append(XunitSuccess(name, test_dir, config))
+            reports.append(XunitSuccess(name, test_dir, config, ndk_path))
             continue
 
         if len(failure_nodes) != 1:
@@ -946,16 +924,17 @@ def get_xunit_reports(xunit_file, config):
 
         failure_node = failure_nodes[0]
         failure_text = failure_node.text
-        reports.append(XunitFailure(name, test_dir, failure_text, config))
+        reports.append(
+            XunitFailure(name, test_dir, failure_text, config, ndk_path))
     return reports
 
 
 class LibcxxTest(Test):
-    def __init__(self, name, test_dir, config):
+    def __init__(self, name, test_dir, config, ndk_path):
         if config.api is None:
             config.api = ndk.abis.min_api_for_abi(config.abi)
 
-        super(LibcxxTest, self).__init__(name, test_dir, config)
+        super(LibcxxTest, self).__init__(name, test_dir, config, ndk_path)
 
     @property
     def abi(self):
@@ -979,9 +958,8 @@ class LibcxxTest(Test):
             os.makedirs(build_dir)
 
         xunit_output = os.path.join(build_dir, 'xunit.xml')
-        ndk_path = os.environ['NDK']
         libcxx_subpath = 'sources/cxx-stl/llvm-libc++'
-        libcxx_path = os.path.join(ndk_path, libcxx_subpath)
+        libcxx_path = os.path.join(self.ndk_path, libcxx_subpath)
         libcxx_so_path = os.path.join(
             libcxx_path, 'libs', self.config.abi, 'libc++_shared.so')
         libcxx_test_path = os.path.join(libcxx_path, 'test')
@@ -993,7 +971,7 @@ class LibcxxTest(Test):
             '--platform', str(self.api),
             '--xunit-xml-output=' + xunit_output,
             '--timeout=600',
-            '--ndk=' + ndk_path,
+            '--ndk=' + self.ndk_path,
 
             # We don't want the progress bar since we're already printing our
             # own output, so we need --show-all so we get *some* output,
@@ -1060,7 +1038,8 @@ class LibcxxTest(Test):
 
         # We create a bunch of fake tests that report the status of each
         # individual test in the xunit report.
-        test_reports = get_xunit_reports(xunit_output, self.config)
+        test_reports = get_xunit_reports(
+            xunit_output, self.config, self.ndk_path)
 
         return Success(self), test_reports
 
@@ -1158,8 +1137,8 @@ class XunitResult(Test):
     We don't have an ExpectedFailure form of the XunitResult because that is
     already handled for us by the libc++ test runner.
     """
-    def __init__(self, name, test_dir, config):
-        super(XunitResult, self).__init__(name, test_dir, config)
+    def __init__(self, name, test_dir, config, ndk_path):
+        super(XunitResult, self).__init__(name, test_dir, config, ndk_path)
 
     def run(self, _out_dir, _dist_dir, _test_filters):
         raise NotImplementedError
@@ -1194,8 +1173,8 @@ class XunitSuccess(XunitResult):
 
 
 class XunitFailure(XunitResult):
-    def __init__(self, name, test_dir, text, config):
-        super(XunitFailure, self).__init__(name, test_dir, config)
+    def __init__(self, name, test_dir, text, config, ndk_path):
+        super(XunitFailure, self).__init__(name, test_dir, config, ndk_path)
         self.text = text
 
     def run(self, _out_dir, _dist_dir, _test_filters):

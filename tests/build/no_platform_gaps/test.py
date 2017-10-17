@@ -45,13 +45,12 @@ def build(ndk_dir, abi, platform, build_flags):
     return proc.returncode == 0, out
 
 
-def run_test(abi, _platform, _toolchain, build_flags):
+def run_test(ndk_path, abi, _platform, _toolchain, build_flags):
     """Checks ndk-build V=1 output for correct compiler."""
-    ndk_dir = os.environ['NDK']
     min_api = None
     max_api = None
     apis = []
-    for name in os.listdir(os.path.join(ndk_dir, 'platforms')):
+    for name in os.listdir(os.path.join(ndk_path, 'platforms')):
         if not name.startswith('android-'):
             continue
 
@@ -71,7 +70,7 @@ def run_test(abi, _platform, _toolchain, build_flags):
 
     missing_platforms = sorted(list(set(range(min_api, max_api)) - set(apis)))
     for api in missing_platforms:
-        result, out = build(ndk_dir, abi, api, build_flags)
+        result, out = build(ndk_path, abi, api, build_flags)
         if not result:
             return result, out
 

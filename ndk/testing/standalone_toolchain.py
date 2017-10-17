@@ -34,10 +34,9 @@ def call_output(cmd, *args, **kwargs):
     return proc.returncode, out
 
 
-def make_standalone_toolchain(arch, api, extra_args, install_dir):
-    ndk_dir = os.environ['NDK']
+def make_standalone_toolchain(ndk_path, arch, api, extra_args, install_dir):
     make_standalone_toolchain_path = os.path.join(
-        ndk_dir, 'build/tools/make_standalone_toolchain.py')
+        ndk_path, 'build/tools/make_standalone_toolchain.py')
 
     cmd = [make_standalone_toolchain_path, '--force',
            '--install-dir=' + install_dir, '--arch=' + arch,
@@ -47,12 +46,12 @@ def make_standalone_toolchain(arch, api, extra_args, install_dir):
         # Windows doesn't process shebang lines, and we wouldn't be pointing at
         # the right Python if it did. Explicitly invoke the NDK's Python for on
         # Windows.
-        prebuilt_dir = os.path.join(ndk_dir, 'prebuilt/windows-x86_64')
+        prebuilt_dir = os.path.join(ndk_path, 'prebuilt/windows-x86_64')
         if not os.path.exists(prebuilt_dir):
-            prebuilt_dir = os.path.join(ndk_dir, 'prebuilt/windows')
+            prebuilt_dir = os.path.join(ndk_path, 'prebuilt/windows')
         if not os.path.exists(prebuilt_dir):
             raise RuntimeError('Could not find prebuilts in {}'.format(
-                os.path.join(ndk_dir, 'prebuilt')))
+                os.path.join(ndk_path, 'prebuilt')))
 
         python_path = os.path.join(prebuilt_dir, 'bin/python.exe')
         cmd = [python_path] + cmd
@@ -87,13 +86,13 @@ def test_standalone_toolchain(arch, toolchain, install_dir, test_source,
     return rc == 0, out
 
 
-def run_test(abi, api, toolchain, test_source, extra_args, flags):
+def run_test(ndk_path, abi, api, toolchain, test_source, extra_args, flags):
     arch = build.lib.build_support.abi_to_arch(abi)
 
     install_dir = tempfile.mkdtemp()
     try:
         success, out = make_standalone_toolchain(
-            arch, api, extra_args, install_dir)
+            ndk_path, arch, api, extra_args, install_dir)
         if not success:
             return success, out
         return test_standalone_toolchain(
