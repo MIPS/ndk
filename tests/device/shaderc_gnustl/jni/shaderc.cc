@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-#include <shaderc/shaderc.hpp>
+#include <string.h>
+
 #include <iostream>
+
+#include <shaderc/shaderc.hpp>
 
 int main() {
   shaderc::Compiler compiler;
