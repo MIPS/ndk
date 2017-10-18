@@ -77,7 +77,6 @@ fi
 NAME=$(get_host_exec_name ndk-depends)
 INSTALL_SUBDIR=host-tools/bin
 OUT=$BUILD_DIR/$NAME
-mkdir $INSTALL_PATH
 
 # GNU Make
 if [ -z "$GNUMAKE" ]; then
