@@ -264,7 +264,7 @@ class TestRunner(object):
             self.build_dirs[build_dir] = (suite, test)
 
     def run(self, obj_dir, dist_dir, test_filters):
-        workqueue = ndk.test.builder.TestBuildWorkQueue()
+        workqueue = ndk.test.builder.LoadRestrictingWorkQueue()
         try:
             for suite, tests in self.tests.items():
                 # Each test configuration was expanded when each test was
