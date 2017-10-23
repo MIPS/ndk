@@ -575,14 +575,14 @@ def find_pretty_printer(pretty_printer):
 def start_jdb(args, pid):
     log("Starting jdb to unblock application.")
 
-    # Give gdbserver some time to attach.
-    time.sleep(0.5)
-
     # Do setup stuff to keep ^C in the parent from killing us.
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     windows = sys.platform.startswith("win")
     if not windows:
         os.setpgrp()
+
+    # Wait until gdbserver has interrupted the program.
+    time.sleep(0.5)
 
     jdb_port = 65534
     args.device.forward("tcp:{}".format(jdb_port), "jdwp:{}".format(pid))
@@ -595,9 +595,27 @@ def start_jdb(args, pid):
                            stdout=subprocess.PIPE,
                            stderr=subprocess.STDOUT,
                            creationflags=flags)
-    jdb.stdin.write("exit\n")
+
+    # Wait until jdb can communicate with the app. Once it can, the app will
+    # start polling for a Java debugger (e.g. every 200ms). We need to wait
+    # a while longer then so that the app notices jdb.
+    jdb_magic = "__verify_jdb_has_started__"
+    jdb.stdin.write('print "{}"\n'.format(jdb_magic))
+    saw_magic_str = False
+    while True:
+        line = jdb.stdout.readline()
+        if line == "":
+            break
+        log("jdb output: " + line.rstrip())
+        if jdb_magic in line and not saw_magic_str:
+            saw_magic_str = True
+            time.sleep(0.3)
+            jdb.stdin.write("exit\n")
     jdb.wait()
-    log("JDB finished unblocking application.")
+    if saw_magic_str:
+        log("JDB finished unblocking application.")
+    else:
+        log("error: did not find magic string in JDB output.")
 
 
 def main():
