@@ -625,6 +625,16 @@ def main():
     if device is None:
         error("Could not find a unique connected device/emulator.")
 
+    # Warn on old Pixel C firmware (b/29381985). Newer devices may have Yama
+    # enabled but still work with ndk-gdb (b/19277529).
+    yama_check = device.shell_nocheck(["cat", "/proc/sys/kernel/yama/ptrace_scope", "2>/dev/null"])
+    if (yama_check[0] == 0 and yama_check[1].rstrip() not in ["", "0"] and
+            (device.get_prop("ro.build.product"), device.get_prop("ro.product.name")) == ("dragon", "ryu")):
+        print("WARNING: The device uses Yama ptrace_scope to restrict debugging. ndk-gdb will")
+        print("    likely be unable to attach to a process. With root access, the restriction")
+        print("    can be lifted by writing 0 to /proc/sys/kernel/yama/ptrace_scope. Consider")
+        print("    upgrading your Pixel C to MXC89L or newer, where Yama is disabled.")
+
     adb_version = subprocess.check_output(device.adb_cmd + ["version"])
     log("ADB command used: '{}'".format(" ".join(device.adb_cmd)))
     log("ADB version: {}".format(" ".join(adb_version.splitlines())))
