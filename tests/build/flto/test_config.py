@@ -13,8 +13,8 @@ def build_unsupported(abi, _platform, toolchain):
 
 def build_broken(_abi, _platform, toolchain):
     # We don't support LTO on Windows.
-    if platform.system() == 'Windows':
+    if platform.system() == 'Windows' and toolchain == 'clang':
         bug = 'https://github.com/android-ndk/ndk/issues/251'
-        return platform.system(), bug
+        return '{} {}'.format(platform.system(), toolchain), bug
 
     return None, None
