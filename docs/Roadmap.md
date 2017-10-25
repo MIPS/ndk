@@ -122,3 +122,38 @@ libc.so, standalone toolchains would be obsolete because the compiler would
 already be a standalone toolchain. The NDK toolchain would Just Work regardless
 of build system, and the logic contained in each build system could be greatly
 reduced.
+
+
+Historical release highlights
+-----------------------------
+
+Full [history] is available, but this section summarizes major changes
+in recent releases.
+
+[history]: https://developer.android.com/ndk/downloads/revision_history.html
+
+### NDK r15
+
+Defaulted to [unified headers] (opt-out).
+
+Removed support for API levels lower than 14 (Android 4.0).
+
+### NDK r14
+
+Added [unified headers] (opt-in).
+
+[unified headers]: https://android.googlesource.com/platform/ndk/+/master/docs/UnifiedHeaders.md
+
+### NDK r13
+
+Added [simpleperf].
+
+[simpleperf]: https://developer.android.com/ndk/guides/simpleperf.html
+
+### NDK r12
+
+Removed [armeabi-v7a-hard].
+
+Removed support for API levels lower than 9 (Android 2.3).
+
+[armeabi-v7a-hard]: https://android.googlesource.com/platform/ndk/+/ndk-r12-release/docs/HardFloatAbi.md
