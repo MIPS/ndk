@@ -66,9 +66,17 @@ Known Issues
 ------------
 
  * This is not intended to be a comprehensive list of all outstanding bugs.
- * gabi++ (and therefore stlport) binaries can segfault when built for armeabi:
-   https://github.com/android-ndk/ndk/issues/374.
- * MIPS64 must use the integrated assembler. Clang defaults to using binutils
-   rather than the integrated assmebler for this target. ndk-build and cmake
-   handle this for you, but make sure to use `-fintegrated-as` for MIPS64 for
-   custom build systems. See https://github.com/android-ndk/ndk/issues/399.
+ * [Issue 360]: `thread_local` variables with non-trivial destructors will cause
+   segfaults if the containing library is `dlclose`ed on devices running M or
+   newer, or devices before M when using a static STL. The simple workaround is
+   to not call `dlclose`.
+ * [Issue 374]: gabi++ (and therefore stlport) binaries can segfault when built
+   for armeabi.
+ * [Issue 399]: MIPS64 must use the integrated assembler. Clang defaults to
+   using binutils rather than the integrated assembler for this target.
+   ndk-build and cmake handle this for you, but make sure to use
+   `-fintegrated-as` for MIPS64 for custom build systems.
+
+[Issue 360]: https://github.com/android-ndk/ndk/issues/360
+[Issue 374]: https://github.com/android-ndk/ndk/issues/374
+[Issue 399]: https://github.com/android-ndk/ndk/issues/399
