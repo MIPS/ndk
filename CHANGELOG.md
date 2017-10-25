@@ -62,6 +62,16 @@ libc++
  * libandroid\_support now contains only APIs needed for supporting libc++ on
    old devices. See https://github.com/android-ndk/ndk/issues/300.
 
+APIs
+----
+
+ * Added native APIs for Android O MR1.
+     * [Neural Networks API]
+     * [JNI Shared Memory API]
+
+[Neural Networks API]: https://developer.android.com/ndk/guides/neuralnetworks/index.html
+[JNI Shared Memory API]: https://developer.android.com/ndk/reference/sharedmem__jni_8h.html
+
 Known Issues
 ------------
 
