@@ -1017,7 +1017,7 @@ class LibcxxTest(Test):
         # test runner. If that happens in test_libcxx.py or in LIT, the xunit
         # output will not be valid and we'll fail get_xunit_reports and raise
         # an exception anyway.
-        with open('/dev/null', 'w') as dev_null:
+        with open(os.devnull, 'w') as dev_null:
             stdout = dev_null
             stderr = dev_null
             if logger().isEnabledFor(logging.INFO):
