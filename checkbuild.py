@@ -1243,7 +1243,8 @@ class SimplePerf(ndk.builds.Module):
 
         for item in os.listdir(simpleperf_path):
             should_copy = False
-            if item.endswith('.py') and item not in ['update.py', 'test.py']:
+            if item.endswith('.py') and item not in ['update.py', 'test.py',
+                                                     'report_html.py']:
                 should_copy = True
             elif item == 'inferno.sh' and not is_win:
                 should_copy = True
