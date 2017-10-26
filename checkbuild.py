@@ -893,6 +893,7 @@ class LibShaderc(ndk.builds.Module):
                     'utils/generate_grammar_tables.py',
                     'utils/generate_registry_tables.py',
                     'utils/update_build_version.py',
+                    'Android.mk',
                     'CHANGES',
                 ],
                 'dirs': ['include', 'source'],
@@ -904,7 +905,8 @@ class LibShaderc(ndk.builds.Module):
                 'dirs': ['include'],
                 'files': [
                     'include/spirv/1.0/spirv.py',
-                    'include/spirv/1.1/spirv.py'
+                    'include/spirv/1.1/spirv.py',
+                    'include/spirv/1.2/spirv.py'
                 ],
             },
             {
