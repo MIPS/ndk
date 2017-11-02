@@ -27,9 +27,9 @@ Announcements
    manually selected a different STL, we strongly encourage you to move to
    `libc++`. For more details, see [this blog post].
 
- * Support for ARM5 (armeabi) is deprecated. It will no longer build by default
+ * Support for ARMv5 (armeabi) is deprecated. It will no longer build by default
    with ndk-build, but is still buildable if it is explicitly named, and will be
-   included by "all" and "all32". Support for ARM5 has been removed in r17.
+   included by "all" and "all32". Support for ARMv5 has been removed in r17.
 
    Both CMake and ndk-build will issue a warning if you target this ABI.
 
