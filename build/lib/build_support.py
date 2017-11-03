@@ -29,8 +29,6 @@ THIS_DIR = os.path.realpath(os.path.dirname(__file__))
 ALL_TOOLCHAINS = (
     'arm-linux-androideabi',
     'aarch64-linux-android',
-    'mipsel-linux-android',
-    'mips64el-linux-android',
     'x86',
     'x86_64',
 )
@@ -39,8 +37,6 @@ ALL_TOOLCHAINS = (
 ALL_TRIPLES = (
     'arm-linux-androideabi',
     'aarch64-linux-android',
-    'mipsel-linux-android',
-    'mips64el-linux-android',
     'i686-linux-android',
     'x86_64-linux-android',
 )
@@ -49,8 +45,6 @@ ALL_TRIPLES = (
 ALL_ARCHITECTURES = (
     'arm',
     'arm64',
-    'mips',
-    'mips64',
     'x86',
     'x86_64',
 )
@@ -59,15 +53,13 @@ ALL_ARCHITECTURES = (
 ALL_ABIS = (
     'armeabi-v7a',
     'arm64-v8a',
-    'mips',
-    'mips64',
     'x86',
     'x86_64',
 )
 
 
-LP32_ABIS = ('armeabi-v7a', 'mips', 'x86')
-LP64_ABIS = ('arm64-v8a', 'mips64', 'x86_64')
+LP32_ABIS = ('armeabi-v7a', 'x86')
+LP64_ABIS = ('arm64-v8a', 'x86_64')
 
 
 def minimum_platform_level(abi):
@@ -93,8 +85,6 @@ def arch_to_abis(arch):
     return {
         'arm': ['armeabi-v7a'],
         'arm64': ['arm64-v8a'],
-        'mips': ['mips'],
-        'mips64': ['mips64'],
         'x86': ['x86'],
         'x86_64': ['x86_64'],
     }[arch]
@@ -104,8 +94,6 @@ def abi_to_arch(arch):
     return {
         'armeabi-v7a': 'arm',
         'arm64-v8a': 'arm64',
-        'mips': 'mips',
-        'mips64': 'mips64',
         'x86': 'x86',
         'x86_64': 'x86_64',
     }[arch]

@@ -27,11 +27,8 @@ Announcements
    manually selected a different STL, we strongly encourage you to move to
    `libc++`. For more details, see [this blog post].
 
- * Support for ARMv5 (armeabi) is deprecated. It will no longer build by default
-   with ndk-build, but is still buildable if it is explicitly named, and will be
-   included by "all" and "all32". Support for ARMv5 has been removed in r17.
-
-   Both CMake and ndk-build will issue a warning if you target this ABI.
+ * Support for ARMv5 (armeabi), MIPS, and MIPS64 has been removed. Attempting to
+   build any of these ABIs will result in an error.
 
 [Unified Headers]: docs/UnifiedHeaders.md
 [Unified Headers Migration Notes]: docs/UnifiedHeadersMigration.md
@@ -82,11 +79,6 @@ Known Issues
    to not call `dlclose`.
  * [Issue 374]: gabi++ (and therefore stlport) binaries can segfault when built
    for armeabi.
- * [Issue 399]: MIPS64 must use the integrated assembler. Clang defaults to
-   using binutils rather than the integrated assembler for this target.
-   ndk-build and cmake handle this for you, but make sure to use
-   `-fintegrated-as` for MIPS64 for custom build systems.
 
 [Issue 360]: https://github.com/android-ndk/ndk/issues/360
 [Issue 374]: https://github.com/android-ndk/ndk/issues/374
-[Issue 399]: https://github.com/android-ndk/ndk/issues/399
