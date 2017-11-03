@@ -571,6 +571,11 @@ def main():
     elif args.verbose >= 2:
         logging.basicConfig(level=logging.DEBUG)
 
+    if args.arch.startswith('mips'):
+        logger().warning(
+            '%s is deprecated and will be removed in the next release.',
+            args.arch)
+
     if args.stl != 'libc++':
         logger().warning(
             '%s is deprecated and will be removed in the next release. '
