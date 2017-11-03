@@ -61,8 +61,6 @@ def get_triple(arch):
     return {
         'arm': 'arm-linux-androideabi',
         'arm64': 'aarch64-linux-android',
-        'mips': 'mipsel-linux-android',
-        'mips64': 'mips64el-linux-android',
         'x86': 'i686-linux-android',
         'x86_64': 'x86_64-linux-android',
     }[arch]
@@ -73,8 +71,6 @@ def get_abis(arch):
     return {
         'arm': ['armeabi-v7a'],
         'arm64': ['arm64-v8a'],
-        'mips': ['mips'],
-        'mips64': ['mips64'],
         'x86': ['x86'],
         'x86_64': ['x86_64'],
     }[arch]
@@ -117,8 +113,6 @@ def get_gcc_path_or_die(arch, host_tag):
     toolchain = {
         'arm': 'arm-linux-androideabi',
         'arm64': 'aarch64-linux-android',
-        'mips': 'mipsel-linux-android',
-        'mips64': 'mips64el-linux-android',
         'x86': 'x86',
         'x86_64': 'x86_64',
     }[arch] + '-4.9'
@@ -318,7 +312,7 @@ def get_src_libdir(src_dir, abi):
 def get_dest_libdir(dst_dir, triple, abi):
     """Get the ABI specific library directory for the toolchain."""
     libdir_name = 'lib'
-    if abi in ('mips64', 'x86_64'):
+    if abi == 'x86_64':
         # ARM64 isn't a real multilib target, so it's just installed to lib.
         libdir_name = 'lib64'
     dst_libdir = os.path.join(dst_dir, triple, libdir_name)
@@ -532,7 +526,7 @@ def parse_args():
 
     parser.add_argument(
         '--arch', required=True,
-        choices=('arm', 'arm64', 'mips', 'mips64', 'x86', 'x86_64'))
+        choices=('arm', 'arm64', 'x86', 'x86_64'))
     parser.add_argument(
         '--api', type=int,
         help='Target the given API version (example: "--api 24").')
@@ -571,11 +565,6 @@ def main():
     elif args.verbose >= 2:
         logging.basicConfig(level=logging.DEBUG)
 
-    if args.arch.startswith('mips'):
-        logger().warning(
-            '%s is deprecated and will be removed in the next release.',
-            args.arch)
-
     if args.stl != 'libc++':
         logger().warning(
             '%s is deprecated and will be removed in the next release. '
@@ -586,7 +575,7 @@ def main():
 
     check_ndk_or_die()
 
-    lp32 = args.arch in ('arm', 'mips', 'x86')
+    lp32 = args.arch in ('arm', 'x86')
     min_api = 14 if lp32 else 21
     api = args.api
     if api is None:
