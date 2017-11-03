@@ -382,11 +382,6 @@ class Gcc(ndk.builds.Module):
             shutil.copy2(libcxx, lib_dir)
             shutil.copy2(libllvm, lib_dir)
 
-        if arch.startswith('mips'):
-            # The mips toolchains are older than the others and don't have the
-            # toolchain wrapper scripts.
-            return
-
         # Remove the toolchain wrappers. These don't work on Windows and we
         # don't want them anyway.
         bin_path = os.path.join(install_path, 'bin')
@@ -641,7 +636,7 @@ class Platforms(ndk.builds.Module):
         return os.path.join(gcc_toolchain, 'bin', triple + '-' + tool)
 
     def libdir_name(self, arch):  # pylint: disable=no-self-use
-        if arch in ('mips64', 'x86_64'):
+        if arch == 'x86_64':
             return 'lib64'
         else:
             return 'lib'
@@ -666,9 +661,9 @@ class Platforms(ndk.builds.Module):
         return sorted(apis)
 
     def get_arches(self, api):  # pylint: disable=no-self-use
-        arches = ['arm', 'mips', 'x86']
+        arches = ['arm', 'x86']
         if api >= 21:
-            arches.extend(['arm64', 'mips64', 'x86_64'])
+            arches.extend(['arm64', 'x86_64'])
         return arches
 
     def get_build_cmd(self, dst, srcs, api, arch, build_number):
@@ -687,11 +682,6 @@ class Platforms(ndk.builds.Module):
             '-DABI_NDK_BUILD_NUMBER="{}"'.format(build_number),
             '-O2', '-fpic', '-Wl,-r', '-nostdlib', '-o', dst,
         ] + srcs
-
-        if arch == 'mips':
-            args.extend(['-mabi=32', '-mips32'])
-        elif arch == 'mips64':
-            args.extend(['-mabi=64', '-mips64r6'])
 
         return args
 
@@ -760,9 +750,9 @@ class Platforms(ndk.builds.Module):
 
         first_lp32 = self.get_apis()[0]
         first_lp64 = 21
-        for arch in ('arm', 'mips', 'x86'):
+        for arch in ('arm', 'x86'):
             self.validate_src(first_lp32, arch)
-        for arch in ('arm64', 'mips64', 'x86_64'):
+        for arch in ('arm64', 'x86_64'):
             self.validate_src(first_lp64, arch)
 
     def validate_src(self, api, arch):
@@ -834,12 +824,6 @@ class Platforms(ndk.builds.Module):
                     # only a lib64. An empty lib dir is enough to convince it.
                     os.makedirs(os.path.join(
                         install_dir, platform, arch_name, 'usr/lib'))
-                elif arch == 'mips':
-                    # And GCC's driver won't accept a mips sysroot that doesn't
-                    # contain a lib64, because the 64-bit toolchain is used for
-                    # building 32-bit code.
-                    os.makedirs(os.path.join(
-                        install_dir, platform, arch_name, 'usr/lib64'))
 
                 obj_dir = os.path.join(build_dir, platform, arch_name)
                 for name in os.listdir(obj_dir):
@@ -1479,7 +1463,7 @@ def parse_args():
 
     parser.add_argument(
         '--arch',
-        choices=('arm', 'arm64', 'mips', 'mips64', 'x86', 'x86_64'),
+        choices=('arm', 'arm64', 'x86', 'x86_64'),
         help='Build for the given architecture. Build all by default.')
     parser.add_argument(
         '-j', '--jobs', type=int, default=multiprocessing.cpu_count(),
