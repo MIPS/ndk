@@ -31,6 +31,7 @@ import json
 import logging
 import multiprocessing
 import os
+import re
 import shutil
 import site
 import subprocess
@@ -71,9 +72,10 @@ def _make_tar_package(package_path, base_dir, path):
     else:
         compress_arg = '-j'
 
-    cmd = ['tar', compress_arg, '-cf',
-           package_path + '.tar.bz2', '-C', base_dir, path]
+    package_path = package_path + '.tar.bz2'
+    cmd = ['tar', compress_arg, '-cf', package_path, '-C', base_dir, path]
     subprocess.check_call(cmd)
+    return package_path
 
 
 def _make_zip_package(package_path, base_dir, path):
@@ -86,10 +88,11 @@ def _make_zip_package(package_path, base_dir, path):
         path (string): Path to the directory to package.
     """
     cwd = os.getcwd()
-    package_path = os.path.realpath(package_path)
+    package_path = os.path.realpath(package_path) + '.zip'
     os.chdir(base_dir)
     try:
-        subprocess.check_call(['zip', '-9qr', package_path + '.zip', path])
+        subprocess.check_call(['zip', '-9qr', package_path, path])
+        return package_path
     finally:
         os.chdir(cwd)
 
@@ -110,9 +113,9 @@ def package_ndk(ndk_dir, dist_dir, host_tag, build_number):
     base_dir = os.path.dirname(ndk_dir)
     files = os.path.basename(ndk_dir)
     if host_tag.startswith('windows'):
-        _make_zip_package(package_path, base_dir, files)
+        return _make_zip_package(package_path, base_dir, files)
     else:
-        _make_tar_package(package_path, base_dir, files)
+        return _make_tar_package(package_path, base_dir, files)
 
 
 def group_by_test(reports):
@@ -1664,6 +1667,12 @@ def main():
                     do_install, module, out_dir, dist_dir, args)
 
             wait_for_install(workqueue)
+
+        install_dir = ndk.paths.get_install_path(out_dir)
+        du_str = subprocess.check_output(['du', '-sm', install_dir])
+        match = re.match(r'^(\d+)', du_str)
+        size_str = match.group(1)
+        installed_size = int(size_str)
     finally:
         workqueue.terminate()
         workqueue.join()
@@ -1673,7 +1682,10 @@ def main():
         if do_package:
             print('Packaging NDK...')
             host_tag = build_support.host_to_tag(args.system)
-            package_ndk(ndk_dir, dist_dir, host_tag, args.build_number)
+            package_path = package_ndk(
+                ndk_dir, dist_dir, host_tag, args.build_number)
+            packaged_size_bytes = os.path.getsize(package_path)
+            packaged_size = packaged_size_bytes / (2 ** 20)
 
     good = True
     test_timer = ndk.timer.Timer()
@@ -1684,6 +1696,10 @@ def main():
 
     total_timer.finish()
 
+    print('')
+    print('Installed size: {} MiB'.format(installed_size))
+    if do_package:
+        print('Package size: {} MiB'.format(packaged_size))
     print('Finished {}'.format('successfully' if good else 'unsuccessfully'))
     print('Build: {}'.format(build_timer.duration))
     print('Install: {}'.format(install_timer.duration))
