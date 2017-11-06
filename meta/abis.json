@@ -9,6 +9,16 @@
     "default": true,
     "deprecated": false
   },
+  "mips": {
+    "bitness": 32,
+    "default": false,
+    "deprecated": false
+  },
+  "mips64": {
+    "bitness": 64,
+    "default": false,
+    "deprecated": false
+  },
   "x86": {
     "bitness": 32,
     "default": true,

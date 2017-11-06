@@ -398,59 +398,6 @@ def versioned_so(host, lib, version):
         raise ValueError('Unsupported host: {}'.format(host))
 
 
-def gradle_hack_toolchain(out_dir, host, name, toolchain):
-    # Create a mostly-empty MIPS[64] toolchain directory. The Android Gradle
-    # plugin, version 3.0.1 and earlier, needs this directory to run.
-    # https://issuetracker.google.com/69961029
-
-    host_tag = build_support.host_to_tag(host)
-    toolchains_dir = os.path.join(
-        ndk.paths.get_install_path(out_dir), 'toolchains')
-    host_dir = os.path.join(toolchains_dir, toolchain, 'prebuilt', host_tag)
-    os.makedirs(host_dir)
-
-    notice_text = textwrap.dedent("""\
-        This {} directory exists to make the NDK compatible with the Android
-        SDK's Gradle plugin, version 3.0.1 and earlier, which expects the NDK
-        to have a {} toolchain directory.
-        """.format(toolchain, name))
-
-    notice1_path = os.path.join(host_dir, 'NOTICE-{}'.format(name))
-    notice2_path = os.path.join(toolchains_dir, 'NOTICE-{}'.format(name))
-    with open(notice1_path, 'w') as fp:
-        fp.write(notice_text)
-    with open(notice2_path, 'w') as fp:
-        fp.write(notice_text)
-
-
-def gradle_hack_platform(out_dir, arch, sdk):
-    # Create mostly-empty MIPS[64] platform directories:
-    #  - platforms/android-14/arch-mips
-    #  - platforms/android-21/arch-mips64
-    # The Android Gradle plugin v3.0.1 and earlier needs them. See
-    # http://b/73499944.
-
-    platform_dir = os.path.join(
-        ndk.paths.get_install_path(out_dir), 'platforms',
-        'android-{}'.format(sdk))
-
-    mips_dir = os.path.join(platform_dir, 'arch-{}'.format(arch))
-    os.makedirs(mips_dir)
-
-    notice_text = textwrap.dedent("""\
-        This arch-{} directory exists to make the NDK compatible with the Android
-        SDK's Gradle plugin, version 3.0.1 and earlier, which expects this
-        directory to exist.
-        """.format(arch))
-
-    notice1_path = os.path.join(platform_dir, 'NOTICE-{}'.format(arch.upper()))
-    notice2_path = os.path.join(mips_dir, 'NOTICE-{}'.format(arch.upper()))
-    with open(notice1_path, 'w') as fp:
-        fp.write(notice_text)
-    with open(notice2_path, 'w') as fp:
-        fp.write(notice_text)
-
-
 class Gcc(ndk.builds.Module):
     name = 'gcc'
     path = 'toolchains/{toolchain}-4.9/prebuilt/{host}'
@@ -465,11 +412,6 @@ class Gcc(ndk.builds.Module):
 
         for arch in arches:
             self.install_arch(out_dir, args.system, arch)
-
-        gradle_hack_toolchain(
-            out_dir, args.system, 'MIPS', 'mipsel-linux-android-4.9')
-        gradle_hack_toolchain(
-            out_dir, args.system, 'MIPS64', 'mips64el-linux-android-4.9')
 
     def install_arch(self, out_dir, host, arch):
         version = '4.9'
@@ -543,6 +485,11 @@ class Gcc(ndk.builds.Module):
         else:
             libwinpthread = os.path.join(clang_bin, 'libwinpthread-1.dll')
             shutil.copy2(libwinpthread, bfd_plugins)
+
+        if arch.startswith('mips'):
+            # The mips toolchains are older than the others and don't have the
+            # toolchain wrapper scripts.
+            return
 
         # Remove the toolchain wrappers. These don't work on Windows and we
         # don't want them anyway.
@@ -799,7 +746,7 @@ class Platforms(ndk.builds.Module):
         return os.path.join(gcc_toolchain, 'bin', triple + '-' + tool)
 
     def libdir_name(self, arch):  # pylint: disable=no-self-use
-        if arch == 'x86_64':
+        if arch in ('mips64', 'x86_64'):
             return 'lib64'
         else:
             return 'lib'
@@ -824,9 +771,9 @@ class Platforms(ndk.builds.Module):
         return sorted(apis)
 
     def get_arches(self, api):  # pylint: disable=no-self-use
-        arches = ['arm', 'x86']
+        arches = ['arm', 'mips', 'x86']
         if api >= 21:
-            arches.extend(['arm64', 'x86_64'])
+            arches.extend(['arm64', 'mips64', 'x86_64'])
         return arches
 
     def get_build_cmd(self, dst, srcs, api, arch, build_number):
@@ -846,6 +793,11 @@ class Platforms(ndk.builds.Module):
             '-DABI_NDK_BUILD_NUMBER="{}"'.format(build_number),
             '-O2', '-fpic', '-Wl,-r', '-nostdlib', '-o', dst,
         ] + srcs
+
+        if arch == 'mips':
+            args.extend(['-mabi=32', '-mips32'])
+        elif arch == 'mips64':
+            args.extend(['-mabi=64', '-mips64r6'])
 
         return args
 
@@ -965,6 +917,12 @@ class Platforms(ndk.builds.Module):
                     # only a lib64. An empty lib dir is enough to convince it.
                     os.makedirs(os.path.join(
                         install_dir, platform, arch_name, 'usr/lib'))
+                elif arch == 'mips':
+                    # And GCC's driver won't accept a mips sysroot that doesn't
+                    # contain a lib64, because the 64-bit toolchain is used for
+                    # building 32-bit code.
+                    os.makedirs(os.path.join(
+                        install_dir, platform, arch_name, 'usr/lib64'))
 
                 # Install the CRT objects that we just built.
                 obj_dir = os.path.join(build_dir, platform, arch_name)
@@ -984,9 +942,6 @@ class Platforms(ndk.builds.Module):
         shutil.copy2(
             self.prebuilt_path('sysroot/NOTICE'),
             os.path.join(install_dir, 'NOTICE'))
-
-        gradle_hack_platform(out_dir, 'mips', 14)
-        gradle_hack_platform(out_dir, 'mips64', 21)
 
         build_support.make_repo_prop(install_dir)
         self.validate_notice(install_dir)
@@ -1650,7 +1605,7 @@ def parse_args():
 
     parser.add_argument(
         '--arch',
-        choices=('arm', 'arm64', 'x86', 'x86_64'),
+        choices=('arm', 'arm64', 'mips', 'mips64', 'x86', 'x86_64'),
         help='Build for the given architecture. Build all by default.')
     parser.add_argument(
         '-j', '--jobs', type=int, default=multiprocessing.cpu_count(),

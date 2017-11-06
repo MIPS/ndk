@@ -20,8 +20,11 @@ Announcements
 
  * gnustl and stlport are deprecated and will be removed in NDK r18.
 
- * Support for ARMv5 (armeabi), MIPS, and MIPS64 has been removed. Attempting to
-   build any of these ABIs will result in an error.
+ * Support for ARMv5 (armeabi) is deprecated. It will no longer build by default
+   with ndk-build, but is still buildable if it is explicitly named, and will be
+   included by "all" and "all32". Support for ARMv5 has been removed in r17.
+
+   Both CMake and ndk-build will issue a warning if you target this ABI.
 
  * Support for ICS (android-14 and android-15) will be removed from r18.
 
@@ -100,3 +103,10 @@ Known Issues
 
 [Issue 360]: https://github.com/android-ndk/ndk/issues/360
 [Issue 70838247]: https://issuetracker.google.com/70838247
+
+* [Issue 399]: MIPS64 must use the integrated assembler. Clang defaults to
+   using binutils rather than the integrated assembler for this target.
+   ndk-build and cmake handle this for you, but make sure to use
+   `-fintegrated-as` for MIPS64 for custom build systems.
+
+[Issue 399]: https://github.com/android-ndk/ndk/issues/399
