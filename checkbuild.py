@@ -280,6 +280,15 @@ class Clang(ndk.builds.Module):
             os.makedirs(install_parent)
         shutil.copytree(prebuilt_path, install_path)
 
+        # clang-4053586 was patched in the prebuilts directory to add the
+        # libc++ includes. These are almost certainly a different revision than
+        # the NDK libc++, and may contain local changes that the NDK's don't
+        # and vice versa. Best to just remove them for the time being since
+        # that returns to the previous behavior.
+        # https://github.com/android-ndk/ndk/issues/564#issuecomment-342307128
+        cxx_includes_path = os.path.join(install_path, 'include')
+        shutil.rmtree(cxx_includes_path)
+
         if args.system == 'windows':
             # We need to replace clang.exe with clang_32.exe and
             # libwinpthread-1.dll with libwinpthread-1.dll.32.
