@@ -249,14 +249,17 @@ def _install_file(src_file, dst_file):
 class Clang(ndk.builds.Module):
     name = 'clang'
     path = 'toolchains/llvm/prebuilt/{host}'
-    version = 'clang-4053586'
+    version = 'clang-4393122'
 
     def get_prebuilt_path(self, host):
         # The 32-bit Windows Clang is a part of the 64-bit Clang package in
         # prebuilts/clang.
-        platform_host_tag = host + '-x86'
-        if platform_host_tag.startswith('windows'):
+        if host == 'windows':
+            platform_host_tag = 'windows-x86_32'
+        elif host == 'windows64':
             platform_host_tag = 'windows-x86'
+        else:
+            platform_host_tag = host + '-x86'
 
         rel_prebuilt_path = 'prebuilts/clang/host/{}'.format(platform_host_tag)
         prebuilt_path = os.path.join(build_support.android_path(),
@@ -289,19 +292,7 @@ class Clang(ndk.builds.Module):
         cxx_includes_path = os.path.join(install_path, 'include')
         shutil.rmtree(cxx_includes_path)
 
-        if args.system == 'windows':
-            # We need to replace clang.exe with clang_32.exe and
-            # libwinpthread-1.dll with libwinpthread-1.dll.32.
-            os.rename(os.path.join(install_path, 'bin/clang_32.exe'),
-                      os.path.join(install_path, 'bin/clang.exe'))
-            os.rename(os.path.join(install_path, 'bin/libwinpthread-1.dll.32'),
-                      os.path.join(install_path, 'bin/libwinpthread-1.dll'))
-
-            # clang++.exe is not a symlink in the Windows package. Need to copy
-            # to there as well.
-            shutil.copy2(os.path.join(install_path, 'bin/clang.exe'),
-                         os.path.join(install_path, 'bin/clang++.exe'))
-        elif args.system in ('darwin', 'linux'):
+        if args.system in ('darwin', 'linux'):
             # The Linux and Darwin toolchains have Python compiler wrappers
             # that currently do nothing. We don't have these for Windows and we
             # want to make sure Windows behavior is consistent with the other
@@ -312,27 +303,49 @@ class Clang(ndk.builds.Module):
             os.rename(os.path.join(install_path, 'bin/clang++.real'),
                       os.path.join(install_path, 'bin/clang++'))
 
-        if args.system == 'darwin':
-            # The Clang driver is dumb and looks for LLVMgold.so regardless of
-            # platform.
-            libs_path = os.path.join(install_path, 'lib64')
-            os.rename(os.path.join(libs_path, 'LLVMgold.dylib'),
-                      os.path.join(libs_path, 'LLVMgold.so'))
+        clanglib_dir = 'lib64/clang'
+        if args.system == 'windows':
+            clanglib_dir = 'lib/clang'
 
-            # We don't build target binaries as part of the Darwin build. The
-            # Darwin toolchains need to get these from the Linux prebuilts.
+        install_clanglib = os.path.join(install_path, clanglib_dir)
+        linux_prebuilt_path = self.get_prebuilt_path('linux')
+
+        if args.system != 'linux':
+            # We don't build target binaries as part of the Darwin or Windows
+            # build. These toolchains need to get these from the Linux
+            # prebuilts.
             #
             # The headers and libraries we care about are all in lib64/clang
             # for both toolchains, and those two are intended to be identical
-            # between each host, so we can just replace Darwin's with the one
-            # from the Linux toolchain.
-            linux_prebuilt_path = self.get_prebuilt_path('linux')
-
-            clanglib_dir = 'lib64/clang'
-            install_clanglib = os.path.join(install_path, clanglib_dir)
-            linux_clanglib = os.path.join(linux_prebuilt_path, clanglib_dir)
+            # between each host, so we can just replace them with the one from
+            # the Linux toolchain.
+            linux_clanglib = os.path.join(linux_prebuilt_path, 'lib64/clang')
             shutil.rmtree(install_clanglib)
             shutil.copytree(linux_clanglib, install_clanglib)
+
+        # The Clang prebuilts have the platform toolchain libraries in
+        # lib64/clang. The libraries we want are in runtimes_ndk_cxx.
+        ndk_runtimes = os.path.join(linux_prebuilt_path, 'runtimes_ndk_cxx')
+        runtime_arches = ['aarch64', 'arm', 'i386', 'x86_64']
+        versions = os.listdir(install_clanglib)
+        for version in versions:
+            version_dir = os.path.join(install_clanglib, version)
+            dst_lib_dir = os.path.join(version_dir, 'lib/linux')
+            for arch in runtime_arches:
+                src_arch_dir = os.path.join(ndk_runtimes, arch)
+                dst_arch_dir = os.path.join(dst_lib_dir, arch)
+
+                # The install directory currently contains the platform
+                # libraries with the wrong arch name. We need to remove the
+                # wrongly named wrong libraries before we fix the arch name.
+                shutil.rmtree(dst_arch_dir)
+
+                shutil.copytree(src_arch_dir, dst_arch_dir)
+
+        # Also remove the other libraries that we installed, but they were only
+        # installed on Linux.
+        if args.system == 'linux':
+            shutil.rmtree(os.path.join(install_path, 'runtimes_ndk_cxx'))
 
 
 def get_gcc_prebuilt_path(host):
@@ -381,6 +394,7 @@ class Gcc(ndk.builds.Module):
                 'prebuilts/ndk/current/toolchains', host_tag, 'llvm/lib64')
             llvmgold = os.path.join(clang_libs, 'LLVMgold' + so)
             libcxx = os.path.join(clang_libs, 'libc++' + so)
+            libcxx_1 = os.path.join(clang_libs, 'libc++' + so + '.1')
             libllvm = os.path.join(clang_libs, 'libLLVM' + so)
 
             bfd_plugins = os.path.join(install_path, 'lib/bfd-plugins')
@@ -392,6 +406,7 @@ class Gcc(ndk.builds.Module):
             lib_dir = os.path.join(install_path, 'lib/lib64')
             os.makedirs(lib_dir)
             shutil.copy2(libcxx, lib_dir)
+            shutil.copy2(libcxx_1, lib_dir)
             shutil.copy2(libllvm, lib_dir)
 
         # Remove the toolchain wrappers. These don't work on Windows and we
