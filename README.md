@@ -98,23 +98,20 @@ Prerequisites
             -b master-ndk
         ```
 
-* Additional Linux Dependencies (available from apt):
-    * asciidoctor
-    * bison
-    * dos2unix
-    * flex
-    * libtool
-    * mingw-w64
-    * pbzip2 (optional, improves packaging times)
-    * python-lxml (used for Vulkan validation layer generation)
-    * python-nose
-    * python3 (used for Vulkan validation layer generation)
-    * texinfo
-    * zip
-* Mac OS X also requires Xcode.
-* Running tests requires that `adb` is in your `PATH`. This is provided as part
-  of the [Android SDK].
+Linux dependencies are listed in the [Dockerfile]. You can use docker to build
+the NDK:
 
+```bash
+docker build -t ndk-dev .
+docker run -it -u $UID -v `realpath ..`:/src -w /src/ndk ndk-dev ./checkbuild.py
+```
+
+Building on Mac OS X has similar dependencies as Linux, but also requires Xcode.
+
+Running tests requires that `adb` is in your `PATH`. This is provided as part of
+the [Android SDK].
+
+[Dockerfile]: infra/docker/Dockerfile
 [Android SDK]: https://developer.android.com/studio/index.html#downloads
 
 Building the NDK
