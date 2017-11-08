@@ -8,13 +8,13 @@ plug-ins with an existing IDE. This flexibility can be useful if you already
 have your own build system, and only need the ability to invoke the
 cross-compiler in order to add support to Android for it.
 
-A typical use case is invoking the configure script of an open-source library
-that expects a cross-compiler in the `CC` environment variable.
-
-Note: This page assumes significant understanding of compiling, linking, and
-low-level architecture. In addition, the techniques it describes are unnecessary
-for most use cases. In most cases, we recommend that you forego using a
-standalone toolchain, and instead stick to the NDK build system.
+Note: This information assumes you're familiar with how to compile
+and link native code. Standalone toolchains are not needed for code
+you've written yourself; for such a use case, you should utilize the
+existing build systems that the NDK supports. You should consider using
+a standalone toolchain if you are building an open-source library (for
+example when invoking a `configure` script). A working example is provided
+[below](#building_open_source_projects_using_standalone_toolchains).
 
 Selecting Your Toolchain
 ------------------------
@@ -243,3 +243,52 @@ The reason the shared version of the libraries is not simply called
 `libstdc++.so` is that this name would conflict at runtime with the system's own
 minimal C++ runtime. For this reason, the build system enforces a new name for
 the GNU library. The static library does not have this problem.
+
+Building Open Source Projects Using Standalone Toolchains
+---------------------------------------------------------
+
+Given this example toolchain:
+
+```bash
+# Create an arm64 API 26 libc++ toolchain.
+$NDK/build/tools/make_standalone_toolchain.py \
+  --arch arm64 \
+  --api 26 \
+  --stl=libc++ \
+  --install-dir=my-toolchain
+```
+
+Here's how you'd set up your environment to use it to build a traditional
+open source project:
+
+```bash
+# Add the standalone toolchain to the search path.
+export PATH=$PATH:`pwd`/my-toolchain/bin
+
+# Tell configure what tools to use.
+target_host=aarch64-linux-android
+export AR=$target_host-ar
+export AS=$target_host-clang
+export CC=$target_host-clang
+export CXX=$target_host-clang++
+export LD=$target_host-ld
+export STRIP=$target_host-strip
+
+# Tell configure what flags Android requires.
+export CFLAGS="-fPIE -fPIC"
+export LDFLAGS="-pie"
+```
+
+As an example, here's how to build toybox after performing the previous steps:
+
+```bash
+git clone https://github.com/landley/toybox.git
+cd toybox
+make defconfig && make
+```
+
+Alternatively a configure-based project would look more like this:
+
+```bash
+./configure && make
+```
