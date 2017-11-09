@@ -21,7 +21,7 @@ import os
 import shutil
 
 import ndk.abis
-import config
+import ndk.config
 
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
@@ -101,7 +101,7 @@ def get_install_path(out_dir=None):
     Returns:
         Directory that the built NDK should be installed to.
     """
-    release_name = 'android-ndk-{}'.format(config.release)
+    release_name = 'android-ndk-{}'.format(ndk.config.release)
     return path_in_out(release_name, out_dir)
 
 

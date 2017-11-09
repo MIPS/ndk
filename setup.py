@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 # Copyright (C) 2017 The Android Open Source Project
 #
@@ -14,13 +13,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Shortcut for ndk/run_tests.py.
+"""Setup module for the NDK build and test tools."""
+from __future__ import absolute_import
 
-This would normally be installed by pip, but we want to keep this in place in
-the source directory since the buildbots expect it to be here.
-"""
-import ndk.run_tests
+import os
+import setuptools
 
 
-if __name__ == '__main__':
-    ndk.run_tests.main()
+THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+
+
+with open(os.path.join(THIS_DIR, 'README.md')) as readme_file:
+    LONG_DESCRIPTION = readme_file.read()
+
+
+setuptools.setup(
+    name='ndk',
+    version='1.0.0',
+
+    description='Build and test tools for working on the NDK.',
+    long_description=LONG_DESCRIPTION,
+
+    packages=setuptools.find_packages(),
+
+    entry_points={
+        'console_scripts': [
+            'run_tests.py = ndk.run_tests:main',
+        ],
+    },
+)

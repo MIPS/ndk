@@ -283,6 +283,16 @@ class ScriptShortcutModule(Module):
         return scripts[0]
 
 
+class PythonPackage(Module):
+    def build(self, _out_dir, dist_dir, _args):
+        cwd = os.path.dirname(self.path)
+        subprocess.check_call(
+            ['python', self.path, 'sdist', '-d', dist_dir], cwd=cwd)
+
+    def install(self, _out_dir, _dist_dir, _args):
+        pass
+
+
 def _invoke_build(script, args):
     if args is None:
         args = []

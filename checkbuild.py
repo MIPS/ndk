@@ -39,10 +39,10 @@ import tempfile
 import textwrap
 import traceback
 
-import config
 import build.lib.build_support as build_support
 import ndk.ansi
 import ndk.builds
+import ndk.config
 import ndk.ext.shutil
 import ndk.notify
 import ndk.paths
@@ -716,7 +716,7 @@ class Platforms(ndk.builds.Module):
             '--sysroot', self.prebuilt_path('sysroot'),
             '-I', bionic_includes,
             '-DPLATFORM_SDK_VERSION={}'.format(api),
-            '-DABI_NDK_VERSION="{}"'.format(config.release),
+            '-DABI_NDK_VERSION="{}"'.format(ndk.config.release),
             '-DABI_NDK_BUILD_NUMBER="{}"'.format(build_number),
             '-O2', '-fpic', '-Wl,-r', '-nostdlib', '-o', dst,
         ] + srcs
@@ -1055,10 +1055,10 @@ class Sysroot(ndk.builds.Module):
             ndk_version_h_path = os.path.join(
                 install_path, 'usr/include/android/ndk-version.h')
             with open(ndk_version_h_path, 'w') as ndk_version_h:
-                major = config.major
-                minor = config.hotfix
-                beta = config.beta
-                canary = '1' if config.canary else '0'
+                major = ndk.config.major
+                minor = ndk.config.hotfix
+                beta = ndk.config.beta
+                canary = '1' if ndk.config.canary else '0'
                 build = args.build_number
                 if build == 'dev':
                     build = '-1'
@@ -1376,7 +1376,7 @@ class CanaryReadme(ndk.builds.Module):
         pass
 
     def install(self, out_dir, _dist_dir, _args):
-        if config.canary:
+        if ndk.config.canary:
             extract_dir = ndk.paths.get_install_path(out_dir)
             canary_path = os.path.join(extract_dir, self.path)
             with open(canary_path, 'w') as canary_file:
@@ -1405,13 +1405,29 @@ class SourceProperties(ndk.builds.Module):
         path = os.path.join(install_dir, self.path)
         with open(path, 'w') as source_properties:
             version = '{}.{}.{}'.format(
-                config.major, config.hotfix, args.build_number)
-            if config.beta > 0:
-                version += '-beta{}'.format(config.beta)
+                ndk.config.major, ndk.config.hotfix, args.build_number)
+            if ndk.config.beta > 0:
+                version += '-beta{}'.format(ndk.config.beta)
             source_properties.writelines([
                 'Pkg.Desc = Android NDK\n',
                 'Pkg.Revision = {}\n'.format(version)
             ])
+
+
+class AdbPy(ndk.builds.PythonPackage):
+    name = 'adb.py'
+    path = build_support.android_path(
+        'development/python-packages/adb/setup.py')
+
+
+class Lit(ndk.builds.PythonPackage):
+    name = 'lit'
+    path = build_support.android_path('external/llvm/utils/lit/setup.py')
+
+
+class NdkPy(ndk.builds.PythonPackage):
+    name = 'ndk.py'
+    path = build_support.ndk_path('setup.py')
 
 
 def launch_build(worker, module, out_dir, dist_dir, args, log_dir):
@@ -1453,6 +1469,7 @@ def get_modules_to_build(module_names, arches):
 
 
 ALL_MODULES = [
+    AdbPy(),
     CanaryReadme(),
     Changelog(),
     Clang(),
@@ -1467,6 +1484,7 @@ ALL_MODULES = [
     LibShaderc(),
     Libcxx(),
     Libcxxabi(),
+    Lit(),
     Meta(),
     NativeAppGlue(),
     NdkBuild(),
@@ -1475,6 +1493,7 @@ ALL_MODULES = [
     NdkDependsShortcut(),
     NdkGdbShortcut(),
     NdkHelper(),
+    NdkPy(),
     NdkStack(),
     NdkStackShortcut(),
     NdkWhichShortcut(),
