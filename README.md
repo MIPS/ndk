@@ -102,7 +102,7 @@ Linux dependencies are listed in the [Dockerfile]. You can use docker to build
 the NDK:
 
 ```bash
-docker build -t ndk-dev .
+docker build -t ndk-dev infra/docker
 docker run -it -u $UID -v `realpath ..`:/src -w /src/ndk ndk-dev ./checkbuild.py
 ```
 
