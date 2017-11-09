@@ -18,6 +18,7 @@
 from __future__ import print_function
 
 import argparse
+import collections
 import json
 import logging
 import multiprocessing
@@ -648,9 +649,13 @@ def parse_args():
         help='Path to the config file describing the test run.')
 
     build_options = parser.add_argument_group('Build Options')
-    build_options.add_argument(
+    build_exclusive_group = build_options.add_mutually_exclusive_group()
+    build_exclusive_group.add_argument(
         '--rebuild', action='store_true',
         help='Build the tests before running.')
+    build_exclusive_group.add_argument(
+        '--build-only', action='store_true',
+        help='Builds the tests and exits.')
     build_options.add_argument(
         '--clean', action='store_true',
         help='Remove the out directory before building.')
@@ -747,19 +752,32 @@ class ShardingWorkQueue(object):
         return self.num_tasks == 0
 
 
-def main():
-    total_timer = ndk.timer.Timer()
-    total_timer.start()
+class Results(object):
+    def __init__(self):
+        self.success = None
+        self.failure_message = None
+        self.times = collections.OrderedDict()
+        self.sizes = collections.OrderedDict()
 
-    args = parse_args()
+    def passed(self):
+        if self.success is not None:
+            raise ValueError
+        self.success = True
 
-    log_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
-    verbosity = min(args.verbose, len(log_levels) - 1)
-    log_level = log_levels[verbosity]
-    logging.basicConfig(level=log_level)
+    def failed(self, message=None):
+        if self.success is not None:
+            raise ValueError
+        self.success = False
+        self.failure_message = message
 
-    python_packages = os.path.join(args.ndk, 'python-packages')
-    site.addsitedir(python_packages)
+    def add_timing_report(self, label, timer):
+        if label in self.times:
+            raise ValueError
+        self.times[label] = timer.duration
+
+
+def run_tests(args):
+    results = Results()
 
     if not os.path.exists(args.test_dir):
         if args.rebuild:
@@ -771,17 +789,28 @@ def main():
         args.config, args.abi, args.toolchain, args.pie)
 
     printer = printers.StdoutPrinter(show_all=args.show_all)
-    build_timer = ndk.timer.Timer()
-    with build_timer:
-        if args.rebuild:
+
+    if args.build_only or args.rebuild:
+        build_timer = ndk.timer.Timer()
+        with build_timer:
             report = build_tests(
                 args.ndk, args.test_dir, args.clean, printer, test_config,
                 args.filter)
-            if report.num_tests == 0:
-                sys.exit('Found no tests for filter {}.'.format(args.filter))
-            printer.print_summary(report)
-            if not report.successful:
-                sys.exit(report.num_failed)
+
+        results.add_timing_report('Build', build_timer)
+
+        if report.num_tests == 0:
+            results.failed('Found no tests for filter {}.'.format(args.filter))
+            return results
+
+        printer.print_summary(report)
+        if not report.successful:
+            results.failed()
+            return results
+
+    if args.build_only:
+        results.passed()
+        return results
 
     test_dist_dir = os.path.join(args.test_dir, 'dist')
     test_filter = filters.TestFilter.from_string(args.filter)
@@ -791,13 +820,17 @@ def main():
     with test_discovery_timer:
         test_groups = enumerate_tests(
             test_dist_dir, test_filter, config_filter)
+    results.add_timing_report('Test discovery', test_discovery_timer)
 
     if sum([len(tests) for tests in test_groups.values()]) == 0:
-        print('Found no tests in {} for filter {}.'.format(
-            test_dist_dir, args.filter))
         # As long as we *built* some tests, not having anything to run isn't a
         # failure.
-        sys.exit(not args.rebuild)
+        if args.rebuild:
+            results.passed()
+        else:
+            results.failed('Found no tests in {} for filter {}.'.format(
+                test_dist_dir, args.filter))
+        return results
 
     if args.show_test_stats:
         print_test_stats(test_groups)
@@ -826,9 +859,12 @@ def main():
         with device_discovery_timer:
             fleet = ndk.test.devices.find_devices(
                 test_config['devices'], workqueue)
+        results.add_timing_report('Device discovery', device_discovery_timer)
+
         have_all_devices = verify_have_all_requested_devices(fleet)
         if args.require_all_devices and not have_all_devices:
-            sys.exit('Some requested devices were not available. Quitting.')
+            results.failed('Some requested devices were not available.')
+            return results
 
         groups_for_config = match_configs_to_device_groups(
             fleet, test_groups.keys())
@@ -837,18 +873,22 @@ def main():
 
         report = ndk.test.report.Report()
         clean_device_timer = ndk.timer.Timer()
-        with clean_device_timer:
-            if args.clean_device:
+        if args.clean_device:
+            with clean_device_timer:
                 clear_test_directories(workqueue, fleet)
+            results.add_timing_report('Clean device', clean_device_timer)
+
         can_use_sync = adb_has_feature('push_sync')
         push_timer = ndk.timer.Timer()
         with push_timer:
             push_tests_to_devices(
                 workqueue, test_dist_dir, groups_for_config, can_use_sync)
+        results.add_timing_report('Push', push_timer)
 
         asan_setup_timer = ndk.timer.Timer()
         with asan_setup_timer:
             perform_asan_setup(workqueue, args.ndk, groups_for_config)
+        results.add_timing_report('ASAN setup', asan_setup_timer)
     finally:
         workqueue.terminate()
         workqueue.join()
@@ -871,33 +911,52 @@ def main():
             wait_for_results(report, shard_queue, printer)
             restart_flaky_tests(report, shard_queue)
             wait_for_results(report, shard_queue, printer)
+        results.add_timing_report('Run', test_run_timer)
 
         printer.print_summary(report)
     finally:
         shard_queue.terminate()
         shard_queue.join()
 
-    total_timer.finish()
+    if report.successful:
+        results.passed()
+    else:
+        results.failed()
 
-    print('Finished {}'.format(
-        'successfully' if report.successful else 'unsuccessfully'))
-    if args.rebuild:
-        print('Build: {}'.format(build_timer.duration))
-    print('Test discovery: {}'.format(test_discovery_timer.duration))
-    print('Device discovery: {}'.format(device_discovery_timer.duration))
-    if args.clean_device:
-        print('Clean device: {}'.format(clean_device_timer.duration))
-    print('Push: {}'.format(push_timer.duration))
-    print('ASAN setup: {}'.format(asan_setup_timer.duration))
-    print('Run: {}'.format(test_run_timer.duration))
+    return results
+
+
+def main():
+    args = parse_args()
+
+    log_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
+    verbosity = min(args.verbose, len(log_levels) - 1)
+    log_level = log_levels[verbosity]
+    logging.basicConfig(level=log_level)
+
+    python_packages = os.path.join(args.ndk, 'python-packages')
+    site.addsitedir(python_packages)
+
+    total_timer = ndk.timer.Timer()
+    with total_timer:
+        results = run_tests(args)
+
+    if results.success is None:
+        raise RuntimeError(
+            'run_tests returned without indicating success or failure.')
+
+    good = results.success
+    print('Finished {}'.format('successfully' if good else 'unsuccessfully'))
+
+    for timer, duration in results.times.items():
+        print('{}: {}'.format(timer, duration))
     print('Total: {}'.format(total_timer.duration))
 
-    subject = 'NDK Testing {}!'.format(
-        'Passed' if report.successful else 'Failed')
+    subject = 'NDK Testing {}!'.format('Passed' if good else 'Failed')
     body = 'Testing finished in {}'.format(total_timer.duration)
     ndk.notify.toast(subject, body)
 
-    sys.exit(not report.successful)
+    sys.exit(not good)
 
 
 if __name__ == '__main__':
