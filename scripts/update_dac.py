@@ -14,7 +14,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Builds the user documentation and copies it into a DAC tree."""
+
+"""Builds the docs/user documentation and copies it into a DAC tree.
+
+To use (inside Google):
+
+g4 citc update-dac
+$NDK/scripts/update_dac.py /google/src/cloud/$USER/update-dac/google3
+cd /google/src/cloud/$USER/update-dac/google3
+g4 mail
+"""
+
 import argparse
 import logging
 import os
