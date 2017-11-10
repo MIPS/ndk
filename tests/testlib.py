@@ -172,8 +172,8 @@ class LibcxxTestScanner(TestScanner):
         for root, _dirs, files in os.walk(test_base_dir):
             for test_file in files:
                 if test_file.endswith('.cpp'):
-                    test_path = os.path.relpath(
-                        os.path.join(root, test_file), test_base_dir)
+                    test_path = util.to_posix_path(os.path.relpath(
+                        os.path.join(root, test_file), test_base_dir))
                     cls.ALL_TESTS.append(test_path)
 
 
@@ -900,7 +900,7 @@ def get_xunit_reports(xunit_file, config, ndk_path):
         mangled_path = '/'.join([mangled_test_dir, test_case.get('name')])
 
         # ... that has had '.' in its path replaced with '_' because xunit.
-        test_matches = find_original_libcxx_test(mangled_path)
+        test_matches = find_original_libcxx_test(mangled_path, ndk_path)
         if len(test_matches) == 0:
             raise RuntimeError('Found no matches for test ' + mangled_path)
         if len(test_matches) > 1:
@@ -985,7 +985,7 @@ class LibcxxTest(Test):
         xunit_output = os.path.join(build_dir, 'xunit.xml')
 
         lit_args = [
-            lit_path, '-sv',
+            'python', lit_path, '-sv',
             '--param=device_dir=' + device_dir,
             '--param=unified_headers=True',
             '--param=build_only=True',
@@ -1132,13 +1132,15 @@ class LibcxxTestConfig(DeviceTestConfig):
         # pylint: enable=unused-argument,arguments-differ
 
 
-def find_original_libcxx_test(name):
+def find_original_libcxx_test(name, ndk_path):
     """Finds the original libc++ test file given the xunit test name.
 
     LIT mangles test names to replace all periods with underscores because
     xunit. This returns all tests that could possibly match the xunit test
     name.
     """
+
+    name = util.to_posix_path(name)
 
     # LIT special cases tests in the root of the test directory (such as
     # test/nothing_to_do.pass.cpp) as "libc++.libc++/$TEST_FILE.pass.cpp" for
@@ -1153,6 +1155,11 @@ def find_original_libcxx_test(name):
     name = name[len(test_prefix):]
     test_pattern = name.replace('_', '?')
     matches = []
+
+    # On Windows, a multiprocessing worker process does not inherit ALL_TESTS,
+    # so we must scan libc++ tests in each worker.
+    LibcxxTestScanner.find_all_libcxx_tests(ndk_path)
+
     for match in fnmatch.filter(LibcxxTestScanner.ALL_TESTS, test_pattern):
         matches.append(test_prefix + match)
     return matches

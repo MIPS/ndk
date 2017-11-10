@@ -48,6 +48,7 @@ import ndk.workqueue
 import tests.filters as filters
 import tests.printers as printers
 import tests.testlib as testlib
+import tests.util as util
 
 
 DEVICE_TEST_BASE_DIR = '/data/local/tmp/tests'
@@ -260,10 +261,8 @@ def enumerate_basic_tests(out_dir_base, build_cfg, build_system, test_filter):
         test_dir = os.path.join(tests_dir, test_subdir)
         out_dir = os.path.join(test_dir, build_cfg.abi)
         test_relpath = os.path.relpath(out_dir, out_dir_base)
-        device_relpath = test_relpath
-        if sys.platform == 'win32':
-            device_relpath = device_relpath.replace('\\', '/')
-        device_dir = posixpath.join(DEVICE_TEST_BASE_DIR, device_relpath)
+        device_dir = posixpath.join(
+            DEVICE_TEST_BASE_DIR, util.to_posix_path(test_relpath))
         for test_file in os.listdir(out_dir):
             if test_file.endswith('.so'):
                 continue
@@ -286,8 +285,9 @@ def enumerate_libcxx_tests(out_dir_base, build_cfg, build_system, test_filter):
             if not test_file.endswith('.exe'):
                 continue
             test_relpath = os.path.relpath(root, out_dir_base)
-            device_dir = posixpath.join(DEVICE_TEST_BASE_DIR, test_relpath)
-            suite_name = os.path.relpath(root, tests_dir)
+            device_dir = posixpath.join(
+                DEVICE_TEST_BASE_DIR, util.to_posix_path(test_relpath))
+            suite_name = util.to_posix_path(os.path.relpath(root, tests_dir))
 
             # Our file has a .exe extension, but the name should match the
             # source file for the filters to work.
@@ -298,7 +298,6 @@ def enumerate_libcxx_tests(out_dir_base, build_cfg, build_system, test_filter):
             if not suite_name == 'libc++':
                 if not suite_name.startswith('libc++/'):
                     raise ValueError(suite_name)
-                assert suite_name.startswith('libc++/')
                 # According to the test runner, these are all part of the
                 # "libc++" test, and the rest of the data is the subtest name.
                 # i.e.  libc++/foo/bar/baz.cpp.exe is actually

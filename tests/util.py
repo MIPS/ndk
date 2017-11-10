@@ -15,6 +15,7 @@
 #
 import contextlib
 import os
+import sys
 
 
 def color_string(string, color):
@@ -39,3 +40,10 @@ def cd(path):
         yield
     finally:
         os.chdir(curdir)
+
+
+def to_posix_path(path):
+    if sys.platform == 'win32':
+        return path.replace('\\', '/')
+    else:
+        return path
