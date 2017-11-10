@@ -60,32 +60,58 @@ class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
     ]
 
 
+class UseLastErrorWinDLL(ctypes.WinDLL):
+    def __init__(self, name, mode=ctypes.DEFAULT_MODE, handle=None):
+        super(UseLastErrorWinDLL, self).__init__(name, mode, handle, use_last_error=True)
+
+_LOADER = ctypes.LibraryLoader(UseLastErrorWinDLL)
+
+
 def CreateJobObject(attributes=None, name=None):
-    job = ctypes.windll.kernel32.CreateJobObjectA(attributes, name)
+    fn_CreateJobObjectW = _LOADER.kernel32.CreateJobObjectW
+    fn_CreateJobObjectW.restype = ctypes.wintypes.HANDLE
+    fn_CreateJobObjectW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p]
+    job = fn_CreateJobObjectW(attributes, name)
     if job is None:
         # Automatically calls GetLastError and FormatError for us to create the
         # WindowsError exception.
-        raise ctypes.WinError()
+        raise ctypes.WinError(ctypes.get_last_error())
     return job
 
 
 def SetInformationJobObject(job, info_class, info):
-    result = ctypes.windll.kernel32.SetInformationJobObject(
+    fn_SetInformationJobObject = _LOADER.kernel32.SetInformationJobObject
+    fn_SetInformationJobObject.restype = ctypes.wintypes.BOOL
+    fn_SetInformationJobObject.argtypes = [
+        ctypes.wintypes.HANDLE,
+        ctypes.c_int,
+        ctypes.c_void_p,
+        ctypes.wintypes.DWORD
+    ]
+    result = fn_SetInformationJobObject(
         job, JobObjectExtendedLimitInformation,
         ctypes.pointer(info), ctypes.sizeof(info))
     if not result:
-        raise ctypes.WinError()
+        raise ctypes.WinError(ctypes.get_last_error())
 
 
 def AssignProcessToJobObject(job, process):
-    if not ctypes.windll.kernel32.AssignProcessToJobObject(job, process):
-        raise ctypes.WinError()
+    fn_AssignProcessToJobObject = _LOADER.kernel32.AssignProcessToJobObject
+    fn_AssignProcessToJobObject.restype = ctypes.wintypes.BOOL
+    fn_AssignProcessToJobObject.argtypes = [ctypes.wintypes.HANDLE, ctypes.wintypes.HANDLE]
+    if not fn_AssignProcessToJobObject(job, process):
+        raise ctypes.WinError(ctypes.get_last_error())
 
 
 def GetCurrentProcess():
-    return ctypes.windll.kernel32.GetCurrentProcess()
+    fn_GetCurrentProcess = _LOADER.kernel32.GetCurrentProcess
+    fn_GetCurrentProcess.restype = ctypes.wintypes.HANDLE
+    return fn_GetCurrentProcess()
 
 
 def CloseHandle(handle):
-    if not ctypes.windll.kernel32.CloseHandle(handle):
-        raise ctypes.WinError()
+    fn_CloseHandle = _LOADER.kernel32.CloseHandle
+    fn_CloseHandle.restype = ctypes.wintypes.BOOL
+    fn_CloseHandle.argtypes = [ctypes.wintypes.HANDLE]
+    if not fn_CloseHandle(handle):
+        raise ctypes.WinError(ctypes.get_last_error())
