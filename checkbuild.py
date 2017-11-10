@@ -357,6 +357,15 @@ def get_gcc_prebuilt_path(host):
     return prebuilt_path
 
 
+def versioned_so(host, lib, version):
+    if host == 'darwin':
+        return '{}.{}.dylib'.format(lib, version)
+    elif host == 'linux':
+        return '{}.so.{}'.format(lib, version)
+    else:
+        raise ValueError('Unsupported host: {}'.format(host))
+
+
 class Gcc(ndk.builds.Module):
     name = 'gcc'
     path = 'toolchains/{toolchain}-4.9/prebuilt/{host}'
@@ -394,7 +403,8 @@ class Gcc(ndk.builds.Module):
                 'prebuilts/ndk/current/toolchains', host_tag, 'llvm/lib64')
             llvmgold = os.path.join(clang_libs, 'LLVMgold' + so)
             libcxx = os.path.join(clang_libs, 'libc++' + so)
-            libcxx_1 = os.path.join(clang_libs, 'libc++' + so + '.1')
+            libcxx_1 = os.path.join(
+                clang_libs, versioned_so(host, 'libc++', '1'))
             libllvm = os.path.join(clang_libs, 'libLLVM' + so)
 
             bfd_plugins = os.path.join(install_path, 'lib/bfd-plugins')
