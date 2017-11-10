@@ -951,6 +951,72 @@ class LibcxxTest(Test):
     def get_build_dir(self, out_dir):
         return os.path.join(out_dir, str(self.config), 'libcxx', self.name)
 
+    def run_lit(self, build_dir, filters):
+        libcxx_dir = os.path.join(self.ndk_path, 'sources/cxx-stl/llvm-libc++')
+        device_dir = '/data/local/tmp/libcxx'
+
+        arch = build.lib.build_support.abi_to_arch(self.abi)
+        host_tag = ndk.hosts.get_host_tag(self.ndk_path)
+        triple = build.lib.build_support.arch_to_triple(arch)
+        toolchain = build.lib.build_support.arch_to_toolchain(arch)
+
+        lit_path = build.lib.build_support.android_path(
+            'external/llvm/utils/lit/lit.py')
+
+        pie = self.config.force_pie or self.abi in ndk.abis.LP64_ABIS
+
+        replacements = [
+            ('abi', self.abi),
+            ('api', self.api),
+            ('arch', arch),
+            ('host_tag', host_tag),
+            ('toolchain', toolchain),
+            ('triple', triple),
+            ('use_pie', pie),
+            ('build_dir', build_dir),
+        ]
+        lit_cfg_args = []
+        for key, value in replacements:
+            lit_cfg_args.append('--param={}={}'.format(key, value))
+
+        shutil.copy2(os.path.join(libcxx_dir, 'test/lit.ndk.cfg.in'),
+                     os.path.join(libcxx_dir, 'test/lit.site.cfg'))
+
+        xunit_output = os.path.join(build_dir, 'xunit.xml')
+
+        lit_args = [
+            lit_path, '-sv',
+            '--param=device_dir=' + device_dir,
+            '--param=unified_headers=True',
+            '--param=build_only=True',
+            '--no-progress-bar',
+            '--show-all',
+            '--xunit-xml-output=' + xunit_output,
+        ] + lit_cfg_args
+
+        default_test_path = os.path.join(libcxx_dir, 'test')
+        test_paths = list(filters)
+        if len(test_paths) == 0:
+            test_paths.append(default_test_path)
+        for test_path in test_paths:
+            lit_args.append(test_path)
+
+        # Ignore the exit code. We do most XFAIL processing outside the test
+        # runner so expected failures in the test runner will still cause a
+        # non-zero exit status. This "test" only fails if we encounter a Python
+        # exception. Exceptions raised from our code are already caught by the
+        # test runner. If that happens in LIT, the xunit output will not be
+        # valid and we'll fail get_xunit_reports and raise an exception anyway.
+        with open(os.devnull, 'w') as dev_null:
+            stdout = dev_null
+            stderr = dev_null
+            if logger().isEnabledFor(logging.INFO):
+                stdout = None
+                stderr = None
+            env = dict(os.environ)
+            env['NDK'] = self.ndk_path
+            subprocess.call(lit_args, env=env, stdout=stdout, stderr=stderr)
+
     def run(self, obj_dir, dist_dir, test_filters):
         build_dir = self.get_build_dir(dist_dir)
 
@@ -965,31 +1031,10 @@ class LibcxxTest(Test):
         libcxx_test_path = os.path.join(libcxx_path, 'test')
         shutil.copy2(libcxx_so_path, build_dir)
 
-        cmd = [
-            'python', 'test_libcxx.py',
-            '--abi', self.abi,
-            '--platform', str(self.api),
-            '--xunit-xml-output=' + xunit_output,
-            '--timeout=600',
-            '--ndk=' + self.ndk_path,
-
-            # We don't want the progress bar since we're already printing our
-            # own output, so we need --show-all so we get *some* output,
-            # otherwise it would just be quiet for several minutes and it
-            # wouldn't be clear if something had hung.
-            '--no-progress-bar',
-            '--show-all',
-            '--build-only',
-
-            '--out-dir', build_dir,
-        ]
-
-        if self.config.force_pie or self.abi in ndk.abis.LP64_ABIS:
-            cmd.append('--pie')
-
         # The libc++ test runner's filters are path based. Assemble the path to
         # the test based on the late_filters (early filters for a libc++ test
         # would be simply "libc++", so that's not interesting at this stage).
+        filters = []
         for late_filter in test_filters.late_filters:
             filter_pattern = late_filter.pattern
             if not filter_pattern.startswith('libc++.'):
@@ -1008,22 +1053,8 @@ class LibcxxTest(Test):
             else:
                 assert os.path.isfile(path)
 
-            cmd.append(path)
-
-        # Ignore the exit code. We do most XFAIL processing outside the test
-        # runner so expected failures in the test runner will still cause a
-        # non-zero exit status. This "test" only fails if we encounter a Python
-        # exception. Exceptions raised from our code are already caught by the
-        # test runner. If that happens in test_libcxx.py or in LIT, the xunit
-        # output will not be valid and we'll fail get_xunit_reports and raise
-        # an exception anyway.
-        with open(os.devnull, 'w') as dev_null:
-            stdout = dev_null
-            stderr = dev_null
-            if logger().isEnabledFor(logging.INFO):
-                stdout = None
-                stderr = None
-            subprocess.call(cmd, stdout=stdout, stderr=stderr)
+            filters.append(path)
+        self.run_lit(build_dir, filters)
 
         for root, _, files in os.walk(libcxx_test_path):
             for test_file in files:
