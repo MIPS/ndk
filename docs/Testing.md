@@ -201,3 +201,23 @@ Note that `-writable-system` is only necessary for running the ASAN tests.
 
 Note that there are no ARM64 emulators whatsoever in the SDK manager. Testing
 ARM64 will require a physical device.
+
+
+Windows VMs
+-----------
+
+Windows testing can be done on Windows VMs in Google Compute Engine. To create
+one:
+
+ * Install the [Google Cloud SDK](https://cloud.google.com/sdk/).
+ * Run `scripts/create_windows_instance.py $PROJECT_NAME $INSTANCE_NAME`
+   * The project name is the name of the project you configured for the VMs.
+   * The instance name is whatever name you want to use for the VM.
+
+This process will create a `secrets.py` file in the NDK project directory that
+contains the connection information.
+
+The VM will have Chrome and Git installed and WinRM will be configured for
+remote command line access.
+
+TODO: Implement `run_tests.py --remote-build`.

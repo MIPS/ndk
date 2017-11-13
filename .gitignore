@@ -5,3 +5,4 @@ Thumbs.db
 local.properties
 build.xml
 /host-tools/
+/secrets.py
