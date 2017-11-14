@@ -16,7 +16,6 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import distutils.spawn
 import fnmatch
 import imp
 import logging
@@ -33,6 +32,7 @@ import xml.etree.ElementTree
 import build.lib.build_support
 import ndk.abis
 import ndk.ansi
+import ndk.ext.shutil
 import ndk.ext.subprocess
 import ndk.test.report
 from ndk.test.result import (Success, Failure, Skipped, ExpectedFailure,
@@ -586,8 +586,9 @@ def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
 
     # Skip if we don't have a working cmake executable, either from the
     # prebuilts, or from the SDK, or if a new enough version is installed.
-    if distutils.spawn.find_executable('cmake') is None:
+    if ndk.ext.shutil.which('cmake') is None:
         return Skipped(test, 'cmake executable not found')
+
     out = subprocess.check_output(['cmake', '--version'], env=env)
     version_pattern = r'cmake version (\d+)\.(\d+)\.'
     version = [int(v) for v in re.match(version_pattern, out).groups()]

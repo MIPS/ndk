@@ -24,7 +24,6 @@ from __future__ import print_function
 
 import argparse
 import copy
-import distutils.spawn
 import errno
 import inspect
 import json
@@ -44,6 +43,7 @@ import config
 import build.lib.build_support as build_support
 import ndk.ansi
 import ndk.builds
+import ndk.ext.shutil
 import ndk.notify
 import ndk.paths
 import ndk.test.builder
@@ -64,7 +64,7 @@ def _make_tar_package(package_path, base_dir, path):
                            packaging (identical to tar's -C).
         path (string): Path to the directory to package.
     """
-    has_pbzip2 = distutils.spawn.find_executable('pbzip2') is not None
+    has_pbzip2 = ndk.ext.shutil.which('pbzip2') is not None
     if has_pbzip2:
         compress_arg = '--use-compress-prog=pbzip2'
     else:
