@@ -78,8 +78,9 @@ class TestCase(object):
     will have a name, a build configuration, a build system, and a device
     directory.
     """
-    def __init__(self, name, config, build_system, device_dir):
+    def __init__(self, name, test_src_dir, config, build_system, device_dir):
         self.name = name
+        self.test_src_dir = test_src_dir
         self.config = config
         self.build_system = build_system
         self.device_dir = device_dir
@@ -102,10 +103,11 @@ class BasicTestCase(TestCase):
     $TEST_SUITE/$ABI/$TEST_FILES. $TEST_FILES includes both the shared
     libraries for the test and the test executables.
     """
-    def __init__(self, suite, executable, config, build_system, device_dir):
+    def __init__(self, suite, executable, test_src_dir, config, build_system,
+                 device_dir):
         name = '.'.join([suite, executable])
         super(BasicTestCase, self).__init__(
-            name, config, build_system, device_dir)
+            name, test_src_dir, config, build_system, device_dir)
 
         self.suite = suite
         self.executable = executable
@@ -114,7 +116,7 @@ class BasicTestCase(TestCase):
         # We don't run anything in tests/build, and the libc++ tests are
         # handled by a different LibcxxTest. We can safely assume that anything
         # here is in tests/device.
-        test_dir = build.lib.build_support.ndk_path('tests/device', self.suite)
+        test_dir = os.path.join(self.test_src_dir, 'device', self.suite)
         return testlib.DeviceTestConfig.from_test_dir(test_dir)
 
     def check_unsupported(self, device):
@@ -148,7 +150,7 @@ class LibcxxTestCase(TestCase):
     directory and any under it may contain test executables (always suffixed
     with ".exe") or test data (always suffixed with ".dat").
     """
-    def __init__(self, suite, executable, config, device_dir):
+    def __init__(self, suite, executable, test_src_dir, config, device_dir):
         # Tests in the top level don't need any mangling to match the filters.
         if suite == 'libc++':
             filter_name = executable
@@ -159,15 +161,14 @@ class LibcxxTestCase(TestCase):
         # filter that would be used to build the test.
         name = '.'.join(['libc++', filter_name[:-4]])
         super(LibcxxTestCase, self).__init__(
-            name, config, 'libc++', device_dir)
+            name, test_src_dir, config, 'libc++', device_dir)
 
         self.suite = suite
         self.executable = executable
 
     def get_test_config(self):
         _, _, test_subdir = self.suite.partition('/')
-        test_dir = build.lib.build_support.ndk_path(
-            'tests/libc++/test', test_subdir)
+        test_dir = os.path.join(self.test_src_dir, 'libc++/test', test_subdir)
         return testlib.LibcxxTestConfig.from_test_dir(test_dir)
 
     def check_unsupported(self, device):
@@ -242,10 +243,11 @@ class TestRun(object):
         return self.make_result(self.test_case.run(device), device)
 
 
-def build_tests(ndk_dir, out_dir, clean, printer, config, test_filter):
+def build_tests(test_src_dir, ndk_dir, out_dir, clean, printer, config,
+                test_filter):
     test_options = ndk.test.spec.TestOptions(
-       ndk_dir, out_dir, verbose_build=True, skip_run=True,
-       test_filter=test_filter, clean=clean)
+        test_src_dir, ndk_dir, out_dir, verbose_build=True, skip_run=True,
+        test_filter=test_filter, clean=clean)
 
     test_spec = ndk.test.builder.test_spec_from_config(config)
     builder = ndk.test.builder.TestBuilder(test_spec, test_options, printer)
@@ -253,7 +255,8 @@ def build_tests(ndk_dir, out_dir, clean, printer, config, test_filter):
     return builder.build()
 
 
-def enumerate_basic_tests(out_dir_base, build_cfg, build_system, test_filter):
+def enumerate_basic_tests(out_dir_base, test_src_dir, build_cfg, build_system,
+                          test_filter):
     tests = []
     tests_dir = os.path.join(out_dir_base, str(build_cfg), build_system)
     if not os.path.exists(tests_dir):
@@ -272,11 +275,13 @@ def enumerate_basic_tests(out_dir_base, build_cfg, build_system, test_filter):
             if not test_filter.filter(name):
                 continue
             tests.append(BasicTestCase(
-                test_subdir, test_file, build_cfg, build_system, device_dir))
+                test_subdir, test_file, test_src_dir, build_cfg, build_system,
+                device_dir))
     return tests
 
 
-def enumerate_libcxx_tests(out_dir_base, build_cfg, build_system, test_filter):
+def enumerate_libcxx_tests(out_dir_base, test_src_dir, build_cfg, build_system,
+                           test_filter):
     tests = []
     tests_dir = os.path.join(out_dir_base, str(build_cfg), build_system)
     if not os.path.exists(tests_dir):
@@ -313,11 +318,11 @@ def enumerate_libcxx_tests(out_dir_base, build_cfg, build_system, test_filter):
             if not test_filter.filter(filter_name):
                 continue
             tests.append(LibcxxTestCase(
-                suite_name, test_file, build_cfg, device_dir))
+                suite_name, test_file, test_src_dir, build_cfg, device_dir))
     return tests
 
 
-def enumerate_tests(test_dir, test_filter, config_filter):
+def enumerate_tests(test_dir, test_src_dir, test_filter, config_filter):
     tests = {}
 
     # The tests directory has a directory for each type of test. For example:
@@ -347,8 +352,8 @@ def enumerate_tests(test_dir, test_filter, config_filter):
             tests[build_cfg] = []
 
         for test_type, scan_for_tests in test_subdir_class_map.items():
-            tests[build_cfg].extend(
-                scan_for_tests(test_dir, build_cfg, test_type, test_filter))
+            tests[build_cfg].extend(scan_for_tests(
+                test_dir, test_src_dir, build_cfg, test_type, test_filter))
 
     return tests
 
@@ -682,6 +687,9 @@ def parse_args():
     parser.add_argument(
         '--ndk', type=os.path.realpath, default=ndk.paths.get_install_path(),
         help='NDK to validate. Defaults to ../out/android-ndk-$RELEASE.')
+    parser.add_argument(
+        '--test-src', type=os.path.realpath,
+        help='Path to test source directory. Defaults to ./tests.')
 
     parser.add_argument(
         'test_dir', metavar='TEST_DIR', type=os.path.realpath, nargs='?',
@@ -783,19 +791,26 @@ def run_tests(args):
         if args.rebuild:
             os.makedirs(args.test_dir)
         else:
-            sys.exit('Test directory does not exist: {}'.format(args.test_dir))
+            sys.exit('Test output directory does not exist: {}'.format(
+                args.test_dir))
 
     test_config = get_config_dict(
         args.config, args.abi, args.toolchain, args.pie)
 
     printer = printers.StdoutPrinter(show_all=args.show_all)
 
+    if args.test_src is None:
+        args.test_src = os.path.realpath('tests')
+        if not os.path.exists(args.test_src):
+            sys.exit('Test source directory does not exist: {}'.format(
+                args.test_src))
+
     if args.build_only or args.rebuild:
         build_timer = ndk.timer.Timer()
         with build_timer:
             report = build_tests(
-                args.ndk, args.test_dir, args.clean, printer, test_config,
-                args.filter)
+                args.test_src, args.ndk, args.test_dir, args.clean, printer,
+                test_config, args.filter)
 
         results.add_timing_report('Build', build_timer)
 
@@ -819,7 +834,7 @@ def run_tests(args):
     test_discovery_timer = ndk.timer.Timer()
     with test_discovery_timer:
         test_groups = enumerate_tests(
-            test_dist_dir, test_filter, config_filter)
+            test_dist_dir, args.test_src, test_filter, config_filter)
     results.add_timing_report('Test discovery', test_discovery_timer)
 
     if sum([len(tests) for tests in test_groups.values()]) == 0:

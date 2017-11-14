@@ -88,11 +88,14 @@ def build_test_runner(test_spec, test_options, printer):
             test_options.verbose_build)
 
     if 'build' in test_spec.suites:
-        runner.add_suite('build', 'tests/build', nodist_scanner)
+        test_src = os.path.join(test_options.src_dir, 'build')
+        runner.add_suite('build', test_src, nodist_scanner)
     if 'device' in test_spec.suites:
-        runner.add_suite('device', 'tests/device', scanner)
+        test_src = os.path.join(test_options.src_dir, 'device')
+        runner.add_suite('device', test_src, scanner)
     if 'libc++' in test_spec.suites:
-        runner.add_suite('libc++', 'tests/libc++', libcxx_scanner)
+        test_src = os.path.join(test_options.src_dir, 'libc++')
+        runner.add_suite('libc++', test_src, libcxx_scanner)
 
     return runner
 

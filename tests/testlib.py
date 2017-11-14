@@ -887,7 +887,7 @@ class CMakeBuildTest(BuildTest):
         return result, []
 
 
-def get_xunit_reports(xunit_file, config, ndk_path):
+def get_xunit_reports(xunit_file, test_base_dir, config, ndk_path):
     tree = xml.etree.ElementTree.parse(xunit_file)
     root = tree.getroot()
     cases = root.findall('.//testcase')
@@ -915,7 +915,8 @@ def get_xunit_reports(xunit_file, config, ndk_path):
 
         failure_nodes = test_case.findall('failure')
         if len(failure_nodes) == 0:
-            reports.append(XunitSuccess(name, test_dir, config, ndk_path))
+            reports.append(XunitSuccess(
+                name, test_base_dir, test_dir, config, ndk_path))
             continue
 
         if len(failure_nodes) != 1:
@@ -925,8 +926,8 @@ def get_xunit_reports(xunit_file, config, ndk_path):
 
         failure_node = failure_nodes[0]
         failure_text = failure_node.text
-        reports.append(
-            XunitFailure(name, test_dir, failure_text, config, ndk_path))
+        reports.append(XunitFailure(
+            name, test_base_dir, test_dir, failure_text, config, ndk_path))
     return reports
 
 
@@ -1071,7 +1072,7 @@ class LibcxxTest(Test):
         # We create a bunch of fake tests that report the status of each
         # individual test in the xunit report.
         test_reports = get_xunit_reports(
-            xunit_output, self.config, self.ndk_path)
+            xunit_output, self.test_dir, self.config, self.ndk_path)
 
         return Success(self), test_reports
 
@@ -1176,8 +1177,9 @@ class XunitResult(Test):
     We don't have an ExpectedFailure form of the XunitResult because that is
     already handled for us by the libc++ test runner.
     """
-    def __init__(self, name, test_dir, config, ndk_path):
+    def __init__(self, name, test_base_dir, test_dir, config, ndk_path):
         super(XunitResult, self).__init__(name, test_dir, config, ndk_path)
+        self.test_base_dir = test_base_dir
 
     def run(self, _out_dir, _dist_dir, _test_filters):
         raise NotImplementedError
@@ -1187,8 +1189,7 @@ class XunitResult(Test):
         return True
 
     def get_test_config(self):
-        test_config_dir = build.lib.build_support.ndk_path(
-            'tests/libc++/test', self.test_dir)
+        test_config_dir = os.path.join(self.test_base_dir, self.test_dir)
         return LibcxxTestConfig.from_test_dir(test_config_dir)
 
     def check_broken(self):
@@ -1212,8 +1213,9 @@ class XunitSuccess(XunitResult):
 
 
 class XunitFailure(XunitResult):
-    def __init__(self, name, test_dir, text, config, ndk_path):
-        super(XunitFailure, self).__init__(name, test_dir, config, ndk_path)
+    def __init__(self, name, test_base_dir, test_dir, text, config, ndk_path):
+        super(XunitFailure, self).__init__(
+            name, test_base_dir, test_dir, config, ndk_path)
         self.text = text
 
     def run(self, _out_dir, _dist_dir, _test_filters):
