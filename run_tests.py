@@ -34,17 +34,17 @@ import traceback
 
 import build.lib.build_support
 import ndk.ansi
+import ndk.ext.subprocess
 import ndk.notify
 import ndk.paths
-import ndk.subprocess
 import ndk.test.builder
 import ndk.test.devices
 import ndk.test.report
 import ndk.test.result
 import ndk.test.spec
 import ndk.test.ui
-import ndk.ui
 import ndk.timer
+import ndk.ui
 import ndk.workqueue
 
 import tests.filters as filters
@@ -428,7 +428,7 @@ def disable_verity_and_wait_for_reboot(device):
     logger().info('%s: disable-verity', device.name)
     cmd = ['adb', '-s', device.serial, 'disable-verity']
     # disable-verity doesn't set exit status
-    _, out = ndk.subprocess.call_output(cmd)
+    _, out = ndk.ext.subprocess.call_output(cmd)
     logger().info('%s: disable-verity:\n%s', device, out)
     if 'disabled on /' not in out:
         raise RuntimeError('{}: adb disable-verity failed:\n{}'.format(
@@ -457,15 +457,15 @@ def asan_device_setup(ndk_path, device):
     cmd = [path, '--device', device.serial]
     logger().info('%s: asan_device_setup', device.name)
     # Use call_output to keep the call quiet unless something goes wrong.
-    result, out = ndk.subprocess.call_output(cmd)
+    result, out = ndk.ext.subprocess.call_output(cmd)
     if result != 0:
         # The script sometimes fails on the first try >:(
         logger().info(
             '%s: asan_device_setup failed once, retrying', device.name)
-        result, out = ndk.subprocess.call_output(cmd)
+        result, out = ndk.ext.subprocess.call_output(cmd)
     if result != 0:
         # The script sometimes fails on the first try >:(
-        result, out = ndk.subprocess.call_output(cmd)
+        result, out = ndk.ext.subprocess.call_output(cmd)
         raise RuntimeError('{}: asan_device_setup failed:\n{}'.format(
             device, out))
 

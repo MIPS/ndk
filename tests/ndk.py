@@ -20,6 +20,7 @@ from __future__ import absolute_import
 import os
 import sys
 
+import ndk.ext.subprocess
 import ndk.hosts
 
 
@@ -40,6 +41,6 @@ def get_tool(ndk_path, tool):
 def build(ndk_path, build_flags):
     ndk_build_path = os.path.join(ndk_path, 'ndk-build')
     if os.name == 'nt':
-        return ndk.subprocess.call_output(
+        return ndk.ext.subprocess.call_output(
             ['cmd', '/c', ndk_build_path] + build_flags)
-    return ndk.subprocess.call_output([ndk_build_path] + build_flags)
+    return ndk.ext.subprocess.call_output([ndk_build_path] + build_flags)
