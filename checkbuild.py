@@ -54,8 +54,6 @@ import ndk.workqueue
 
 import tests.printers
 
-from ndk.builds import common_build_args, invoke_build, invoke_external_build
-
 
 def _make_tar_package(package_path, base_dir, path):
     """Creates a tarball package for distribution.
@@ -130,11 +128,11 @@ def group_by_test(reports):
     by_test = {}
     for config_str, report in reports.iteritems():
         for suite, suite_report in report.by_suite().items():
-            for report in suite_report.all_failed:
-                name = '.'.join([suite, report.result.test.name])
+            for result in suite_report.all_failed:
+                name = '.'.join([suite, result.result.test.name])
                 if name not in by_test:
                     by_test[name] = []
-                by_test[name].append((config_str, report.result))
+                by_test[name].append((config_str, result.result))
     return by_test
 
 
@@ -179,7 +177,7 @@ def build_ndk_tests(out_dir, dist_dir, args):
     site.addsitedir(os.path.join(ndk_dir, 'python-packages'))
 
     test_options = ndk.test.spec.TestOptions(
-       ndk_dir, test_out_dir, verbose_build=True, skip_run=True, clean=True)
+        ndk_dir, test_out_dir, verbose_build=True, skip_run=True, clean=True)
 
     printer = tests.printers.StdoutPrinter()
     with open(os.path.realpath('qa_config.json')) as config_file:
@@ -447,26 +445,27 @@ class HostTools(ndk.builds.Module):
     name = 'host-tools'
     path = 'prebuilt/{host}'
 
-    def build(self, out_dir, dist_dir, args):
-        build_args = common_build_args(out_dir, dist_dir, args)
+    def build(self, build_dir, dist_dir, args):
+        build_args = ndk.builds.common_build_args(build_dir, dist_dir, args)
 
         print('Building make...')
-        invoke_external_build(
+        ndk.builds.invoke_external_build(
             'ndk/sources/host-tools/make-3.81/build.py', build_args)
 
         if args.system in ('windows', 'windows64'):
             print('Building toolbox...')
-            invoke_external_build(
+            ndk.builds.invoke_external_build(
                 'ndk/sources/host-tools/toolbox/build.py', build_args)
 
         print('Building Python...')
-        invoke_external_build('toolchain/python/build.py', build_args)
+        ndk.builds.invoke_external_build(
+            'toolchain/python/build.py', build_args)
 
         print('Building GDB...')
-        invoke_external_build('toolchain/gdb/build.py', build_args)
+        ndk.builds.invoke_external_build('toolchain/gdb/build.py', build_args)
 
         print('Building YASM...')
-        invoke_external_build('toolchain/yasm/build.py', build_args)
+        ndk.builds.invoke_external_build('toolchain/yasm/build.py', build_args)
 
     def install(self, out_dir, _dist_dir, args):
         install_dir = self.get_install_path(out_dir, args.system)
@@ -1116,7 +1115,7 @@ class Vulkan(ndk.builds.Module):
     name = 'vulkan'
     path = 'sources/third_party/vulkan'
 
-    def build(self, out_dir, dist_dir, args):
+    def build(self, build_dir, dist_dir, args):
         print('Constructing Vulkan validation layer source...')
         vulkan_root_dir = build_support.android_path(
             'external/vulkan-validation-layers')
@@ -1148,11 +1147,11 @@ class Vulkan(ndk.builds.Module):
             "linux",
             "windows")
 
-        base_vulkan_path = os.path.join(out_dir, 'vulkan')
+        base_vulkan_path = os.path.join(build_dir, 'vulkan')
         vulkan_path = os.path.join(base_vulkan_path, 'src')
         for properties in copies:
             source_dir = properties['source_dir']
-            dest_dir = os.path.join(out_dir, properties['dest_dir'])
+            dest_dir = os.path.join(build_dir, properties['dest_dir'])
             for d in properties['dirs']:
                 src = os.path.join(source_dir, d)
                 dst = os.path.join(dest_dir, d)
@@ -1190,14 +1189,14 @@ class Vulkan(ndk.builds.Module):
         subprocess.check_call(build_cmd)
         print('Generation finished')
 
-        build_args = common_build_args(out_dir, dist_dir, args)
+        build_args = ndk.builds.common_build_args(build_dir, dist_dir, args)
         if args.arch is not None:
             build_args.append('--arch={}'.format(args.arch))
         build_args.append('--no-symbols')
 
         # TODO: Verify source packaged properly
         print('Packaging Vulkan source...')
-        src = os.path.join(out_dir, 'vulkan')
+        src = os.path.join(build_dir, 'vulkan')
         build_support.make_package('vulkan', src, dist_dir)
         print('Packaging Vulkan source finished')
 
@@ -1259,9 +1258,9 @@ class SimplePerf(ndk.builds.Module):
     name = 'simpleperf'
     path = 'simpleperf'
 
-    def build(self, out_dir, dist_dir, args):
+    def build(self, build_dir, dist_dir, args):
         print('Building simpleperf...')
-        install_dir = os.path.join(out_dir, 'simpleperf')
+        install_dir = os.path.join(build_dir, 'simpleperf')
         if os.path.exists(install_dir):
             shutil.rmtree(install_dir)
         os.makedirs(install_dir)
@@ -1635,10 +1634,7 @@ def main():
 
     required_package_modules = set(get_all_module_names())
     have_required_modules = required_package_modules <= set(module_names)
-    if (args.package and have_required_modules) or args.force_package:
-        do_package = True
-    else:
-        do_package = False
+    do_package = have_required_modules if args.package else args.force_package
 
     # TODO(danalbert): wine?
     # We're building the Windows packages from Linux, so we can't actually run
@@ -1669,7 +1665,7 @@ def main():
     dist_dir = build_support.get_dist_dir(out_dir)
 
     print('Cleaning up...')
-    invoke_build('dev-cleanup.sh')
+    ndk.builds.invoke_build('dev-cleanup.sh')
 
     print('Building modules: {}'.format(' '.join(module_names)))
     print('Machine has {} CPUs'.format(multiprocessing.cpu_count()))

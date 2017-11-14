@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 """Runs the tests built by make_tests.py."""
+from __future__ import absolute_import
 from __future__ import print_function
 
 import argparse
@@ -734,7 +735,7 @@ class ShardingWorkQueue(object):
     def get_result(self):
         """Gets a result from the queue, blocking until one is available."""
         result = self.result_queue.get()
-        if type(result) == ndk.workqueue.TaskError:
+        if isinstance(result, ndk.workqueue.TaskError):
             raise result
         self.num_tasks -= 1
         return result
