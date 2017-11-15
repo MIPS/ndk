@@ -18,46 +18,6 @@ have gone according to plan until then.
 [release schedule]: https://github.com/android-ndk/ndk/wiki#release-schedule
 
 
-NDK r16
--------
-
-Estimated release: Q3 2017
-
-### Fixed libandroid\_support
-
-As you are all well aware, early versions of Android were lacking a significant
-number of libc APIs. libc++ requires some APIs that were not available until
-android-21. To make libc++ available for all supported API levels, the NDK
-provides `libandroid_support`.
-
-`libandroid_support` is a collection of out of date Bionic sources mingled with
-some musl sources and some home grown sources. This collection is statically
-linked into any library you build with libc++ so that you'll always have an
-implementation regardless of what API level you end up running on.
-
-While a good idea, the current implementation is not good. This library is the
-reason libc++ in the NDK carries hefty warning labels. The solution to this is
-to start fresh with up to date Bionic sources. As with the unified headers,
-these will actually be built directly from Bionic, so bug fixes to the platform
-will automatically reach the NDK as well.
-
-With this project finished, libc++ will be safe to use. At this point we will
-begin recommending that developers move to libc++. Note that we will not change
-the default STL in this release.
-
-Note that `libandroid_support` will require unified headers. There are simply
-too many discrepancies between the old headers and the new ones to make
-`libandroid_support` work with both (`libandroid_support` is a bit more
-complicated than a typical library in this because because it is actually the
-implementation of a lot of these headers).
-
-### Remove deprecated headers
-
-Assuming that r15 switching to unified headers by default went well, we'll be
-removing the deprecated headers in r16. If r15 turns up many issues, this will
-be pushed to r17.
-
-
 NDK r17
 -------
 
@@ -124,13 +84,20 @@ of build system, and the logic contained in each build system could be greatly
 reduced.
 
 
-Historical release highlights
------------------------------
+Historical releases
+-------------------
 
 Full [history] is available, but this section summarizes major changes
 in recent releases.
 
 [history]: https://developer.android.com/ndk/downloads/revision_history.html
+
+### NDK r16
+
+Fixed libandroid\_support, libc++ now the recommended STL (but still
+not the default).
+
+Removed non-unified headers.
 
 ### NDK r15
 
