@@ -33,7 +33,7 @@ import xml.etree.ElementTree
 import build.lib.build_support
 import ndk.abis
 import ndk.ansi
-import ndk.subprocess
+import ndk.ext.subprocess
 import ndk.test.report
 from ndk.test.result import (Success, Failure, Skipped, ExpectedFailure,
                              UnexpectedSuccess)
@@ -547,7 +547,7 @@ def _run_build_sh_test(test, build_dir, test_dir, ndk_path, ndk_build_flags,
         test_env['APP_PLATFORM'] = 'android-{}'.format(platform)
         assert toolchain is not None
         test_env['NDK_TOOLCHAIN_VERSION'] = toolchain
-        rc, out = ndk.subprocess.call_output(build_cmd, env=test_env)
+        rc, out = ndk.ext.subprocess.call_output(build_cmd, env=test_env)
         if rc == 0:
             return Success(test)
         else:
@@ -609,7 +609,7 @@ def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
         '-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=' + libs_dir,
         '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + libs_dir
     ]
-    rc, _ = ndk.subprocess.call_output(['ninja', '--version'], env=env)
+    rc, _ = ndk.ext.subprocess.call_output(['ninja', '--version'], env=env)
     if rc == 0:
         args += [
             '-GNinja',
@@ -617,11 +617,11 @@ def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
         ]
     if platform is not None:
         args.append('-DANDROID_PLATFORM=android-{}'.format(platform))
-    rc, out = ndk.subprocess.call_output(
+    rc, out = ndk.ext.subprocess.call_output(
         ['cmake'] + cmake_flags + args, env=env)
     if rc != 0:
         return Failure(test, out)
-    rc, out = ndk.subprocess.call_output(
+    rc, out = ndk.ext.subprocess.call_output(
         ['cmake', '--build', objs_dir, '--'] + _get_jobs_args(), env=env)
     if rc != 0:
         return Failure(test, out)

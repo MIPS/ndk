@@ -25,7 +25,6 @@ import shutil
 
 import build.lib.build_support
 import ndk.abis
-import ndk.os
 import ndk.test.spec
 import ndk.workqueue
 
@@ -172,7 +171,7 @@ class LoadRestrictingWorkQueue(object):
     def get_result(self):
         """Gets a result from the queue, blocking until one is available."""
         result = self.result_queue.get()
-        if type(result) == ndk.workqueue.TaskError:
+        if isinstance(result, ndk.workqueue.TaskError):
             raise result
         self.num_tasks -= 1
         return result

@@ -13,13 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Tests for ndk.os."""
+"""Tests for ndk.ext.os."""
 from __future__ import absolute_import
 
 import os
 import unittest
 
-import ndk.os
+import ndk.ext.os
 
 
 class OsTest(unittest.TestCase):
@@ -28,7 +28,7 @@ class OsTest(unittest.TestCase):
         old_path = os.environ['PATH']
         self.assertNotIn('FOO', os.environ)
 
-        with ndk.os.replace_environ({'FOO': 'bar'}):
+        with ndk.ext.os.replace_environ({'FOO': 'bar'}):
             self.assertNotIn('PATH', os.environ)
             self.assertIn('FOO', os.environ)
             self.assertEqual(os.environ['FOO'], 'bar')
@@ -42,7 +42,7 @@ class OsTest(unittest.TestCase):
         old_path = os.environ['PATH']
         self.assertNotIn('FOO', os.environ)
 
-        with ndk.os.modify_environ({'FOO': 'bar'}):
+        with ndk.ext.os.modify_environ({'FOO': 'bar'}):
             self.assertIn('PATH', os.environ)
             self.assertEqual(os.environ['PATH'], old_path)
             self.assertIn('FOO', os.environ)
