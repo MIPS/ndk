@@ -14,10 +14,11 @@
 # limitations under the License.
 #
 """Device wrappers and device fleet management."""
-import distutils.spawn
 import logging
 import re
 import subprocess
+
+import ndk.ext.shutil
 
 try:
     import adb  # pylint: disable=import-error
@@ -335,7 +336,7 @@ def create_device(_worker, serial, precache):
 
 def get_all_attached_devices(workqueue):
     """Returns a list of all connected devices."""
-    if distutils.spawn.find_executable('adb') is None:
+    if ndk.ext.shutil.which('adb') is None:
         raise RuntimeError('Could not find adb.')
 
     # We could get the device name from `adb devices -l`, but we need to
