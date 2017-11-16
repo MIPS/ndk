@@ -18,11 +18,12 @@
 
 class TestOptions(object):
     """Configuration for how tests should be run."""
-    def __init__(self, ndk_path, out_dir, verbose_build=False, skip_run=False,
-                 test_filter=None, clean=True):
+    def __init__(self, src_dir, ndk_path, out_dir, verbose_build=False,
+                 skip_run=False, test_filter=None, clean=True):
         """Initializes a TestOptions object.
 
         Args:
+            src_dir: Path to the tests.
             ndk_path: Path to the NDK to use to build the tests.
             out_dir: Test output directory.
             verbose_build: True if test builds should be verbose.
@@ -30,6 +31,7 @@ class TestOptions(object):
             test_filter: Test filter string.
             clean: True if the out directory should be cleaned before building.
         """
+        self.src_dir = src_dir
         self.ndk_path = ndk_path
         self.out_dir = out_dir
         self.verbose_build = verbose_build
