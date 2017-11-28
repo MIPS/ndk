@@ -1,10 +1,26 @@
-Clang Migration Notes
-=====================
+# Clang Migration Notes
+
+The Android OS switched to clang several years ago. Future versions of
+the NDK will remove GCC, so the sooner you start testing your project
+with clang the better!
+
+## How to switch to clang
+
+For `ndk-build`, remove lines setting `NDK_TOOLCHAIN` or
+`NDK_TOOLCHAIN_VERSION`.
+
+For cmake, remove lines setting `ANDROID_TOOLCHAIN`.
+
+For standalone toolchains, use the `clang`/`clang++` binaries instead of
+`gcc`/`g++`.
+
+For other build systems, ask the owners of that build system.
+
+## How to fix common problems
 
 When moving to Clang from GCC, you may notice some differences.
 
-`-Oz` versus `-Os`
-------------------
+### `-Oz` versus `-Os`
 
 [Clang Optimization Flags](https://clang.llvm.org/docs/CommandGuide/clang.html#code-generation-options)
 has the full details, but if you used `-Os` to optimize your
@@ -16,8 +32,7 @@ code with Clang, prefer `-Oz`. With `-Oz`, Chromium actually saw both
 size *and* performance improvements when moving to Clang compared to
 `-Os` with GCC.
 
-`__attribute__((__aligned__))`
-------------------------------
+### `__attribute__((__aligned__))`
 
 Normally the `__aligned__` attribute is given an explicit alignment,
 but with no value means “maximum alignment”. The interpretation of
@@ -29,8 +44,7 @@ always at least 16-byte aligned, and mmap regions are page (4096-byte)
 aligned. Most code should either specify an explicit alignment or use
 [alignas](http://en.cppreference.com/w/cpp/language/alignas) instead.
 
-`-Bsymbolic`
-------------
+### `-Bsymbolic`
 
 When targeting Android (but no other platform), GCC passed
 [-Bsymbolic](ftp://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_node/ld_3.html)
@@ -79,8 +93,7 @@ code or `__attribute__ ((visibility("default")))` otherwise. Linker
 version scripts are an even more powerful mechanism for controlling
 exported symbols, but harder to use.
 
-`-fno-integrated-as`
---------------------
+### `-fno-integrated-as`
 
 Especially for ARM and ARM64, Clang is much stricter about assembler
 rules than GCC/GAS. Use `-fno-integrated-as` if Clang reports errors in
