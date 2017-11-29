@@ -19,7 +19,7 @@ import shutil
 import subprocess
 import tempfile
 
-import build.lib.build_support
+import ndk.abis
 
 
 def logger():
@@ -63,7 +63,7 @@ def make_standalone_toolchain(ndk_path, arch, api, extra_args, install_dir):
 def test_standalone_toolchain(arch, toolchain, install_dir, test_source,
                               flags):
     if toolchain == '4.9':
-        triple = build.lib.build_support.arch_to_triple(arch)
+        triple = ndk.abis.arch_to_triple(arch)
         # x86 toolchain names are dumb: http://b/25800583
         if arch == 'x86':
             triple = 'i686-linux-android'
@@ -87,7 +87,7 @@ def test_standalone_toolchain(arch, toolchain, install_dir, test_source,
 
 
 def run_test(ndk_path, abi, api, toolchain, test_source, extra_args, flags):
-    arch = build.lib.build_support.abi_to_arch(abi)
+    arch = ndk.abis.abi_to_arch(abi)
 
     install_dir = tempfile.mkdtemp()
     try:

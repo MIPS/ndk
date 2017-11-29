@@ -19,13 +19,13 @@ import re
 import subprocess
 
 import ndk.ext.shutil
+import ndk.paths
 
 try:
     import adb  # pylint: disable=import-error
 except ImportError:
     import site
-    from build.lib.build_support import android_path
-    site.addsitedir(android_path('development/python-packages'))
+    site.addsitedir(ndk.paths.android_path('development/python-packages'))
     import adb  # pylint: disable=import-error,ungrouped-imports
 
 

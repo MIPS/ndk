@@ -20,8 +20,51 @@ import contextlib
 import os
 import shutil
 
-import build.lib.build_support as build_support
+import ndk.abis
 import config
+
+
+THIS_DIR = os.path.realpath(os.path.dirname(__file__))
+
+
+def android_path(*args):
+    top = os.path.realpath(os.path.join(THIS_DIR, '../..'))
+    return os.path.normpath(os.path.join(top, *args))
+
+
+def ndk_path(*args):
+    return android_path('ndk', *args)
+
+
+def sysroot_path(toolchain):
+    arch = ndk.abis.toolchain_to_arch(toolchain)
+    # Only ARM has more than one ABI, and they both have the same minimum
+    # platform level.
+    abi = ndk.abis.arch_to_abis(arch)[0]
+    version = ndk.abis.min_api_for_abi(abi)
+
+    prebuilt_ndk = 'prebuilts/ndk/current'
+    sysroot_subpath = 'platforms/android-{}/arch-{}'.format(version, arch)
+    return android_path(prebuilt_ndk, sysroot_subpath)
+
+
+def toolchain_path(*args):
+    return android_path('toolchain', *args)
+
+
+def _get_dir_from_env(default, env_var):
+    path = os.path.realpath(os.getenv(env_var, default))
+    if not os.path.isdir(path):
+        os.makedirs(path)
+    return path
+
+
+def get_out_dir():
+    return _get_dir_from_env(android_path('out'), 'OUT_DIR')
+
+
+def get_dist_dir(out_dir):
+    return _get_dir_from_env(os.path.join(out_dir, 'dist'), 'DIST_DIR')
 
 
 def path_in_out(dirname, out_dir=None):
@@ -37,7 +80,7 @@ def path_in_out(dirname, out_dir=None):
         Absolute path to the created directory.
     """
     if out_dir is None:
-        out_dir = build_support.get_out_dir()
+        out_dir = get_out_dir()
     return os.path.join(out_dir, dirname)
 
 

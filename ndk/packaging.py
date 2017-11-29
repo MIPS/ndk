@@ -22,7 +22,8 @@ import shutil
 import subprocess
 import tempfile
 
-import build.lib.build_support as build_support
+import ndk.abis
+import ndk.hosts
 
 
 PACKAGE_VARIANTS = (
@@ -58,16 +59,16 @@ def expand_paths(package, host, arches):
     >> expand_paths('toolchains/{toolchain}-4.9', 'linux', ['arm', 'x86'])
     ['toolchains/arm-linux-androideabi-4.9', 'toolchains/x86-4.9']
     """
-    host_tag = build_support.host_to_tag(host)
+    host_tag = ndk.hosts.host_to_tag(host)
     if arches is None:
         return [package.format(host=host_tag)]
 
     seen_packages = set()
     packages = []
     for arch in arches:
-        triple = build_support.arch_to_triple(arch)
-        toolchain = build_support.arch_to_toolchain(arch)
-        for abi in build_support.arch_to_abis(arch):
+        triple = ndk.abis.arch_to_triple(arch)
+        toolchain = ndk.abis.arch_to_toolchain(arch)
+        for abi in ndk.abis.arch_to_abis(arch):
             expanded = package.format(
                 abi=abi, arch=arch, host=host_tag, triple=triple,
                 toolchain=toolchain)

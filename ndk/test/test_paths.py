@@ -34,7 +34,7 @@ class GetInstallPathTest(unittest.TestCase):
         import config
         config.release = self.saved_release
 
-    @mock.patch('build.lib.build_support.get_out_dir')
+    @mock.patch('ndk.paths.get_out_dir')
     def test_inferred_out_dir(self, mock_get_out_dir):
         """Tests that the correct path is returned for an inferred out_dir"""
         out_dir = 'foo'

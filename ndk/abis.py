@@ -17,18 +17,72 @@
 
 
 LP32_ABIS = (
-    'armeabi',
     'armeabi-v7a',
-    'mips',
     'x86',
 )
 
 
 LP64_ABIS = (
     'arm64-v8a',
-    'mips64',
     'x86_64',
 )
+
+
+ALL_ABIS = sorted(LP32_ABIS + LP64_ABIS)
+
+
+ALL_ARCHITECTURES = (
+    'arm',
+    'arm64',
+    'x86',
+    'x86_64',
+)
+
+
+ALL_TOOLCHAINS = (
+    'arm-linux-androideabi',
+    'aarch64-linux-android',
+    'x86',
+    'x86_64',
+)
+
+
+ALL_TRIPLES = (
+    'arm-linux-androideabi',
+    'aarch64-linux-android',
+    'i686-linux-android',
+    'x86_64-linux-android',
+)
+
+
+def arch_to_toolchain(arch):
+    return dict(zip(ALL_ARCHITECTURES, ALL_TOOLCHAINS))[arch]
+
+
+def arch_to_triple(arch):
+    return dict(zip(ALL_ARCHITECTURES, ALL_TRIPLES))[arch]
+
+
+def toolchain_to_arch(toolchain):
+    return dict(zip(ALL_TOOLCHAINS, ALL_ARCHITECTURES))[toolchain]
+
+
+def arch_to_abis(arch):
+    return {
+        'arm': ['armeabi-v7a'],
+        'arm64': ['arm64-v8a'],
+        'x86': ['x86'],
+        'x86_64': ['x86_64'],
+    }[arch]
+
+
+def abi_to_arch(arch):
+    return {
+        'armeabi-v7a': 'arm',
+        'arm64-v8a': 'arm64',
+        'x86': 'x86',
+        'x86_64': 'x86_64',
+    }[arch]
 
 
 def min_api_for_abi(abi):
