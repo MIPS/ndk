@@ -787,7 +787,7 @@ def run_tests(args):
     results = Results()
 
     if not os.path.exists(args.test_dir):
-        if args.rebuild:
+        if args.rebuild or args.build_only:
             os.makedirs(args.test_dir)
         else:
             sys.exit('Test output directory does not exist: {}'.format(
