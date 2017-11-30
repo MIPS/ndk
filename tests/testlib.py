@@ -81,6 +81,12 @@ class TestScanner(object):
         """
         raise NotImplementedError
 
+def test_is_superfluous(test):
+    # Special case: don't bother building default PIE LP32 tests for target
+    # APIs over 16.
+    non_pie = test.abi in ndk.abis.LP32_ABIS and not test.config.force_pie
+    return test.api >= 16 and non_pie
+
 
 class BuildTestScanner(TestScanner):
     def __init__(self, ndk_path, dist=True):
@@ -117,27 +123,33 @@ class BuildTestScanner(TestScanner):
     def make_build_sh_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
-            tests.append(ShellBuildTest(name, path, config, self.ndk_path))
+            test = ShellBuildTest(name, path, config, self.ndk_path)
+            if not test_is_superfluous(test):
+                tests.append(test)
         return tests
 
     def make_test_py_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
-            tests.append(PythonBuildTest(name, path, config, self.ndk_path))
+            test = PythonBuildTest(name, path, config, self.ndk_path)
+            if not test_is_superfluous(test):
+                tests.append(test)
         return tests
 
     def make_ndk_build_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
-            tests.append(
-                NdkBuildTest(name, path, config, self.ndk_path, self.dist))
+            test = NdkBuildTest(name, path, config, self.ndk_path, self.dist)
+            if not test_is_superfluous(test):
+                tests.append(test)
         return tests
 
     def make_cmake_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
-            tests.append(
-                CMakeBuildTest(name, path, config, self.ndk_path, self.dist))
+            test = CMakeBuildTest(name, path, config, self.ndk_path, self.dist)
+            if not test_is_superfluous(test):
+                tests.append(test)
         return tests
 
 

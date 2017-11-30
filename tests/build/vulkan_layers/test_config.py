@@ -7,10 +7,8 @@ def build_unsupported(abi, platform, toolchain):
     if platform < 24:
         return platform
 
-    return None
-
-
-def build_broken(abi, platform, toolchain):
+    # Not supported with GCC.
     if toolchain == '4.9':
-        return toolchain, 'http://b/31021045'
-    return None, None
+        return toolchain
+
+    return None
