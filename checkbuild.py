@@ -1404,8 +1404,11 @@ class SourceProperties(ndk.builds.Module):
         install_dir = ndk.paths.get_install_path(out_dir)
         path = os.path.join(install_dir, self.path)
         with open(path, 'w') as source_properties:
+            build = args.build_number
+            if build == 'dev':
+                build = '0'
             version = '{}.{}.{}'.format(
-                ndk.config.major, ndk.config.hotfix, args.build_number)
+                ndk.config.major, ndk.config.hotfix, build)
             if ndk.config.beta > 0:
                 version += '-beta{}'.format(ndk.config.beta)
             source_properties.writelines([
