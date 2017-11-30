@@ -43,7 +43,7 @@ def cursor_down(lines):
 
 
 def goto_first_column():
-    return '\r'
+    return '\033[1G'
 
 
 def clear_line():
