@@ -25,7 +25,7 @@ import shutil
 import stat
 import subprocess
 
-import build.lib.build_support
+import ndk.abis
 import ndk.packaging
 import ndk.paths
 
@@ -61,7 +61,7 @@ class Module(object):
         raise NotImplementedError
 
     def install(self, out_dir, dist_dir, args):
-        arches = build.lib.build_support.ALL_ARCHITECTURES
+        arches = ndk.abis.ALL_ARCHITECTURES
         if args.arch is not None:
             arches = [args.arch]
         package_installs = ndk.packaging.expand_packages(
@@ -160,12 +160,12 @@ class PackageModule(Module):
 
     def install(self, build_dir, _dist_dir, args):
         install_paths = self.get_install_paths(
-            build_dir, args.system, build.lib.build_support.ALL_ARCHITECTURES)
+            build_dir, args.system, ndk.abis.ALL_ARCHITECTURES)
         assert len(install_paths) == 1
         install_path = install_paths[0]
         install_directory(self.src, install_path)
         if self.create_repo_prop:
-            build.lib.build_support.make_repo_prop(install_path)
+            make_repo_prop(install_path)
         self.validate_notice(install_path)
 
 
@@ -184,7 +184,7 @@ class InvokeExternalBuildModule(Module):
         invoke_external_build(script, build_args)
 
     def get_script_path(self):
-        return build.lib.build_support.android_path(self.script)
+        return ndk.paths.android_path(self.script)
 
     def additional_args(self, _args):  # pylint: disable=no-self-use
         return []
@@ -192,7 +192,7 @@ class InvokeExternalBuildModule(Module):
 
 class InvokeBuildModule(InvokeExternalBuildModule):
     def get_script_path(self):
-        return build.lib.build_support.ndk_path('build/tools', self.script)
+        return ndk.paths.ndk_path('build/tools', self.script)
 
 
 class FileModule(Module):
@@ -278,27 +278,34 @@ class ScriptShortcutModule(Module):
 
     def get_script_path(self, system):
         scripts = ndk.packaging.expand_paths(
-            self.script, system, build.lib.build_support.ALL_ARCHITECTURES)
+            self.script, system, ndk.abis.ALL_ARCHITECTURES)
         assert len(scripts) == 1
         return scripts[0]
+
+
+class PythonPackage(Module):
+    def build(self, _out_dir, dist_dir, _args):
+        cwd = os.path.dirname(self.path)
+        subprocess.check_call(
+            ['python', self.path, 'sdist', '-d', dist_dir], cwd=cwd)
+
+    def install(self, _out_dir, _dist_dir, _args):
+        pass
 
 
 def _invoke_build(script, args):
     if args is None:
         args = []
-    subprocess.check_call(
-        [build.lib.build_support.android_path(script)] + args)
+    subprocess.check_call([ndk.paths.android_path(script)] + args)
 
 
 def invoke_build(script, args=None):
     script_path = os.path.join('build/tools', script)
-    _invoke_build(
-        build.lib.build_support.ndk_path(script_path), args)
+    _invoke_build(ndk.paths.ndk_path(script_path), args)
 
 
 def invoke_external_build(script, args=None):
-    _invoke_build(
-        build.lib.build_support.android_path(script), args)
+    _invoke_build(ndk.paths.android_path(script), args)
 
 
 def common_build_args(out_dir, dist_dir, args):
@@ -315,3 +322,20 @@ def install_directory(src, dst):
     ignore_patterns = shutil.ignore_patterns(
         '*.pyc', '*.pyo', '*.swp', '*.git*')
     shutil.copytree(src, dst, ignore=ignore_patterns)
+
+
+def make_repo_prop(out_dir):
+    file_name = 'repo.prop'
+
+    dist_dir = os.environ.get('DIST_DIR')
+    if dist_dir is not None:
+        dist_repo_prop = os.path.join(dist_dir, file_name)
+        shutil.copy(dist_repo_prop, out_dir)
+    else:
+        out_file = os.path.join(out_dir, file_name)
+        with open(out_file, 'w') as prop_file:
+            cmd = [
+                'repo', 'forall', '-c',
+                'echo $REPO_PROJECT $(git rev-parse HEAD)',
+            ]
+            subprocess.check_call(cmd, stdout=prop_file)

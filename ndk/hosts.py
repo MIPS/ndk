@@ -31,3 +31,25 @@ def get_host_tag(ndk_path):
         if not os.path.exists(test_path):
             host_tag = 'windows'
         return host_tag
+
+
+def host_to_tag(host):
+    if host in ['darwin', 'linux']:
+        return host + '-x86_64'
+    elif host == 'windows':
+        return 'windows'
+    elif host == 'windows64':
+        return 'windows-x86_64'
+    else:
+        raise RuntimeError('Unsupported host: {}'.format(host))
+
+
+def get_default_host():
+    if sys.platform in ('linux', 'linux2'):
+        return 'linux'
+    elif sys.platform == 'darwin':
+        return 'darwin'
+    elif sys.platform == 'win32':
+        return 'windows'
+    else:
+        raise RuntimeError('Unsupported host: {}'.format(sys.platform))

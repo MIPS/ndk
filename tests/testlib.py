@@ -29,11 +29,12 @@ import sys
 import traceback
 import xml.etree.ElementTree
 
-import build.lib.build_support
 import ndk.abis
 import ndk.ansi
 import ndk.ext.shutil
 import ndk.ext.subprocess
+import ndk.hosts
+import ndk.paths
 import ndk.test.report
 from ndk.test.result import (Success, Failure, Skipped, ExpectedFailure,
                              UnexpectedSuccess)
@@ -578,8 +579,8 @@ def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
     _prep_build_dir(test_dir, obj_dir)
 
     # Add prebuilts to PATH.
-    prebuilts_host_tag = build.lib.build_support.get_default_host() + '-x86'
-    prebuilts_bin = build.lib.build_support.android_path(
+    prebuilts_host_tag = ndk.hosts.get_default_host() + '-x86'
+    prebuilts_bin = ndk.paths.android_path(
         'prebuilts', 'cmake', prebuilts_host_tag, 'bin')
     env = dict(os.environ)
     env['PATH'] = prebuilts_bin + os.pathsep + os.environ['PATH']
@@ -704,13 +705,13 @@ class PythonBuildTest(BuildTest):
     def __init__(self, name, test_dir, config, ndk_path):
         api = config.api
         if api is None:
-            api = build.lib.build_support.minimum_platform_level(config.abi)
+            api = ndk.abis.min_api_for_abi(config.abi)
         config = ndk.test.spec.BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
             config.verbose)
         super(PythonBuildTest, self).__init__(name, test_dir, config, ndk_path)
 
-        if self.abi not in build.lib.build_support.ALL_ABIS:
+        if self.abi not in ndk.abis.ALL_ABIS:
             raise ValueError('{} is not a valid ABI'.format(self.abi))
 
         try:
@@ -749,7 +750,7 @@ class ShellBuildTest(BuildTest):
     def __init__(self, name, test_dir, config, ndk_path):
         api = config.api
         if api is None:
-            api = build.lib.build_support.minimum_platform_level(config.abi)
+            api = ndk.abis.min_api_for_abi(config.abi)
         config = ndk.test.spec.BuildConfiguration(
             config.abi, api, config.toolchain, config.force_pie,
             config.verbose)
@@ -822,7 +823,7 @@ def _get_or_infer_app_platform(platform_from_user, test_dir, abi):
     if platform_from_user is not None:
         return platform_from_user
 
-    minimum_version = build.lib.build_support.minimum_platform_level(abi)
+    minimum_version = ndk.abis.min_api_for_abi(abi)
     platform_from_application_mk = _platform_from_application_mk(test_dir)
     if platform_from_application_mk is not None:
         if platform_from_application_mk >= minimum_version:
@@ -931,6 +932,17 @@ def get_xunit_reports(xunit_file, test_base_dir, config, ndk_path):
     return reports
 
 
+def get_lit_path():
+    # The build server doesn't install lit to a virtualenv, so use it from the
+    # source location if possible.
+    lit_path = ndk.paths.android_path('external/llvm/utils/lit/lit.py')
+    if os.path.exists(lit_path):
+        return lit_path
+    elif ndk.ext.shutil.which('lit'):
+        return 'lit'
+    return None
+
+
 class LibcxxTest(Test):
     def __init__(self, name, test_dir, config, ndk_path):
         if config.api is None:
@@ -957,14 +969,10 @@ class LibcxxTest(Test):
         libcxx_dir = os.path.join(self.ndk_path, 'sources/cxx-stl/llvm-libc++')
         device_dir = '/data/local/tmp/libcxx'
 
-        arch = build.lib.build_support.abi_to_arch(self.abi)
+        arch = ndk.abis.abi_to_arch(self.abi)
         host_tag = ndk.hosts.get_host_tag(self.ndk_path)
-        triple = build.lib.build_support.arch_to_triple(arch)
-        toolchain = build.lib.build_support.arch_to_toolchain(arch)
-
-        lit_path = build.lib.build_support.android_path(
-            'external/llvm/utils/lit/lit.py')
-
+        triple = ndk.abis.arch_to_triple(arch)
+        toolchain = ndk.abis.arch_to_toolchain(arch)
         pie = self.config.force_pie or self.abi in ndk.abis.LP64_ABIS
 
         replacements = [
@@ -987,7 +995,7 @@ class LibcxxTest(Test):
         xunit_output = os.path.join(build_dir, 'xunit.xml')
 
         lit_args = [
-            'python', lit_path, '-sv',
+            get_lit_path(), '-sv',
             '--param=device_dir=' + device_dir,
             '--param=unified_headers=True',
             '--param=build_only=True',
@@ -1020,6 +1028,9 @@ class LibcxxTest(Test):
             subprocess.call(lit_args, env=env, stdout=stdout, stderr=stderr)
 
     def run(self, obj_dir, dist_dir, test_filters):
+        if get_lit_path() is None:
+            return Failure(self, 'Could not find lit'), []
+
         build_dir = self.get_build_dir(dist_dir)
 
         if not os.path.exists(build_dir):
