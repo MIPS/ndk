@@ -22,6 +22,10 @@ When moving to Clang from GCC, you may notice some differences.
 
 ### `-Oz` versus `-Os`
 
+Warning: Do not use `-Oz` until [Issue 573] is resolved if you use exceptions.
+
+[Issue 573]: https://github.com/android-ndk/ndk/issues/573
+
 [Clang Optimization Flags](https://clang.llvm.org/docs/CommandGuide/clang.html#code-generation-options)
 has the full details, but if you used `-Os` to optimize your
 code for size with GCC, you probably want `-Oz` when using
