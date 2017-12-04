@@ -245,7 +245,7 @@ class TestRun(object):
 def build_tests(test_src_dir, ndk_dir, out_dir, clean, printer, config,
                 test_filter):
     test_options = ndk.test.spec.TestOptions(
-        test_src_dir, ndk_dir, out_dir, verbose_build=True, skip_run=True,
+        test_src_dir, ndk_dir, out_dir, verbose_build=True,
         test_filter=test_filter, clean=clean)
 
     test_spec = ndk.test.builder.test_spec_from_config(config)

@@ -178,8 +178,7 @@ def build_ndk_tests(out_dir, dist_dir, args):
     site.addsitedir(os.path.join(ndk_dir, 'python-packages'))
 
     test_options = ndk.test.spec.TestOptions(
-        test_src_dir, ndk_dir, test_out_dir, verbose_build=True, skip_run=True,
-        clean=True)
+        test_src_dir, ndk_dir, test_out_dir, verbose_build=True, clean=True)
 
     printer = tests.printers.StdoutPrinter()
     with open(os.path.realpath('qa_config.json')) as config_file:
