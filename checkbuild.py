@@ -249,7 +249,7 @@ def _install_file(src_file, dst_file):
 class Clang(ndk.builds.Module):
     name = 'clang'
     path = 'toolchains/llvm/prebuilt/{host}'
-    version = 'clang-4393122'
+    version = 'clang-4479392'
 
     def get_prebuilt_path(self, host):
         # The 32-bit Windows Clang is a part of the 64-bit Clang package in
@@ -303,11 +303,21 @@ class Clang(ndk.builds.Module):
             os.rename(os.path.join(install_path, 'bin/clang++.real'),
                       os.path.join(install_path, 'bin/clang++'))
 
-        clanglib_dir = 'lib64/clang'
-        if args.system == 'windows':
-            clanglib_dir = 'lib/clang'
+        libdir_name = 'lib' if args.system == 'windows' else 'lib64'
+        if args.system.startswith('windows'):
+            # The toolchain prebuilts have LLVMgold.dll in the bin directory
+            # rather than the lib directory that will actually be searched.
+            bin_dir = os.path.join(install_path, 'bin')
+            lib_dir = os.path.join(install_path, libdir_name)
+            os.rename(os.path.join(bin_dir, 'LLVMgold.dll'),
+                      os.path.join(lib_dir, 'LLVMgold.dll'))
 
-        install_clanglib = os.path.join(install_path, clanglib_dir)
+            # Windows doesn't support rpath, so we need to copy
+            # libwinpthread-1.dll too.
+            shutil.copy2(os.path.join(bin_dir, 'libwinpthread-1.dll'),
+                         os.path.join(lib_dir, 'libwinpthread-1.dll'))
+
+        install_clanglib = os.path.join(install_path, libdir_name, 'clang')
         linux_prebuilt_path = self.get_prebuilt_path('linux')
 
         if args.system != 'linux':
@@ -394,22 +404,36 @@ class Gcc(ndk.builds.Module):
 
         ndk.builds.install_directory(toolchain_path, install_path)
 
-        if not host.startswith('windows'):
+        # Copy the LLVMgold plugin into the binutils plugin directory so ar can
+        # use it.
+        if host == 'linux':
             so = '.so'
-            if host == 'darwin':
-                so = '.dylib'
+        elif host == 'darwin':
+            so = '.dylib'
+        else:
+            so = '.dll'
 
-            clang_libs = build_support.android_path(
-                'prebuilts/ndk/current/toolchains', host_tag, 'llvm/lib64')
+        is_win = host.startswith('windows')
+        libdir_name = 'lib' if host == 'windows' else 'lib64'
+        clang_prebuilts = build_support.android_path(
+            'prebuilts/ndk/current/toolchains', host_tag, 'llvm')
+        clang_bin = os.path.join(clang_prebuilts, 'bin')
+        clang_libs = os.path.join(clang_prebuilts, libdir_name)
+
+        if is_win:
+            llvmgold = os.path.join(clang_bin, 'LLVMgold' + so)
+        else:
             llvmgold = os.path.join(clang_libs, 'LLVMgold' + so)
+
+        bfd_plugins = os.path.join(install_path, 'lib/bfd-plugins')
+        os.makedirs(bfd_plugins)
+        shutil.copy2(llvmgold, bfd_plugins)
+
+        if not is_win:
             libcxx = os.path.join(clang_libs, 'libc++' + so)
             libcxx_1 = os.path.join(
                 clang_libs, versioned_so(host, 'libc++', '1'))
             libllvm = os.path.join(clang_libs, 'libLLVM' + so)
-
-            bfd_plugins = os.path.join(install_path, 'lib/bfd-plugins')
-            os.makedirs(bfd_plugins)
-            shutil.copy2(llvmgold, bfd_plugins)
 
             # The rpath on LLVMgold.so is ../lib64, so we have to install to
             # lib/lib64 to have it be in the right place :(
@@ -418,6 +442,9 @@ class Gcc(ndk.builds.Module):
             shutil.copy2(libcxx, lib_dir)
             shutil.copy2(libcxx_1, lib_dir)
             shutil.copy2(libllvm, lib_dir)
+        else:
+            libwinpthread = os.path.join(clang_bin, 'libwinpthread-1.dll')
+            shutil.copy2(libwinpthread, bfd_plugins)
 
         # Remove the toolchain wrappers. These don't work on Windows and we
         # don't want them anyway.
@@ -428,7 +455,7 @@ class Gcc(ndk.builds.Module):
             real_name = 'real-' + tool_name
 
             # For some reason the scripts are .exe and the executables aren't.
-            if host.startswith('windows'):
+            if is_win:
                 tool_name += '.exe'
 
             tool_path = os.path.join(bin_path, tool_name)
