@@ -652,6 +652,10 @@ def parse_args():
         help='Path to the config file describing the test run.')
 
     build_options = parser.add_argument_group('Build Options')
+    build_options.add_argument(
+        '--build-report', type=os.path.realpath,
+        help='Write the build report to the given path.')
+
     build_exclusive_group = build_options.add_mutually_exclusive_group()
     build_exclusive_group.add_argument(
         '--rebuild', action='store_true',

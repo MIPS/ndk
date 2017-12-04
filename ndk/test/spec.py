@@ -19,7 +19,7 @@
 class TestOptions(object):
     """Configuration for how tests should be run."""
     def __init__(self, src_dir, ndk_path, out_dir, test_filter=None,
-                 clean=True):
+                 clean=True, build_report=None):
         """Initializes a TestOptions object.
 
         Args:
@@ -28,12 +28,14 @@ class TestOptions(object):
             out_dir: Test output directory.
             test_filter: Test filter string.
             clean: True if the out directory should be cleaned before building.
+            build_report: Path to write a build report to, if any.
         """
         self.src_dir = src_dir
         self.ndk_path = ndk_path
         self.out_dir = out_dir
         self.test_filter = test_filter
         self.clean = clean
+        self.build_report = build_report
 
 
 class TestSpec(object):

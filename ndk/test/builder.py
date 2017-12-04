@@ -21,6 +21,7 @@ import json
 import logging
 import multiprocessing
 import os
+import pickle
 import shutil
 
 import ndk.abis
@@ -96,6 +97,11 @@ def build_test_runner(test_spec, test_options, printer):
     return runner
 
 
+def write_build_report(build_report, results):
+    with open(build_report, 'w') as build_report_file:
+        pickle.dump(results, build_report_file)
+
+
 class TestBuilder(object):
     def __init__(self, test_spec, test_options, printer):
         self.runner = build_test_runner(test_spec, test_options, printer)
@@ -129,7 +135,10 @@ class TestBuilder(object):
 
         test_filters = filters.TestFilter.from_string(
             self.test_options.test_filter)
-        return self.runner.run(self.obj_dir, self.dist_dir, test_filters)
+        result = self.runner.run(self.obj_dir, self.dist_dir, test_filters)
+        if self.test_options.build_report:
+            write_build_report(self.test_options.build_report, result)
+        return result
 
 
 class LoadRestrictingWorkQueue(object):
