@@ -301,7 +301,7 @@ def enumerate_libcxx_tests(out_dir_base, test_src_dir, build_cfg, build_system,
 
             # Tests in the top level don't need any mangling to match the
             # filters.
-            if not suite_name == 'libc++':
+            if suite_name != 'libc++':
                 if not suite_name.startswith('libc++/'):
                     raise ValueError(suite_name)
                 # According to the test runner, these are all part of the
