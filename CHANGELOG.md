@@ -29,6 +29,7 @@ NDK
 ---
 
  * Updated Clang to build 4393122 based on ???
+ * AArch64 now uses gold by default, matching the other architectures.
 
 Known Issues
 ------------
