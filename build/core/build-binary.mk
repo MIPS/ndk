@@ -178,6 +178,12 @@ LOCAL_RS_EXTENSION := $(default-rs-extensions)
 
 LOCAL_LDFLAGS += -Wl,--build-id
 
+ifeq ($(NDK_TOOLCHAIN_VERSION),clang)
+    ifeq ($(filter system stlport_shared stlport_static,$(NDK_APP_STL)),)
+        LOCAL_LDFLAGS += -nostdlib++
+    endif
+endif
+
 #
 # If LOCAL_ALLOW_UNDEFINED_SYMBOLS is not true, the linker will allow the generation
 # of a binary that uses undefined symbols.
