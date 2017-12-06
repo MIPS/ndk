@@ -394,6 +394,7 @@ class Gcc(ndk.builds.Module):
     def install_arch(self, out_dir, host, arch):
         version = '4.9'
         toolchain = build_support.arch_to_toolchain(arch)
+        triple = build_support.arch_to_triple(arch)
         host_tag = build_support.host_to_tag(host)
 
         install_path = self.get_install_path(out_dir, host, arch)
@@ -403,6 +404,21 @@ class Gcc(ndk.builds.Module):
         toolchain_path = os.path.join(prebuilt_path, toolchain_name)
 
         ndk.builds.install_directory(toolchain_path, install_path)
+
+        # Replace ld with ld.gold for aarch64. We should get a new binutils
+        # build that has this set by default, but this work until we get a new
+        # binutils build.
+        if arch == 'arm64':
+            exe = '.exe' if host.startswith('windows') else ''
+            ld_bin = os.path.join(install_path, 'bin', triple + '-ld' + exe)
+            gold_bin = os.path.join(
+                install_path, 'bin', triple + '-ld.gold' + exe)
+            os.remove(ld_bin)
+            shutil.copy2(gold_bin, ld_bin)
+
+            ld_arch = os.path.join(install_path, triple, 'bin/ld' + exe)
+            gold_arch = os.path.join(install_path, triple, 'bin/ld.gold' + exe)
+            shutil.copy2(gold_arch, ld_arch)
 
         # Copy the LLVMgold plugin into the binutils plugin directory so ar can
         # use it.
