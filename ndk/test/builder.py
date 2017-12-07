@@ -69,22 +69,19 @@ def build_test_runner(test_spec, test_options, printer):
             abi,
             None,  # Build API level, always default.
             toolchain,
-            pie_config,
-            test_options.verbose_build)
+            pie_config)
 
         nodist_scanner.add_build_configuration(
             abi,
             None,  # Build API level, always default.
             toolchain,
-            pie_config,
-            test_options.verbose_build)
+            pie_config)
 
         libcxx_scanner.add_build_configuration(
             abi,
             None,  # Build API level, always default.
             toolchain,
-            pie_config,
-            test_options.verbose_build)
+            pie_config)
 
     if 'build' in test_spec.suites:
         test_src = os.path.join(test_options.src_dir, 'build')

@@ -18,24 +18,20 @@
 
 class TestOptions(object):
     """Configuration for how tests should be run."""
-    def __init__(self, src_dir, ndk_path, out_dir, verbose_build=False,
-                 skip_run=False, test_filter=None, clean=True):
+    def __init__(self, src_dir, ndk_path, out_dir, test_filter=None,
+                 clean=True):
         """Initializes a TestOptions object.
 
         Args:
             src_dir: Path to the tests.
             ndk_path: Path to the NDK to use to build the tests.
             out_dir: Test output directory.
-            verbose_build: True if test builds should be verbose.
-            skip_run: True if tests should only be built, not run.
             test_filter: Test filter string.
             clean: True if the out directory should be cleaned before building.
         """
         self.src_dir = src_dir
         self.ndk_path = ndk_path
         self.out_dir = out_dir
-        self.verbose_build = verbose_build
-        self.skip_run = skip_run
         self.test_filter = test_filter
         self.clean = clean
 
@@ -55,12 +51,11 @@ class BuildConfiguration(object):
     A TestSpec describes which BuildConfigurations should be included in a test
     run.
     """
-    def __init__(self, abi, api, toolchain, force_pie, verbose):
+    def __init__(self, abi, api, toolchain, force_pie):
         self.abi = abi
         self.api = api
         self.toolchain = toolchain
         self.force_pie = force_pie
-        self.verbose = verbose
 
     def __eq__(self, other):
         if self.abi != other.abi:
@@ -70,8 +65,6 @@ class BuildConfiguration(object):
         if self.toolchain != other.toolchain:
             return False
         if self.force_pie != other.force_pie:
-            return False
-        if self.verbose != other.verbose:
             return False
         return True
 
@@ -121,22 +114,20 @@ class BuildConfiguration(object):
             _, _, rest = rest.partition('-')
             _, _, rest = rest.partition('-')
         else:
-            raise ValueError('Invalid PIE config:'.format(config_string))
+            raise ValueError('Invalid PIE config: {}'.format(config_string))
 
-        return BuildConfiguration(abi, api, toolchain, force_pie, False)
+        return BuildConfiguration(abi, api, toolchain, force_pie)
 
     def get_extra_ndk_build_flags(self):
         extra_flags = []
         if self.force_pie:
             extra_flags.append('APP_PIE=true')
-        if self.verbose:
-            extra_flags.append('V=1')
+        extra_flags.append('V=1')
         return extra_flags
 
     def get_extra_cmake_flags(self):
         extra_flags = []
         if self.force_pie:
             extra_flags.append('-DANDROID_PIE=TRUE')
-        if self.verbose:
-            extra_flags.append('-DCMAKE_VERBOSE_MAKEFILE=ON')
+        extra_flags.append('-DCMAKE_VERBOSE_MAKEFILE=ON')
         return extra_flags

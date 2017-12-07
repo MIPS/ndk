@@ -94,9 +94,9 @@ class BuildTestScanner(TestScanner):
         self.dist = dist
         self.build_configurations = set()
 
-    def add_build_configuration(self, abi, api, toolchain, force_pie, verbose):
+    def add_build_configuration(self, abi, api, toolchain, force_pie):
         self.build_configurations.add(ndk.test.spec.BuildConfiguration(
-            abi, api, toolchain, force_pie, verbose))
+            abi, api, toolchain, force_pie))
 
     def find_tests(self, path, name):
         # If we have a build.sh, that takes precedence over the Android.mk.
@@ -161,9 +161,9 @@ class LibcxxTestScanner(TestScanner):
         self.build_configurations = set()
         LibcxxTestScanner.find_all_libcxx_tests(self.ndk_path)
 
-    def add_build_configuration(self, abi, api, toolchain, force_pie, verbose):
+    def add_build_configuration(self, abi, api, toolchain, force_pie):
         self.build_configurations.add(ndk.test.spec.BuildConfiguration(
-            abi, api, toolchain, force_pie, verbose))
+            abi, api, toolchain, force_pie))
 
     def find_tests(self, path, name):
         tests = []
@@ -719,8 +719,7 @@ class PythonBuildTest(BuildTest):
         if api is None:
             api = ndk.abis.min_api_for_abi(config.abi)
         config = ndk.test.spec.BuildConfiguration(
-            config.abi, api, config.toolchain, config.force_pie,
-            config.verbose)
+            config.abi, api, config.toolchain, config.force_pie)
         super(PythonBuildTest, self).__init__(name, test_dir, config, ndk_path)
 
         if self.abi not in ndk.abis.ALL_ABIS:
@@ -764,8 +763,7 @@ class ShellBuildTest(BuildTest):
         if api is None:
             api = ndk.abis.min_api_for_abi(config.abi)
         config = ndk.test.spec.BuildConfiguration(
-            config.abi, api, config.toolchain, config.force_pie,
-            config.verbose)
+            config.abi, api, config.toolchain, config.force_pie)
         super(ShellBuildTest, self).__init__(name, test_dir, config, ndk_path)
 
     def get_build_dir(self, out_dir):
@@ -848,8 +846,7 @@ class NdkBuildTest(BuildTest):
     def __init__(self, name, test_dir, config, ndk_path, dist):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
         config = ndk.test.spec.BuildConfiguration(
-            config.abi, api, config.toolchain, config.force_pie,
-            config.verbose)
+            config.abi, api, config.toolchain, config.force_pie)
         super(NdkBuildTest, self).__init__(name, test_dir, config, ndk_path)
         self.dist = dist
 
@@ -876,8 +873,7 @@ class CMakeBuildTest(BuildTest):
     def __init__(self, name, test_dir, config, ndk_path, dist):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
         config = ndk.test.spec.BuildConfiguration(
-            config.abi, api, config.toolchain, config.force_pie,
-            config.verbose)
+            config.abi, api, config.toolchain, config.force_pie)
         super(CMakeBuildTest, self).__init__(name, test_dir, config, ndk_path)
         self.dist = dist
 

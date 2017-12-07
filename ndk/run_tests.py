@@ -245,8 +245,7 @@ class TestRun(object):
 def build_tests(test_src_dir, ndk_dir, out_dir, clean, printer, config,
                 test_filter):
     test_options = ndk.test.spec.TestOptions(
-        test_src_dir, ndk_dir, out_dir, verbose_build=True, skip_run=True,
-        test_filter=test_filter, clean=clean)
+        test_src_dir, ndk_dir, out_dir, test_filter=test_filter, clean=clean)
 
     test_spec = ndk.test.builder.test_spec_from_config(config)
     builder = ndk.test.builder.TestBuilder(test_spec, test_options, printer)
@@ -301,7 +300,7 @@ def enumerate_libcxx_tests(out_dir_base, test_src_dir, build_cfg, build_system,
 
             # Tests in the top level don't need any mangling to match the
             # filters.
-            if not suite_name == 'libc++':
+            if suite_name != 'libc++':
                 if not suite_name.startswith('libc++/'):
                     raise ValueError(suite_name)
                 # According to the test runner, these are all part of the
