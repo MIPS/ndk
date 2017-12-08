@@ -165,6 +165,8 @@ if(NOT ANDROID_ABI)
   set(ANDROID_ABI armeabi-v7a)
 endif()
 if(ANDROID_PLATFORM MATCHES "^android-([0-9]|1[0-3])$")
+  message(WARNING "${ANDROID_PLATFORM} is unsupported. Using minimum supported "
+                  "version android-14")
   set(ANDROID_PLATFORM android-14)
 elseif(ANDROID_PLATFORM STREQUAL android-20)
   set(ANDROID_PLATFORM android-19)
