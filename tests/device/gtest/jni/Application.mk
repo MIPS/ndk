@@ -1,4 +1,4 @@
-APP_STL := stlport_static
+APP_STL := c++_static
 APP_MODULES := \
     gtest-filepath_test \
     gtest-linked_ptr_test \
