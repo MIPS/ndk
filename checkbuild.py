@@ -1700,7 +1700,9 @@ def main():
 
     required_package_modules = set(get_all_module_names())
     have_required_modules = required_package_modules <= set(module_names)
-    do_package = have_required_modules if args.package else args.force_package
+    do_package = have_required_modules if args.package else False
+    if args.force_package:
+        do_package = True
 
     # TODO(danalbert): wine?
     # We're building the Windows packages from Linux, so we can't actually run
