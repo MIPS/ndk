@@ -1,5 +1,6 @@
 *~
 *.bak
+*.pk1
 Thumbs.db
 local.properties
 build.xml
