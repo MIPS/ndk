@@ -1057,7 +1057,7 @@ class NdkHelper(ndk.builds.PackageModule):
 class Gtest(ndk.builds.PackageModule):
     name = 'gtest'
     path = 'sources/third_party/googletest'
-    src = build_support.ndk_path('sources/third_party/googletest')
+    src = ndk.paths.android_path('external/googletest/googletest')
     create_repo_prop = True
 
 
