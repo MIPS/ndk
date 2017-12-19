@@ -16,14 +16,16 @@ Announcements
  * `libc++` is now the default STL for CMake and standalone toolchains. If you
    manually selected a different STL, we strongly encourage you to move to
    `libc++`. Note that ndk-build still defaults to no STL. For more details, see
-   [this blog post].
+   [this blog post](https://android-developers.googleblog.com/2017/09/introducing-android-native-development.html).
 
  * gnustl and stlport are deprecated and will be removed in NDK r18.
 
  * Support for ARMv5 (armeabi), MIPS, and MIPS64 has been removed. Attempting to
    build any of these ABIs will result in an error.
 
-[this blog post]: https://android-developers.googleblog.com/2017/09/introducing-android-native-development.html
+ * The Play Store will require 64-bit support when uploading an APK beginning in
+   August 2019. Start porting now to avoid surprises when the time comes. For
+   more information, see [this blog post](https://android-developers.googleblog.com/2017/12/improving-app-security-and-performance.html).
 
 NDK
 ---
