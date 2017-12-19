@@ -108,6 +108,11 @@ def package_ndk(ndk_dir, dist_dir, host_tag, build_number):
     package_name = 'android-ndk-{}-{}'.format(build_number, host_tag)
     package_path = os.path.join(dist_dir, package_name)
 
+    for path, _dirs, files in os.walk(ndk_dir):
+        for file_name in files:
+            if file_name.endswith('.pyc'):
+                os.remove(os.path.join(path, file_name))
+
     base_dir = os.path.dirname(ndk_dir)
     files = os.path.basename(ndk_dir)
     if host_tag.startswith('windows'):
