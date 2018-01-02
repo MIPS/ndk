@@ -418,6 +418,11 @@ def create_toolchain(install_path, arch, api, gcc_path, clang_path,
     prebuilt_path = os.path.join(NDK_DIR, 'prebuilt', host_tag)
     copy_directory_contents(prebuilt_path, install_path)
 
+    gdbserver_path = os.path.join(
+        NDK_DIR, 'prebuilt', 'android-' + arch, 'gdbserver')
+    gdbserver_install = os.path.join(install_path, 'share', 'gdbserver')
+    shutil.copytree(gdbserver_path, gdbserver_install)
+
     toolchain_lib_dir = os.path.join(gcc_path, 'lib/gcc', triple)
     dirs = os.listdir(toolchain_lib_dir)
     assert len(dirs) == 1
