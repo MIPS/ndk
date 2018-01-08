@@ -21,7 +21,7 @@ have gone according to plan until then.
 NDK r17
 -------
 
-Estimated release: Q4 2017
+Estimated release: Q1 2018
 
 ### Default to libc++
 
@@ -40,7 +40,7 @@ all the non-critical and nice-to-have issues.
 NDK r18
 -------
 
-Estimated release: Q1 2018
+Estimated release: Q2 2018
 
 ### Remove non-libc++ STLs
 
@@ -72,7 +72,7 @@ these issues.
 NDK r19
 -------
 
-Estimated release: Q2 2018
+Estimated release: Q3 2018
 
 ### Make standalone toolchains obsolete
 
