@@ -409,12 +409,16 @@ class Gcc(ndk.builds.Module):
 
         ndk.builds.install_directory(toolchain_path, install_path)
 
+        # Gold for aarch64 currently emits broken debug info.
+        # https://issuetracker.google.com/70838247
+        gold_default_aarch64 = False
+
         # Replace ld with ld.gold for aarch64. We should get a new binutils
         # build that has this set by default, but this work until we get a new
         # binutils build.
         #
         # We don't have prebuilts for gold for 32-bit Windows.
-        if arch == 'arm64' and host != 'windows':
+        if arch == 'arm64' and host != 'windows' and gold_default_aarch64:
             exe = '.exe' if host.startswith('windows') else ''
             ld_bin = os.path.join(install_path, 'bin', triple + '-ld' + exe)
             gold_bin = os.path.join(
