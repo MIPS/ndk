@@ -1126,7 +1126,7 @@ class Sysroot(ndk.builds.Module):
                 canary = '1' if ndk.config.canary else '0'
                 build = args.build_number
                 if build == 'dev':
-                    build = '-1'
+                    build = '0'
 
                 ndk_version_h.write(textwrap.dedent("""\
                     #ifndef ANDROID_NDK_VERSION_H
