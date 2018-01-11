@@ -84,6 +84,42 @@ of build system, and the logic contained in each build system could be greatly
 reduced.
 
 
+NDK r20
+-------
+
+Estimated release: Q4 2018
+
+### Better tools for improving code quality.
+
+The NDK has long included `gtest` and clang supports various sanitiziers,
+but there are things we can do to improve the state of testing/code quality:
+
+  * Test coverage support.
+  * Easier access to sanitizers (such as asan).
+  * `clang-tidy`.
+
+### Help building complex applications.
+
+There are several well-known pain points for NDK users that we should
+address.
+
+The samples are low-quality and don't necessarily cover
+interesting/difficult topics.
+
+For serious i18n, `icu4c` is too big too bundle, and non-trivial to use
+the platform. We have a C API wrapper prototype, but we need to make it
+easily available for NDK users.
+
+There are many other commonly-used libraries (such as BoringSSL) that
+are currently difficult to build/package, let alone keep updated. We
+should investigate using [cdep] to simplify this.
+
+NDK APIs are C-only for ABI stability reasons. We should offer header-only
+C++ wrappers for NDK APIs, even if only to offer the benefits of RAII.
+
+[cdep]: https://github.com/jomof/cdep
+
+
 Historical releases
 -------------------
 
