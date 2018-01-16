@@ -84,8 +84,8 @@ of build system, and the logic contained in each build system could be greatly
 reduced.
 
 
-NDK r20
--------
+NDK r20+
+--------
 
 Estimated release: Q4 2018
 
@@ -118,6 +118,18 @@ NDK APIs are C-only for ABI stability reasons. We should offer header-only
 C++ wrappers for NDK APIs, even if only to offer the benefits of RAII.
 
 [cdep]: https://github.com/jomof/cdep
+
+### Unify CMake NDK Support Implementations
+
+CMake added their own NDK support about the same time we added our toolchain
+file. The two often conflict with each other, and a toolchain file is a messy
+way to implement this support. However, fully switching to the integrated
+support puts NDK policy deicisions (default options, NDK layout, etc) fully into
+the hands of CMake, which makes them impossible to update without the user also
+updating their CMake version.
+
+We should send patches to the CMake implementation that will load as much
+information about the NDK as possible from tables we provide in the NDK.
 
 
 Historical releases
