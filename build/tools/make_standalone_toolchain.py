@@ -246,43 +246,43 @@ def make_clang_scripts(install_dir, triple, api, windows):
                  os.path.join(install_dir, 'bin', triple + '-clang++'))
 
     if windows:
-        flags = '-target {} --sysroot %~dp0\\..\\sysroot'.format(target)
+        flags = '-target {}'.format(target)
+        flags += ' --sysroot %_BIN_DIR%..\\sysroot'
         flags += ' -D__ANDROID_API__={}'.format(api)
 
-        clangbat_path = os.path.join(install_dir, 'bin/clang.cmd')
-        with open(clangbat_path, 'w') as clangbat:
-            clangbat.write(textwrap.dedent("""\
+        for pp_suffix in ('', '++'):
+            exe_name = 'clang{}{}.exe'.format(version_number, pp_suffix)
+            clangbat_text = textwrap.dedent("""\
                 @echo off
+                setlocal
+                call :find_bin
                 if "%1" == "-cc1" goto :L
-                %~dp0\\clang{version}.exe {flags} %*
+
+                set "_BIN_DIR=" && %_BIN_DIR%{exe} {flags} %*
                 if ERRORLEVEL 1 exit /b 1
                 goto :done
+
                 :L
                 rem target/triple already spelled out.
-                %~dp0\\clang{version}.exe %*
-                if ERRORLEVEL 1 exit /b 1
-                :done
-            """.format(version=version_number, flags=flags)))
-
-        clangbatpp_path = os.path.join(install_dir, 'bin/clang++.cmd')
-        with open(clangbatpp_path, 'w') as clangbatpp:
-            clangbatpp.write(textwrap.dedent("""\
-                @echo off
-                if "%1" == "-cc1" goto :L
-                %~dp0\\clang{version}++.exe {flags} %*
+                set "_BIN_DIR=" && %_BIN_DIR%{exe} %*
                 if ERRORLEVEL 1 exit /b 1
                 goto :done
-                :L
-                rem target/triple already spelled out.
-                %~dp0\\clang{version}++.exe %*
-                if ERRORLEVEL 1 exit /b 1
-                :done
-            """.format(version=version_number, flags=flags)))
 
-        shutil.copy2(os.path.join(install_dir, 'bin/clang.cmd'),
-                     os.path.join(install_dir, 'bin', triple + '-clang.cmd'))
-        shutil.copy2(os.path.join(install_dir, 'bin/clang++.cmd'),
-                     os.path.join(install_dir, 'bin', triple + '-clang++.cmd'))
+                :find_bin
+                rem Accommodate a quoted arg0, e.g.: "clang"
+                rem https://github.com/android-ndk/ndk/issues/616
+                set _BIN_DIR=%~dp0
+                exit /b
+
+                :done
+            """.format(exe=exe_name, flags=flags))
+
+            for triple_prefix in ('', triple + '-'):
+                clangbat_path = os.path.join(
+                    install_dir, 'bin',
+                    '{}clang{}.cmd'.format(triple_prefix, pp_suffix))
+                with open(clangbat_path, 'w') as clangbat:
+                    clangbat.write(clangbat_text)
 
 
 def copy_gnustl_abi_headers(src_dir, dst_dir, gcc_ver, triple, abi,
