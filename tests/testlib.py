@@ -940,14 +940,14 @@ def get_xunit_reports(xunit_file, test_base_dir, config, ndk_path):
     return reports
 
 
-def get_lit_path():
+def get_lit_cmd():
     # The build server doesn't install lit to a virtualenv, so use it from the
     # source location if possible.
     lit_path = ndk.paths.android_path('external/llvm/utils/lit/lit.py')
     if os.path.exists(lit_path):
-        return lit_path
+        return ['python', lit_path]
     elif ndk.ext.shutil.which('lit'):
-        return 'lit'
+        return ['lit']
     return None
 
 
@@ -1002,8 +1002,8 @@ class LibcxxTest(Test):
 
         xunit_output = os.path.join(build_dir, 'xunit.xml')
 
-        lit_args = [
-            get_lit_path(), '-sv',
+        lit_args = get_lit_cmd() + [
+            '-sv',
             '--param=device_dir=' + device_dir,
             '--param=unified_headers=True',
             '--param=build_only=True',
@@ -1036,7 +1036,7 @@ class LibcxxTest(Test):
             subprocess.call(lit_args, env=env, stdout=stdout, stderr=stderr)
 
     def run(self, obj_dir, dist_dir, test_filters):
-        if get_lit_path() is None:
+        if get_lit_cmd() is None:
             return Failure(self, 'Could not find lit'), []
 
         build_dir = self.get_build_dir(dist_dir)
