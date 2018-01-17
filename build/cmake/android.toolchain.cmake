@@ -65,14 +65,29 @@ endif()
 file(TO_CMAKE_PATH "${ANDROID_NDK}" ANDROID_NDK)
 
 # Android NDK revision
+# Possible formats:
+# * r16, build 1234: 16.0.1234
+# * r16b, build 1234: 16.1.1234
+# * r16 beta 1, build 1234: 16.0.1234-beta1
+#
+# Canary builds are not specially marked.
 file(READ "${ANDROID_NDK}/source.properties" ANDROID_NDK_SOURCE_PROPERTIES)
-set(ANDROID_NDK_SOURCE_PROPERTIES_REGEX
-  "^Pkg\\.Desc = Android NDK\nPkg\\.Revision = ([0-9]+)\\.")
-if(NOT ANDROID_NDK_SOURCE_PROPERTIES MATCHES "${ANDROID_NDK_SOURCE_PROPERTIES_REGEX}")
+
+set(ANDROID_NDK_REVISION_REGEX
+  "^Pkg\\.Desc = Android NDK\nPkg\\.Revision = ([0-9]+)\\.([0-9]+)\\.([0-9]+)(-beta([0-9]+))?")
+if(NOT ANDROID_NDK_SOURCE_PROPERTIES MATCHES "${ANDROID_NDK_REVISION_REGEX}")
   message(SEND_ERROR "Failed to parse Android NDK revision: ${ANDROID_NDK}/source.properties.\n${ANDROID_NDK_SOURCE_PROPERTIES}")
 endif()
-string(REGEX REPLACE "${ANDROID_NDK_SOURCE_PROPERTIES_REGEX}" "\\1"
-  ANDROID_NDK_REVISION "${ANDROID_NDK_SOURCE_PROPERTIES}")
+
+set(ANDROID_NDK_MAJOR "${CMAKE_MATCH_1}")
+set(ANDROID_NDK_MINOR "${CMAKE_MATCH_2}")
+set(ANDROID_NDK_BUILD "${CMAKE_MATCH_3}")
+set(ANDROID_NDK_BETA "${CMAKE_MATCH_5}")
+if(ANDROID_NDK_BETA STREQUAL "")
+  set(ANDROID_NDK_BETA "0")
+endif()
+set(ANDROID_NDK_REVISION
+  "${ANDROID_NDK_MAJOR}.${ANDROID_NDK_MINOR}.${ANDROID_NDK_BUILD}${CMAKE_MATCH_4}")
 
 # Touch toolchain variable to suppress "unused variable" warning.
 # This happens if CMake is invoked with the same command line the second time.

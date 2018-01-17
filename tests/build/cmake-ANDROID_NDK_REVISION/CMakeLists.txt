@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.6.0)
+
+add_definitions(
+  -DNDK_MAJOR_FROM_CMAKE=${ANDROID_NDK_MAJOR}
+  -DNDK_MINOR_FROM_CMAKE=${ANDROID_NDK_MINOR}
+  -DNDK_BUILD_FROM_CMAKE=${ANDROID_NDK_BUILD}
+  -DNDK_BETA_FROM_CMAKE=${ANDROID_NDK_BETA}
+)
+
+add_executable(foo foo.cpp)

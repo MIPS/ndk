@@ -1585,6 +1585,13 @@ def get_all_module_names():
     return [m.name for m in ALL_MODULES]
 
 
+def build_number(value):
+    if value.startswith('P'):
+        # Treehugger build. Treat as a local development build.
+        return '0'
+    return value
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description=inspect.getdoc(sys.modules[__name__]))
@@ -1622,7 +1629,7 @@ def parse_args():
         help='Skip building tests after building the NDK.')
 
     parser.add_argument(
-        '--build-number', default='dev',
+        '--build-number', default='0', type=build_number,
         help='Build number for use in version files.')
     parser.add_argument(
         '--release', help='Ignored. Temporarily compatibility.')
