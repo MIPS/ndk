@@ -728,9 +728,9 @@ find_mingw_toolchain ()
     LINUX_GCC_PREBUILTS=$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86
     MINGW_ROOT=$LINUX_GCC_PREBUILTS/host/x86_64-w64-mingw32-4.8/
     BINPREFIX=x86_64-w64-mingw32-
-    MINGW_GCC=$MINGW_ROOT/bin/${BINPREFIX}-gcc
-    if [ ! -e "$MINGW_GCC"]; then
-      panic "$MINGW_GCC does not exist"
+    MINGW_GCC=$MINGW_ROOT/bin/${BINPREFIX}gcc
+    if [ ! -e "$MINGW_GCC" ]; then
+        panic "$MINGW_GCC does not exist"
     fi
 
     if [ "$HOST_ARCH" = "x86_64" -a "$TRY64" = "yes" ]; then
