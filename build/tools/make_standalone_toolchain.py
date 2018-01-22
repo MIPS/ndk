@@ -389,7 +389,7 @@ def copy_libcxx_libs(src_dir, dst_dir, include_libunwind):
 
 
 def create_toolchain(install_path, arch, api, gcc_path, clang_path,
-                     sysroot_path, stl, host_tag):
+                     platforms_path, stl, host_tag):
     """Create a standalone toolchain."""
     copy_directory_contents(gcc_path, install_path)
     copy_directory_contents(clang_path, install_path)
@@ -398,22 +398,27 @@ def create_toolchain(install_path, arch, api, gcc_path, clang_path,
         install_path, triple, api, host_tag.startswith('windows'))
 
     sysroot = os.path.join(NDK_DIR, 'sysroot')
+    headers = os.path.join(sysroot, 'usr/include')
     install_sysroot = os.path.join(install_path, 'sysroot')
-    shutil.copytree(sysroot, install_sysroot)
+    install_headers = os.path.join(install_sysroot, 'usr/include')
+    os.makedirs(os.path.dirname(install_headers))
+    shutil.copytree(headers, install_headers)
 
     arch_headers = os.path.join(sysroot, 'usr/include', triple)
-    copy_directory_contents(
-        arch_headers, os.path.join(install_sysroot, 'usr/include'))
+    copy_directory_contents(arch_headers, os.path.join(install_headers))
 
-    lib_path = os.path.join(sysroot_path, 'usr/lib')
-    lib_install = os.path.join(install_sysroot, 'usr/lib')
-    if os.path.exists(lib_path):
-        shutil.copytree(lib_path, lib_install)
+    for lib_suffix in ('', '64'):
+        lib_path = os.path.join(platforms_path, 'usr/lib{}'.format(lib_suffix))
+        lib_install = os.path.join(
+            install_sysroot, 'usr/lib{}'.format(lib_suffix))
+        if os.path.exists(lib_path):
+            shutil.copytree(lib_path, lib_install)
 
-    lib64_path = os.path.join(sysroot_path, 'usr/lib64')
-    lib64_install = os.path.join(install_sysroot, 'usr/lib64')
-    if os.path.exists(lib64_path):
-        shutil.copytree(lib64_path, lib64_install)
+    static_lib_path = os.path.join(sysroot, 'usr/lib', triple)
+    static_lib_install = os.path.join(install_sysroot, 'usr/lib')
+    if arch == 'x86_64':
+        static_lib_install += '64'
+    copy_directory_contents(static_lib_path, static_lib_install)
 
     prebuilt_path = os.path.join(NDK_DIR, 'prebuilt', host_tag)
     copy_directory_contents(prebuilt_path, install_path)
