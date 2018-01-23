@@ -780,6 +780,7 @@ class Platforms(ndk.builds.Module):
             cc,
             '--sysroot', self.prebuilt_path('sysroot'),
             '-I', bionic_includes,
+            '-D__ANDROID_API__={}'.format(api),
             '-DPLATFORM_SDK_VERSION={}'.format(api),
             '-DABI_NDK_VERSION="{}"'.format(ndk.config.release),
             '-DABI_NDK_BUILD_NUMBER="{}"'.format(build_number),
@@ -811,42 +812,44 @@ class Platforms(ndk.builds.Module):
         subprocess.check_call(cc_args)
 
     def build_crt_objects(self, dst_dir, api, arch, build_number):
-        src_dir = build_support.android_path('development/ndk/crt', arch)
-        sources = (
-            'crtbegin.c',
-            'crtbegin_so.c',
-            'crtend_android.S',
-            'crtend_so.S',
-        )
-        for src_name in sources:
-            name, _ = os.path.splitext(src_name)
+        src_dir = ndk.paths.android_path('bionic/libc/arch-common/bionic')
+        crt_brand = ndk.paths.ndk_path('sources/crt/crtbrand.S')
 
-            is_crtbegin = name.startswith('crtbegin')
-            also_static = False
-            if name == 'crtbegin':
-                # A single crtbegin.c is used for both crtbegin_dynamic.o and
-                # crtbegin_static.o.
-                name = 'crtbegin_dynamic'
-                also_static = True
+        # The old static libraries are not compatible with the new
+        # crtbegin_static.o or crtend_android.o. Continue using the old source
+        # for these objects until we update the static libraries.
+        old_src_dir = build_support.android_path('development/ndk/crt', arch)
 
-            dst_path = os.path.join(dst_dir, name + '.o')
-            srcs = [os.path.join(src_dir, src_name)]
-            if is_crtbegin:
-                srcs.append(build_support.ndk_path('sources/crt/crtbrand.S'))
+        objects = {
+            'crtbegin_dynamic.o': [
+                os.path.join(src_dir, 'crtbegin.c'),
+                crt_brand,
+            ],
+            'crtbegin_so.o': [
+                os.path.join(src_dir, 'crtbegin_so.c'),
+                crt_brand,
+            ],
+            'crtbegin_static.o': [
+                os.path.join(old_src_dir, 'crtbegin.c'),
+                crt_brand,
+            ],
+            'crtend_android.o': [
+                os.path.join(old_src_dir, 'crtend_android.S'),
+            ],
+            'crtend_so.o': [
+                os.path.join(src_dir, 'crtend_so.S'),
+            ],
+        }
 
-            defs = ['-DBUILDING_DYNAMIC'] if is_crtbegin else []
+        for name, srcs in objects.items():
+            dst_path = os.path.join(dst_dir, name)
+            defs = []
+            if name == 'crtbegin_static.o' and api < 21:
+                defs.append('-D_NO_CRT_ATEXIT')
             self.build_crt_object(
                 dst_path, srcs, api, arch, build_number, defs)
-
-            if is_crtbegin:
+            if name.startswith('crtbegin'):
                 self.check_elf_note(dst_path)
-
-            if also_static:
-                static_dst_path = os.path.join(dst_dir, 'crtbegin_static.o')
-                defs = ['-DBUILDING_STATIC']
-                self.build_crt_object(
-                    static_dst_path, srcs, api, arch, build_number, defs)
-                self.check_elf_note(static_dst_path)
 
     def validate(self):
         super(Platforms, self).validate()
