@@ -79,7 +79,7 @@ BUILD_DIR=$BUILD_DIR/build
 CONFIGURE_FLAGS="--disable-nls --disable-rpath"
 if [ "$MINGW" = "yes" ]; then
     # Required for a proper mingw cross compile
-    CONFIGURE_FLAGS=$CONFIGURE_FLAGS" --host=i586-pc-mingw32"
+    CONFIGURE_FLAGS=$CONFIGURE_FLAGS" --host=i686-w64-mingw32"
 fi
 
 if [ "$DARWIN" = "yes" ]; then
