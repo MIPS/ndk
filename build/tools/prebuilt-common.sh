@@ -695,13 +695,12 @@ handle_canadian_build ()
                 ;;
         esac
         if [ "$MINGW" = "yes" ] ; then
-            # NOTE: Use x86_64-pc-mingw32msvc or i586-pc-mingw32msvc because wrappers are generated
-            #       using these names
             if [ "$TRY64" = "yes" ]; then
-                ABI_CONFIGURE_HOST=x86_64-pc-mingw32msvc
+                ABI_CONFIGURE_HOST=x86_64-w64-mingw32
                 HOST_TAG=windows-x86_64
             else
-                ABI_CONFIGURE_HOST=i586-pc-mingw32msvc
+                # NOTE: A wrapper is generated for i686-w64-mingw32.
+                ABI_CONFIGURE_HOST=i686-w64-mingw32
                 HOST_TAG=windows
             fi
             HOST_OS=windows
@@ -828,6 +827,12 @@ EOF
     $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=x86_64-pc-linux-gnu- \
             --dst-prefix="$LEGACY_TOOLCHAIN_DIR/bin/x86_64-linux-" "$CROSS_WRAP_DIR"
     fail_panic "Could not create $DEBIAN_NAME wrapper toolchain in $CROSS_WRAP_DIR"
+
+    # 32-bit Windows toolchain (i686-w64-mingw32 -> x86_64-w64-mingw32 -m32)
+    local MINGW_TOOLCHAIN_DIR="$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86/host/x86_64-w64-mingw32-4.8"
+    $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=i686-w64-mingw32- \
+            --cflags="-m32" --cxxflags="-m32" --ldflags="-m i386pe" --asflags="--32" \
+            --dst-prefix="$MINGW_TOOLCHAIN_DIR/bin/x86_64-w64-mingw32-" "$CROSS_WRAP_DIR"
 
     export PATH=$CROSS_WRAP_DIR:$PATH
     dump "Using $DEBIAN_NAME wrapper: $CROSS_WRAP_DIR/${BINPREFIX}gcc"
