@@ -724,8 +724,8 @@ handle_canadian_build ()
 #
 find_mingw_toolchain ()
 {
-    LINUX_GCC_PREBUILTS=$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86
-    MINGW_ROOT=$LINUX_GCC_PREBUILTS/host/x86_64-w64-mingw32-4.8/
+    local LINUX_GCC_PREBUILTS=$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86
+    local MINGW_ROOT=$LINUX_GCC_PREBUILTS/host/x86_64-w64-mingw32-4.8/
     BINPREFIX=x86_64-w64-mingw32-
     MINGW_GCC=$MINGW_ROOT/bin/${BINPREFIX}gcc
     if [ ! -e "$MINGW_GCC" ]; then
@@ -745,6 +745,10 @@ find_mingw_toolchain ()
 #
 # $1: install directory for mingw/darwin wrapper toolchain
 #
+# NOTE: Build scripts need to call this function to create MinGW wrappers,
+# even if they aren't doing a "Canadian" cross-compile with different build,
+# host, and target systems.
+#
 prepare_canadian_toolchain ()
 {
     if [ "$MINGW" != "yes" -a "$DARWIN" != "yes" ]; then
@@ -753,13 +757,6 @@ prepare_canadian_toolchain ()
     CROSS_GCC=
     if [ "$MINGW" = "yes" ]; then
         find_mingw_toolchain
-        if [ -z "$MINGW_GCC" ]; then
-            echo "ERROR: Could not find in your PATH any of:"
-            for i in $BINPREFIXLST; do echo "   ${i}gcc"; done
-            echo "Please install the corresponding cross-toolchain and re-run this script"
-            echo "TIP: On Debian or Ubuntu, try: sudo apt-get install $DEBIAN_NAME"
-            exit 1
-        fi
         CROSS_GCC=$MINGW_GCC
     else
         if [ -z "$DARWIN_TOOLCHAIN" ]; then
@@ -969,19 +966,7 @@ prepare_host_build ()
     prepare_common_build
 
     # Now deal with mingw or darwin
-    if [ "$MINGW" = "yes" ]; then
-        handle_canadian_build
-        find_mingw_toolchain
-        CC=$MINGW_ROOT/bin/${BINPREFIX}gcc
-        CXX=$MINGW_ROOT/bin/${BINPREFIX}g++
-        CPP=$MINGW_ROOT/bin/${BINPREFIX}cpp
-        LD=$MINGW_ROOT/bin/${BINPREFIX}ld
-        AR=$MINGW_ROOT/bin/${BINPREFIX}ar
-        AS=$MINGW_ROOT/bin/${BINPREFIX}as
-        RANLIB=$MINGW_ROOT/bin/${BINPREFIX}ranlib
-        STRIP=$MINGW_ROOT/bin/${BINPREFIX}strip
-        export CC CXX CPP LD AR AS RANLIB STRIP
-    elif [ "$DARWIN" = "yes" ]; then
+    if [ "$MINGW" = "yes" -o "$DARWIN" = "yes" ]; then
         handle_canadian_build
         CC=$ABI_CONFIGURE_HOST-gcc
         CXX=$ABI_CONFIGURE_HOST-g++
