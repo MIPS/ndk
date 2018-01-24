@@ -456,6 +456,7 @@ _bh_select_toolchain_for_host ()
         linux-x86_64)
             # If possible, automaticaly use our custom toolchain to generate
             # 64-bit executables that work on Ubuntu 8.04 and higher.
+            _bh_try_host_fullprefix "$(dirname $ANDROID_NDK_ROOT)/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.8" x86_64-linux
             _bh_try_host_fullprefix "$(dirname $ANDROID_NDK_ROOT)/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.7-4.6" x86_64-linux
             _bh_try_host_prefix x86_64-linux-gnu
             _bh_try_host_prefix x84_64-linux
