@@ -829,6 +829,7 @@ EOF
     local MINGW_TOOLCHAIN_DIR="$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86/host/x86_64-w64-mingw32-4.8"
     $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=i686-w64-mingw32- \
             --cflags="-m32" --cxxflags="-m32" --ldflags="-m i386pe" --asflags="--32" \
+            --windres-flags="-F pe-i386" \
             --dst-prefix="$MINGW_TOOLCHAIN_DIR/bin/x86_64-w64-mingw32-" "$CROSS_WRAP_DIR"
 
     export PATH=$CROSS_WRAP_DIR:$PATH

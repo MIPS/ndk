@@ -426,7 +426,9 @@ EOF
 #
 _bh_select_toolchain_for_host ()
 {
-    local HOST_CFLAGS HOST_CXXFLAGS HOST_LDFLAGS HOST_FULLPREFIX DARWIN_ARCH
+    local HOST_CFLAGS HOST_CXXFLAGS HOST_LDFLAGS
+    local HOST_ASFLAGS HOST_WINDRES_FLAGS
+    local HOST_FULLPREFIX
     local DARWIN_ARCH DARWIN_SDK_SUBDIR
 
     # We do all the complex auto-detection magic in the setup phase,
@@ -546,6 +548,17 @@ _bh_select_toolchain_for_host ()
                     if [ "$BH_HOST_CONFIG" != i686-w64-mingw32 ]; then
                         panic "Unexpected value of BH_HOST_CONFIG: $BH_HOST_CONFIG"
                     fi
+                    # If the 32-bit wrappers call a 64-bit toolchain, add flags
+                    # to default ld/as/windres to 32 bits.
+                    case "$HOST_FULLPREFIX" in
+                        *x86_64-w64-mingw32-)
+                            HOST_LDFLAGS="-m i386pe"
+                            HOST_ASFLAGS="--32"
+                            HOST_WINDRES_FLAGS="-F pe-i386"
+                            ;;
+                        *)
+                            ;;
+                    esac
                     ;;
                 *) panic "Sorry, this script only supports building windows binaries on Linux."
                 ;;
@@ -619,6 +632,8 @@ _bh_select_toolchain_for_host ()
         --cflags="$HOST_CFLAGS" \
         --cxxflags="$HOST_CXXFLAGS" \
         --ldflags="$HOST_LDFLAGS" \
+        --asflags="$HOST_ASFLAGS" \
+        --windres-flags="$HOST_WINDRES_FLAGS" \
         $CCACHE
 }
 
