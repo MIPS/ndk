@@ -1708,6 +1708,8 @@ def main():
     # get EPERM from `setpgrp`. No need to call this in that case because we
     # will already be the process group leader.
     if os.getpid() != os.getsid(os.getpid()):
+        if sys.stdin.isatty():
+            os.tcsetpgrp(sys.stdin.fileno(), os.getpid())
         os.setpgrp()
 
     args = parse_args()
