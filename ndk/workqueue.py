@@ -328,6 +328,10 @@ class DummyWorkQueue(object):
     def num_tasks(self):
         return len(self.task_queue)
 
+    @property
+    def workers(self):
+        return []
+
     def finished(self):
         """Returns True if all tasks have completed execution."""
         return self.num_tasks == 0
