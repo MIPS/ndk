@@ -4,9 +4,4 @@ def run_broken(abi, _device_api, toolchain, _subtest):
         # update to the static libraries to fix this.
         return abi, 'https://github.com/android-ndk/ndk/issues/593'
 
-    if toolchain == 'clang':
-        # Clang doesn't pass --eh-frame-hdr to the linker for static
-        # executables.
-        return ' '.join([abi, toolchain]), 'http://b/30101473'
-
     return None, None
