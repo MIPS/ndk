@@ -69,6 +69,10 @@ else
         ifneq ($(filter $(_bad_abis),armeabi-v7a-hard),)
             $(call __ndk_info,armeabi-v7a-hard is no longer supported. Use armeabi-v7a.)
             $(call __ndk_info,See https://android.googlesource.com/platform/ndk/+/master/docs/HardFloatAbi.md)
+        else ifneq ($(filter $(_bad_abis),armeabi),)
+            $(call __ndk_info,The armeabi ABI is no longer supported. Use armeabi-v7a.)
+        else ifneq ($(filter $(_bad_abis),mips mips64),)
+            $(call __ndk_info,MIPS and MIPS64 are no longer supported.)
         endif
         $(call __ndk_info,NDK Application '$(_app)' targets unknown ABI(s): $(_bad_abis))
         $(call __ndk_info,Please fix the APP_ABI definition in $(NDK_APP_APPLICATION_MK))
