@@ -695,13 +695,12 @@ handle_canadian_build ()
                 ;;
         esac
         if [ "$MINGW" = "yes" ] ; then
-            # NOTE: Use x86_64-pc-mingw32msvc or i586-pc-mingw32msvc because wrappers are generated
-            #       using these names
             if [ "$TRY64" = "yes" ]; then
-                ABI_CONFIGURE_HOST=x86_64-pc-mingw32msvc
+                ABI_CONFIGURE_HOST=x86_64-w64-mingw32
                 HOST_TAG=windows-x86_64
             else
-                ABI_CONFIGURE_HOST=i586-pc-mingw32msvc
+                # NOTE: A wrapper is generated for i686-w64-mingw32.
+                ABI_CONFIGURE_HOST=i686-w64-mingw32
                 HOST_TAG=windows
             fi
             HOST_OS=windows
@@ -725,8 +724,8 @@ handle_canadian_build ()
 #
 find_mingw_toolchain ()
 {
-    LINUX_GCC_PREBUILTS=$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86
-    MINGW_ROOT=$LINUX_GCC_PREBUILTS/host/x86_64-w64-mingw32-4.8/
+    local LINUX_GCC_PREBUILTS=$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86
+    local MINGW_ROOT=$LINUX_GCC_PREBUILTS/host/x86_64-w64-mingw32-4.8/
     BINPREFIX=x86_64-w64-mingw32-
     MINGW_GCC=$MINGW_ROOT/bin/${BINPREFIX}gcc
     if [ ! -e "$MINGW_GCC" ]; then
@@ -746,6 +745,10 @@ find_mingw_toolchain ()
 #
 # $1: install directory for mingw/darwin wrapper toolchain
 #
+# NOTE: Build scripts need to call this function to create MinGW wrappers,
+# even if they aren't doing a "Canadian" cross-compile with different build,
+# host, and target systems.
+#
 prepare_canadian_toolchain ()
 {
     if [ "$MINGW" != "yes" -a "$DARWIN" != "yes" ]; then
@@ -754,13 +757,6 @@ prepare_canadian_toolchain ()
     CROSS_GCC=
     if [ "$MINGW" = "yes" ]; then
         find_mingw_toolchain
-        if [ -z "$MINGW_GCC" ]; then
-            echo "ERROR: Could not find in your PATH any of:"
-            for i in $BINPREFIXLST; do echo "   ${i}gcc"; done
-            echo "Please install the corresponding cross-toolchain and re-run this script"
-            echo "TIP: On Debian or Ubuntu, try: sudo apt-get install $DEBIAN_NAME"
-            exit 1
-        fi
         CROSS_GCC=$MINGW_GCC
     else
         if [ -z "$DARWIN_TOOLCHAIN" ]; then
@@ -828,6 +824,13 @@ EOF
     $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=x86_64-pc-linux-gnu- \
             --dst-prefix="$LEGACY_TOOLCHAIN_DIR/bin/x86_64-linux-" "$CROSS_WRAP_DIR"
     fail_panic "Could not create $DEBIAN_NAME wrapper toolchain in $CROSS_WRAP_DIR"
+
+    # 32-bit Windows toolchain (i686-w64-mingw32 -> x86_64-w64-mingw32 -m32)
+    local MINGW_TOOLCHAIN_DIR="$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86/host/x86_64-w64-mingw32-4.8"
+    $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=i686-w64-mingw32- \
+            --cflags="-m32" --cxxflags="-m32" --ldflags="-m i386pe" --asflags="--32" \
+            --windres-flags="-F pe-i386" \
+            --dst-prefix="$MINGW_TOOLCHAIN_DIR/bin/x86_64-w64-mingw32-" "$CROSS_WRAP_DIR"
 
     export PATH=$CROSS_WRAP_DIR:$PATH
     dump "Using $DEBIAN_NAME wrapper: $CROSS_WRAP_DIR/${BINPREFIX}gcc"
@@ -964,19 +967,7 @@ prepare_host_build ()
     prepare_common_build
 
     # Now deal with mingw or darwin
-    if [ "$MINGW" = "yes" ]; then
-        handle_canadian_build
-        find_mingw_toolchain
-        CC=$MINGW_ROOT/bin/${BINPREFIX}gcc
-        CXX=$MINGW_ROOT/bin/${BINPREFIX}g++
-        CPP=$MINGW_ROOT/bin/${BINPREFIX}cpp
-        LD=$MINGW_ROOT/bin/${BINPREFIX}ld
-        AR=$MINGW_ROOT/bin/${BINPREFIX}ar
-        AS=$MINGW_ROOT/bin/${BINPREFIX}as
-        RANLIB=$MINGW_ROOT/bin/${BINPREFIX}ranlib
-        STRIP=$MINGW_ROOT/bin/${BINPREFIX}strip
-        export CC CXX CPP LD AR AS RANLIB STRIP
-    elif [ "$DARWIN" = "yes" ]; then
+    if [ "$MINGW" = "yes" -o "$DARWIN" = "yes" ]; then
         handle_canadian_build
         CC=$ABI_CONFIGURE_HOST-gcc
         CXX=$ABI_CONFIGURE_HOST-g++
