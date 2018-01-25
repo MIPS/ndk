@@ -23,6 +23,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import argparse
+import contextlib
 import copy
 import errno
 import inspect
@@ -1694,14 +1695,6 @@ def main():
     total_timer = ndk.timer.Timer()
     total_timer.start()
 
-    # It seems the build servers run us in our own session, in which case we
-    # get EPERM from `setpgrp`. No need to call this in that case because we
-    # will already be the process group leader.
-    if os.getpid() != os.getsid(os.getpid()):
-        if sys.stdin.isatty():
-            os.tcsetpgrp(sys.stdin.fileno(), os.getpid())
-        os.setpgrp()
-
     args = parse_args()
 
     if args.modules is None:
@@ -1837,5 +1830,32 @@ def main():
     sys.exit(not good)
 
 
+@contextlib.contextmanager
+def _assign_self_to_new_process_group(fd):
+    # It seems the build servers run us in our own session, in which case we
+    # get EPERM from `setpgrp`. No need to call this in that case because we
+    # will already be the process group leader.
+    if os.getpid() == os.getsid(os.getpid()):
+        yield
+        return
+
+    if ndk.ansi.is_self_in_tty_foreground_group(fd):
+        old_pgrp = os.tcgetpgrp(fd.fileno())
+        os.tcsetpgrp(fd.fileno(), os.getpid())
+        os.setpgrp()
+        try:
+            yield
+        finally:
+            os.tcsetpgrp(fd.fileno(), old_pgrp)
+    else:
+        os.setpgrp()
+        yield
+
+
+def _run_main_in_new_process_group():
+    with _assign_self_to_new_process_group(sys.stdin):
+        main()
+
+
 if __name__ == '__main__':
-    main()
+    _run_main_in_new_process_group()

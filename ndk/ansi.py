@@ -50,9 +50,18 @@ def clear_line():
     return '\033[K'
 
 
+def is_self_in_tty_foreground_group(fd):
+    """Is this process in the foreground process group of a tty identified
+    by fd?"""
+    return HAVE_TERMIOS and fd.isatty() and \
+        os.getpgrp() == os.tcgetpgrp(fd.fileno())
+
+
 @contextlib.contextmanager
 def disable_terminal_echo(fd):
-    if HAVE_TERMIOS and fd.isatty():
+    # If we call tcsetattr from a background process group, it will suspend
+    # this process.
+    if is_self_in_tty_foreground_group(fd):
         original = termios.tcgetattr(fd)
         termattr = termios.tcgetattr(fd)
         termattr[3] &= ~termios.ECHO
