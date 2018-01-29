@@ -1136,23 +1136,22 @@ class Sysroot(ndk.builds.Module):
                     #define ANDROID_NDK_VERSION_H
 
                     /**
-                     * Major vision of this NDK.
+                     * Major version of this NDK.
                      *
                      * For example: 16 for r16.
                      */
                     #define __NDK_MAJOR__ {major}
 
                     /**
-                     * Minor vision of this NDK.
+                     * Minor version of this NDK.
                      *
-                     * For example: 1 for r16b.
+                     * For example: 0 for r16 and 1 for r16b.
                      */
                     #define __NDK_MINOR__ {minor}
 
                     /**
-                     * Beta vision of this NDK.
-                     *
-                     * For example: 1 for r16 beta 1, 0 for r16.
+                     * Set to 0 if this is a release build, or 1 for beta 1,
+                     * 2 for beta 2, and so on.
                      */
                     #define __NDK_BETA__ {beta}
 
