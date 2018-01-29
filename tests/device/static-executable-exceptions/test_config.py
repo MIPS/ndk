@@ -1,11 +1,12 @@
-def build_broken(abi, platform, toolchain):
-    if platform >= 21:
-        return 'android-{}'.format(platform), 'http://b/24468267'
-    return None, None
+def run_broken(abi, _device_api, toolchain, _subtest):
+    if abi == 'armeabi-v7a':
+        # __gnu_Unwind_Find_exidx has always been broken in libc.a. We need an
+        # update to the static libraries to fix this.
+        return abi, 'https://github.com/android-ndk/ndk/issues/593'
 
-
-def run_broken(abi, device_api, toolchain, subtest=None):
-    if (abi == 'x86' and toolchain == 'clang' and
-        subtest == 'static-executable'):
+    if toolchain == 'clang':
+        # Clang doesn't pass --eh-frame-hdr to the linker for static
+        # executables.
         return ' '.join([abi, toolchain]), 'http://b/30101473'
+
     return None, None

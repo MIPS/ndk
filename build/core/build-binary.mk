@@ -436,12 +436,27 @@ ifneq (,$(call module-has-c++-features,$(LOCAL_MODULE),exceptions))
     LOCAL_CPPFLAGS += -fexceptions
 endif
 
-# If we're using the 'system' STL and use rtti or exceptions, then
-# automatically link against the GNU libsupc++ for now.
-#
 ifneq (,$(call module-has-c++-features,$(LOCAL_MODULE),rtti exceptions))
     ifeq (system,$(NDK_APP_STL))
-      LOCAL_LDLIBS := $(LOCAL_LDLIBS) $(call host-path,$(NDK_ROOT)/sources/cxx-stl/gnu-libstdc++/4.9/libs/$(TARGET_ARCH_ABI)/libsupc++$(TARGET_LIB_EXTENSION))
+        # The system STL does not support RTTI or exceptions. Link libc++abi for
+        # that support.
+        LIBCXX_LIB_PATH := $(call host-path,$(NDK_ROOT)/sources/cxx-stl/llvm-libc++/libs/$(TARGET_ARCH_ABI))
+        LOCAL_LDLIBS += $(LIBCXX_LIB_PATH)/libc++abi.a
+
+        ifeq ($(NDK_PLATFORM_NEEDS_ANDROID_SUPPORT),true)
+            # TODO(danalbert): Remove once we've dropped ICS support.
+            # We only need this with with libc++abi for posix_memalign, which we
+            # have once our minimum target is Jelly Bean.
+            LOCAL_LDLIBS += $(LIBCXX_LIB_PATH)/libandroid_support.a
+        endif
+
+        ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
+            # And for armeabi-v7a, include the correct unwinder.
+            LOCAL_LDLIBS += $(LIBCXX_LIB_PATH)/libunwind.a
+
+            # The unwinder uses dladdr.
+            LOCAL_LDLIBS += -ldl
+        endif
     endif
 endif
 
