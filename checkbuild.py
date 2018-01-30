@@ -495,18 +495,6 @@ class ShaderTools(ndk.builds.InvokeBuildModule):
     path = 'shader-tools/{host}'
     script = 'build-shader-tools.py'
 
-    def build(self, build_dir, dist_dir, args):
-        # This build has been flaky for ages. Disable it until it's fixed.
-        if args.system.startswith('windows'):
-            return
-        super(ShaderTools, self).build(build_dir, dist_dir, args)
-
-    def install(self, out_dir, dist_dir, args):
-        # This build has been flaky for ages. Disable it until it's fixed.
-        if args.system.startswith('windows'):
-            return
-        super(ShaderTools, self).install(out_dir, dist_dir, args)
-
 
 class HostTools(ndk.builds.Module):
     name = 'host-tools'
