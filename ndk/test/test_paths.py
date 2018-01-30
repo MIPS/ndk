@@ -16,23 +16,23 @@
 """Tests for ndk.paths."""
 from __future__ import absolute_import
 
-import mock
 import os
 import unittest
 
+import mock
+
+import ndk.config
 import ndk.paths
 
 
 class GetInstallPathTest(unittest.TestCase):
     def setUp(self):
         self.release = 'bar'
-        import config
-        self.saved_release = config.release
-        config.release = self.release
+        self.saved_release = ndk.config.release
+        ndk.config.release = self.release
 
     def tearDown(self):
-        import config
-        config.release = self.saved_release
+        ndk.config.release = self.saved_release
 
     @mock.patch('ndk.paths.get_out_dir')
     def test_inferred_out_dir(self, mock_get_out_dir):
