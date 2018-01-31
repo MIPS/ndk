@@ -32,7 +32,7 @@ Announcements
 NDK
 ---
 
- * Updated Clang to build 4479392.
+ * Updated Clang to build 4579689.
      * LTO now works on Windows, fixing [Issue 313].
  * Updated gtest to upstream revision 0fe96607d85cf3a25ac40da369db62bbee2939a5.
  * `libandroid_support` is no longer used when your NDK API level is greater
