@@ -581,12 +581,25 @@ if(ANDROID_CXX_STANDARD_LIBRARIES)
 endif()
 
 # Configuration specific flags.
+
+# x86 and x86_64 use large model pic, whereas everything else uses small model.
+# In the past we've always used -fPIE, but the LLVMgold plugin (for LTO)
+# complains if the models are mismatched.
+list(APPEND ANDROID_PIE_FLAGS -pie)
+if(ANDROID_ABI MATCHES "x86")
+  list(APPEND ANDROID_PIE_FLAGS -fPIE)
+else()
+  list(APPEND ANDROID_PIE_FLAGS -fpie)
+endif()
+
+# PIE is supported on all currently supported Android releases, but it is not
+# supported with static executables, so we still provide ANDROID_PIE as an
+# escape hatch for those.
 if(ANDROID_PIE)
   set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
-  list(APPEND ANDROID_LINKER_FLAGS_EXE
-    -pie
-    -fPIE)
+  list(APPEND ANDROID_LINKER_FLAGS_EXE ${ANDROID_PIE_FLAGS})
 endif()
+
 if(ANDROID_CPP_FEATURES)
   separate_arguments(ANDROID_CPP_FEATURES)
   foreach(feature ${ANDROID_CPP_FEATURES})
