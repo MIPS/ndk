@@ -65,6 +65,11 @@ ifndef NDK_TOOLCHAIN
         VERSION := $(NDK_TOOLCHAIN_VERSION)
         TARGET_TOOLCHAIN := $(TARGET_TOOLCHAIN_BASE)-$(VERSION)
         $(call ndk_log,Using target toolchain '$(TARGET_TOOLCHAIN)' for '$(TARGET_ARCH_ABI)' ABI (through NDK_TOOLCHAIN_VERSION))
+        ifeq ($(NDK_TOOLCHAIN_VERSION),4.9)
+            $(call __ndk_info,WARNING: Invalid NDK_TOOLCHAIN_VERSION value: \
+                $(NDK_TOOLCHAIN_VERSION). GCC is no longer supported. See \
+                https://android.googlesource.com/platform/ndk/+/master/docs/ClangMigration.md.)
+        endif
     else
         $(call ndk_log,Using target toolchain '$(TARGET_TOOLCHAIN)' for '$(TARGET_ARCH_ABI)' ABI)
     endif

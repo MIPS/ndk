@@ -23,6 +23,8 @@ Announcements
  * Support for ARMv5 (armeabi), MIPS, and MIPS64 has been removed. Attempting to
    build any of these ABIs will result in an error.
 
+ * Support for ICS (android-14 and android-15) will be removed from r18.
+
  * The Play Store will require 64-bit support when uploading an APK beginning in
    August 2019. Start porting now to avoid surprises when the time comes. For
    more information, see [this blog post](https://android-developers.googleblog.com/2017/12/improving-app-security-and-performance.html).
@@ -30,8 +32,8 @@ Announcements
 NDK
 ---
 
- * Updated Clang to build 4393122 based on ???
- * AArch64 now uses gold by default, matching the other architectures.
+ * Updated Clang to build 4479392.
+     * LTO now works on Windows, fixing [Issue 313].
  * Updated gtest to upstream revision 0fe96607d85cf3a25ac40da369db62bbee2939a5.
  * Fixed parsing of the NDK revision in CMake. NDK version information is now
    available in the following CMake variables:
@@ -45,6 +47,8 @@ NDK
      * `ANDROID_NDK_BETA`: The beta version of the NDK. This is 0 for a stable
        release.
 
+[Issue 313]: https://github.com/android-ndk/ndk/issues/313
+
 Known Issues
 ------------
 
@@ -53,5 +57,8 @@ Known Issues
    segfaults if the containing library is `dlclose`ed on devices running M or
    newer, or devices before M when using a static STL. The simple workaround is
    to not call `dlclose`.
+ * [Issue 70838247]: Gold emits broken debug information for AArch64. AArch64
+   still uses BFD by default.
 
 [Issue 360]: https://github.com/android-ndk/ndk/issues/360
+[Issue 70838247]: https://issuetracker.google.com/70838247
