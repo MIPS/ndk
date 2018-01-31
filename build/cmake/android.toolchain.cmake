@@ -175,6 +175,10 @@ endif()
 # Default values for configurable variables.
 if(NOT ANDROID_TOOLCHAIN)
   set(ANDROID_TOOLCHAIN clang)
+elseif(ANDROID_TOOLCHAIN STREQUAL gcc)
+  message(WARNING
+    "GCC is deprecated and will be removed in the next release. See "
+    "https://android.googlesource.com/platform/ndk/+/master/docs/ClangMigration.md.")
 endif()
 if(NOT ANDROID_ABI)
   set(ANDROID_ABI armeabi-v7a)
