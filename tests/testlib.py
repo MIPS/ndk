@@ -597,16 +597,25 @@ def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
     env = dict(os.environ)
     env['PATH'] = prebuilts_bin + os.pathsep + os.environ['PATH']
 
-    # Skip if we don't have a working cmake executable, either from the
+    # Fail if we don't have a working cmake executable, either from the
     # prebuilts, or from the SDK, or if a new enough version is installed.
-    if ndk.ext.shutil.which('cmake') is None:
-        return Skipped(test, 'cmake executable not found')
+    cmake_bin = ndk.ext.shutil.which('cmake', path=env['PATH'])
+    if cmake_bin is None:
+        return Failure(test, 'cmake executable not found')
 
-    out = subprocess.check_output(['cmake', '--version'], env=env)
+    out = subprocess.check_output([cmake_bin, '--version'], env=env)
     version_pattern = r'cmake version (\d+)\.(\d+)\.'
     version = [int(v) for v in re.match(version_pattern, out).groups()]
     if version < [3, 6]:
-        return Skipped(test, 'cmake 3.6 or above required')
+        return Failure(test, 'cmake 3.6 or above required')
+
+    # Also require a working ninja executable.
+    ninja_bin = ndk.ext.shutil.which('ninja', path=env['PATH'])
+    if ninja_bin is None:
+        return Failure(test, 'ninja executable not found')
+    rc, _ = ndk.ext.subprocess.call_output([ninja_bin, '--version'], env=env)
+    if rc != 0:
+        return Failure(test, 'ninja --version failed')
 
     toolchain_file = os.path.join(ndk_path, 'build', 'cmake',
                                   'android.toolchain.cmake')
@@ -621,22 +630,18 @@ def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
         '-DANDROID_ABI=' + abi,
         '-DANDROID_TOOLCHAIN=' + toolchain,
         '-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=' + libs_dir,
-        '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + libs_dir
+        '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + libs_dir,
+        '-GNinja',
+        '-DCMAKE_MAKE_PROGRAM=' + ninja_bin,
     ]
-    rc, _ = ndk.ext.subprocess.call_output(['ninja', '--version'], env=env)
-    if rc == 0:
-        args += [
-            '-GNinja',
-            '-DCMAKE_MAKE_PROGRAM=ninja',
-        ]
     if platform is not None:
         args.append('-DANDROID_PLATFORM=android-{}'.format(platform))
     rc, out = ndk.ext.subprocess.call_output(
-        ['cmake'] + cmake_flags + args, env=env)
+        [cmake_bin] + cmake_flags + args, env=env)
     if rc != 0:
         return Failure(test, out)
     rc, out = ndk.ext.subprocess.call_output(
-        ['cmake', '--build', objs_dir, '--'] + _get_jobs_args(), env=env)
+        [cmake_bin, '--build', objs_dir, '--'] + _get_jobs_args(), env=env)
     if rc != 0:
         return Failure(test, out)
     return Success(test)
