@@ -594,26 +594,25 @@ def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
     prebuilts_host_tag = ndk.hosts.get_default_host() + '-x86'
     prebuilts_bin = ndk.paths.android_path(
         'prebuilts', 'cmake', prebuilts_host_tag, 'bin')
-    env = dict(os.environ)
-    env['PATH'] = prebuilts_bin + os.pathsep + os.environ['PATH']
+    env_path = prebuilts_bin + os.pathsep + os.environ['PATH']
 
     # Fail if we don't have a working cmake executable, either from the
     # prebuilts, or from the SDK, or if a new enough version is installed.
-    cmake_bin = ndk.ext.shutil.which('cmake', path=env['PATH'])
+    cmake_bin = ndk.ext.shutil.which('cmake', path=env_path)
     if cmake_bin is None:
         return Failure(test, 'cmake executable not found')
 
-    out = subprocess.check_output([cmake_bin, '--version'], env=env)
+    out = subprocess.check_output([cmake_bin, '--version'])
     version_pattern = r'cmake version (\d+)\.(\d+)\.'
     version = [int(v) for v in re.match(version_pattern, out).groups()]
     if version < [3, 6]:
         return Failure(test, 'cmake 3.6 or above required')
 
     # Also require a working ninja executable.
-    ninja_bin = ndk.ext.shutil.which('ninja', path=env['PATH'])
+    ninja_bin = ndk.ext.shutil.which('ninja', path=env_path)
     if ninja_bin is None:
         return Failure(test, 'ninja executable not found')
-    rc, _ = ndk.ext.subprocess.call_output([ninja_bin, '--version'], env=env)
+    rc, _ = ndk.ext.subprocess.call_output([ninja_bin, '--version'])
     if rc != 0:
         return Failure(test, 'ninja --version failed')
 
@@ -637,11 +636,11 @@ def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
     if platform is not None:
         args.append('-DANDROID_PLATFORM=android-{}'.format(platform))
     rc, out = ndk.ext.subprocess.call_output(
-        [cmake_bin] + cmake_flags + args, env=env)
+        [cmake_bin] + cmake_flags + args)
     if rc != 0:
         return Failure(test, out)
     rc, out = ndk.ext.subprocess.call_output(
-        [cmake_bin, '--build', objs_dir, '--'] + _get_jobs_args(), env=env)
+        [cmake_bin, '--build', objs_dir, '--'] + _get_jobs_args())
     if rc != 0:
         return Failure(test, out)
     return Success(test)
