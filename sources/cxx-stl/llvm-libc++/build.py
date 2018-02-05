@@ -116,7 +116,7 @@ def main(args):
         # other support libraries appropriately.
         static_libs = ['-lc++_static', '-lc++abi', '-landroid_support']
         if is_arm:
-            static_libs.extend(['-lunwind', '-latomic'])
+            static_libs.extend(['-lunwind', '-ldl', '-latomic'])
         make_linker_script(os.path.join(install_dir, 'libc++.a'), static_libs)
 
         shared_libs = ['-landroid_support']
