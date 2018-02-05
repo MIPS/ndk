@@ -768,16 +768,42 @@ module-extract-whole-static-libs = $(strip \
   $(_ndk_mod_whole_result))
 
 # Used to recompute all dependencies once all module information has been recorded.
-#
 modules-compute-dependencies = \
     $(foreach __module,$(__ndk_modules),\
         $(call module-compute-depends,$(__module))\
     )
 
+# Recurses though modules imported by $1 to come up with the transitive closure
+# of imports.
+# $1: Module
+# $2: Import type (STATIC_LIBRARIES or SHARED_LIBRARIES)
+module_get_recursive_imports = \
+    $(eval _from_static_libs.$1 := \
+        $(call module-get-listed-export,\
+            $(__ndk_modules.$1.STATIC_LIBRARIES),$2))\
+    $(eval _from_shared_libs.$1 := \
+        $(call module-get-listed-export,\
+            $(__ndk_modules.$1.SHARED_LIBRARIES),$2))\
+    $(eval _from_imports.$1 := \
+        $(foreach _import,$(_from_static_libs.1),\
+            $(call module_get_recursive_imports,$(_import),$2))\
+        $(foreach _import,$(_from_shared_libs.$1),\
+            $(call module_get_recursive_imports,$(_import),$2)))\
+    $(_from_static_libs.$1) $(_from_shared_libs.$1) $(_from_imports.$1)
+
+# Fills __ndk_modules.$1.depends with a list of all the modules that $1 depends
+# on. Note that this runs before import-locals.mk is run (import-locals.mk needs
+# this information), so we have to explicitly check for exported libraries from
+# our dependencies. Imported libraries might in turn export more libraries to
+# us, so do this recursively.
 module-compute-depends = \
     $(call module-add-static-depends,$1,$(__ndk_modules.$1.STATIC_LIBRARIES))\
     $(call module-add-static-depends,$1,$(__ndk_modules.$1.WHOLE_STATIC_LIBRARIES))\
     $(call module-add-shared-depends,$1,$(__ndk_modules.$1.SHARED_LIBRARIES))\
+    $(call module-add-static-depends,$1,\
+        $(call module_get_recursive_imports,$1,STATIC_LIBRARIES))\
+    $(call module-add-shared-depends,$1,\
+        $(call module_get_recursive_imports,$1,SHARED_LIBRARIES))\
 
 module-get-installed = $(__ndk_modules.$1.INSTALLED)
 
