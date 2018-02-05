@@ -73,7 +73,7 @@ def get_abis(arch):
     return {
         'arm': ['armeabi-v7a'],
         'arm64': ['arm64-v8a'],
-        'mips': ['mips'],
+        'mips': ['mips', 'mips32r6'],
         'mips64': ['mips64'],
         'x86': ['x86'],
         'x86_64': ['x86_64'],
@@ -218,6 +218,17 @@ def make_clang_scripts(install_dir, triple, api, windows):
     if arch == 'i686':
         common_flags += ' -mstackrealign'
 
+    # Clang does not automatically pass --eh-frame-hdr to the linker for static
+    # executables.
+    # https://github.com/android-ndk/ndk/issues/593
+    # http://b/72512648
+    common_flags += ' -Wl,--eh-frame-hdr'
+
+    # Help clang to find additional headers while compiling for r2 and r6.
+    # It has no effect on mips32 (as this path is searched by default).
+    if arch == 'mipsel':
+        common_flags += ' -I`dirname $0`/../include/c++/4.9.x/mipsel-linux-android/'
+
     unix_flags = common_flags
     unix_flags += ' --sysroot `dirname $0`/../sysroot'
 
@@ -311,6 +322,10 @@ def copy_gnustl_abi_headers(src_dir, dst_dir, gcc_ver, triple, abi,
     abi_dst_dir = os.path.join(
         dst_dir, 'include/c++', gcc_ver, triple, bits_dst_dir)
 
+    # Do not copy gnustl abi headers twice for mips
+    # mips32r1 and mips32r6 uses the same
+    if abi.startswith('mips32r6') and os.path.exists(abi_dst_dir):
+        return
     shutil.copytree(abi_src_dir, abi_dst_dir)
 
 
@@ -325,6 +340,8 @@ def get_dest_libdir(dst_dir, triple, abi):
     if abi in ('mips64', 'x86_64'):
         # ARM64 isn't a real multilib target, so it's just installed to lib.
         libdir_name = 'lib64'
+    if abi.startswith('mips32r6'):
+        libdir_name = 'libr6'
     dst_libdir = os.path.join(dst_dir, triple, libdir_name)
     if abi.startswith('armeabi-v7a'):
         dst_libdir = os.path.join(dst_libdir, 'armv7-a')
@@ -425,11 +442,27 @@ def create_toolchain(install_path, arch, api, gcc_path, clang_path,
         if os.path.exists(lib_path):
             shutil.copytree(lib_path, lib_install)
 
+    # Copy r6 libraries and runtime objects to mips toolchain
+    if arch == "mips":
+        lib_path = os.path.join(platforms_path, 'usr/libr6')
+        lib_install = os.path.join(install_sysroot, 'usr/libr6')
+        if os.path.exists(lib_path):
+            shutil.copytree(lib_path, lib_install)
+
     static_lib_path = os.path.join(sysroot, 'usr/lib', triple)
     static_lib_install = os.path.join(install_sysroot, 'usr/lib')
-    if arch == 'x86_64':
+    # Copy mips32r1 static libraries from libr dir
+    if arch == "mips":
+        static_lib_path += '/lib'
+    if arch == 'x86_64' or arch == 'mips64':
         static_lib_install += '64'
     copy_directory_contents(static_lib_path, static_lib_install)
+
+    # Copy mips32r6 static libraries from libr6 dir
+    if arch == "mips":
+        static_lib_path += 'r6'
+        static_lib_install += 'r6'
+        copy_directory_contents(static_lib_path, static_lib_install)
 
     prebuilt_path = os.path.join(NDK_DIR, 'prebuilt', host_tag)
     copy_directory_contents(prebuilt_path, install_path)

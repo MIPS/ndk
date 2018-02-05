@@ -36,6 +36,9 @@ TOOLCHAIN_PREFIX := $(TOOLCHAIN_ROOT)/bin/$(TOOLCHAIN_NAME)-
 # CFLAGS, C_INCLUDES, and LDFLAGS
 #
 
+TARGET_ASAN_BASENAME := libclang_rt.asan-mips64-android.so
+TARGET_UBSAN_BASENAME := libclang_rt.ubsan_standalone-mips64-android.so
+
 LLVM_TRIPLE := mips64el-none-linux-android
 
 TARGET_CFLAGS := \
@@ -59,6 +62,8 @@ TARGET_LDFLAGS += \
     -gcc-toolchain $(call host-path,$(TOOLCHAIN_ROOT)) \
     -target $(LLVM_TRIPLE) \
     -no-canonical-prefixes \
+
+TARGET_LIBDIR := lib64
 
 TARGET_mips64_release_CFLAGS := \
     -O2 \

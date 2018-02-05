@@ -255,6 +255,14 @@ build_gnustl_for_abi ()
             AS="$AS -mips32"
             LDFLAGS="$LDFLAGS -mips32"
             ;;
+        mips32r6)
+            CC="$CC -mips32r6 -mno-odd-spreg"
+            CXX="$CXX -mips32r6 -mno-odd-spreg"
+            AS="$AS -mips32r6 -mno-odd-spreg"
+            CFLAGS="$CFLAGS -mips32r6 -mno-odd-spreg -B$BINPREFIX"
+            CXXFLAGS="$CXXFLAGS -mips32r6 -mno-odd-spreg -B$BINPREFIX"
+            LDFLAGS="$LDFLAGS -mips32r6 -mno-odd-spreg -B$BINPREFIX"
+            ;;
     esac
 
     if [ "$ABI" = "armeabi" -o "$ABI" = "armeabi-v7a" ]; then
@@ -345,6 +353,10 @@ copy_gnustl_libs ()
     if [ "$ARCH" != "${ARCH%%64*}" ]; then
         #Can't call $(get_default_libdir_for_arch $ARCH) which contain hack for arm64
         LDIR=lib64
+    fi
+
+    if [ "$ABI" = "mips32r6" ]; then
+        LDIR=libr6
     fi
 
     # Copy the ABI-specific libraries

@@ -19,6 +19,7 @@
 LP32_ABIS = (
     'armeabi-v7a',
     'mips',
+    'mips32r6',
     'x86',
 )
 
@@ -64,10 +65,14 @@ ALL_TRIPLES = (
 
 
 def arch_to_toolchain(arch):
+    if arch == 'mips32r6':
+        return dict(zip(ALL_ARCHITECTURES, ALL_TOOLCHAINS))['mips']
     return dict(zip(ALL_ARCHITECTURES, ALL_TOOLCHAINS))[arch]
 
 
 def arch_to_triple(arch):
+    if arch == 'mips32r6':
+        return dict(zip(ALL_ARCHITECTURES, ALL_TRIPLES))['mips']
     return dict(zip(ALL_ARCHITECTURES, ALL_TRIPLES))[arch]
 
 
@@ -79,7 +84,7 @@ def arch_to_abis(arch):
     return {
         'arm': ['armeabi-v7a'],
         'arm64': ['arm64-v8a'],
-        'mips': ['mips'],
+        'mips': ['mips', 'mips32r6'],
         'mips64': ['mips64'],
         'x86': ['x86'],
         'x86_64': ['x86_64'],
@@ -91,6 +96,7 @@ def abi_to_arch(arch):
         'armeabi-v7a': 'arm',
         'arm64-v8a': 'arm64',
         'mips': 'mips',
+        'mips32r6': 'mips',
         'mips64': 'mips64',
         'x86': 'x86',
         'x86_64': 'x86_64',

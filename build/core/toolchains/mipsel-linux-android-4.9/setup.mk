@@ -34,9 +34,17 @@ TOOLCHAIN_PREFIX := $(TOOLCHAIN_ROOT)/bin/$(TOOLCHAIN_NAME)-
 
 # CFLAGS, C_INCLUDES, and LDFLAGS
 #
+ifeq ($(TARGET_ARCH_ABI),mips32r6)
+     CF_FOR_ARCH := -mips32r6 -mno-odd-spreg
+     LF_FOR_ARCH := -mips32r6 -mno-odd-spreg
+     TARGET_LIBDIR := libr6
+else
+     CF_FOR_ARCH := -mips32
+     LF_FOR_ARCH := -mips32
+endif
 
 TARGET_CFLAGS := \
-    -mips32 \
+    $(CF_FOR_ARCH) \
     -fpic \
     -ffunction-sections \
     -funwind-tables \
@@ -47,7 +55,10 @@ TARGET_CFLAGS := \
 # Always enable debug info. We strip binaries when needed.
 TARGET_CFLAGS += -g
 
-TARGET_LDFLAGS := -no-canonical-prefixes -mips32
+TARGET_LDFLAGS := \
+    $(LF_FOR_ARCH) \
+    -no-canonical-prefixes \
+    -B$(call host-path,$(SYSROOT_LINK)/usr/$(TARGET_LIBDIR))
 
 TARGET_mips_release_CFLAGS := \
     -O2 \

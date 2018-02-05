@@ -553,10 +553,7 @@ CLEAN_OBJS_DIRS     += $(LOCAL_OBJS_DIR)
 # looks in the right location
 #
 ifneq ($(filter -l%,$(LOCAL_LDLIBS)),)
-    LOCAL_LDLIBS := -L$(call host-path,$(SYSROOT_LINK)/usr/lib) $(LOCAL_LDLIBS)
-    ifneq ($(filter x86_64 mips64,$(TARGET_ARCH_ABI)),)
-        LOCAL_LDLIBS := -L$(call host-path,$(SYSROOT_LINK)/usr/lib64) $(LOCAL_LDLIBS)
-    endif
+    LOCAL_LDLIBS := -L$(call host-path,$(SYSROOT_LINK)/usr/$(TARGET_LIBDIR)) $(LOCAL_LDLIBS)
 endif
 
 my_ldflags := $(TARGET_LDFLAGS) $(LOCAL_LDFLAGS) $(NDK_APP_LDFLAGS)

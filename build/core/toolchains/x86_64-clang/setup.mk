@@ -56,6 +56,8 @@ TARGET_LDFLAGS += \
     -target $(LLVM_TRIPLE) \
     -no-canonical-prefixes \
 
+TARGET_LIBDIR := lib64
+
 TARGET_x86_64_release_CFLAGS := \
     -O2 \
     -DNDEBUG \

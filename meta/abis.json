@@ -14,6 +14,11 @@
     "default": false,
     "deprecated": false
   },
+  "mips32r6": {
+    "bitness": 32,
+    "default": true,
+    "deprecated": false
+  },
   "mips64": {
     "bitness": 64,
     "default": false,

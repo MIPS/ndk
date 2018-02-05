@@ -54,6 +54,10 @@ class ImportAbiMetadataTest(unittest.TestCase):
                 'default': False,
                 'deprecated': False,
             },
+            'mips32r6': {
+                'bitness': 32,
+                'deprecated': False,
+            },
             'mips64': {
                 'bitness': 64,
                 'default': False,
@@ -74,6 +78,6 @@ class ImportAbiMetadataTest(unittest.TestCase):
         self.assertDictEqual({
             'NDK_DEFAULT_ABIS': 'arm64-v8a armeabi-v7a x86 x86_64',
             'NDK_DEPRECATED_ABIS': 'armeabi',
-            'NDK_KNOWN_DEVICE_ABI32S': 'armeabi armeabi-v7a mips x86',
+            'NDK_KNOWN_DEVICE_ABI32S': 'armeabi armeabi-v7a mips mips32r6 x86',
             'NDK_KNOWN_DEVICE_ABI64S': 'arm64-v8a mips64 x86_64',
         }, make_vars)

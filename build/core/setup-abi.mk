@@ -77,8 +77,11 @@ endif
 ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
   RS_TRIPLE := aarch64-linux-android
 endif
-ifeq ($(TARGET_ARCH_ABI),mips)
+ifneq ($(filter mips mips32r6, $(TARGET_ARCH_ABI)),)
   RS_TRIPLE := mipsel-unknown-linux
+endif
+ifeq ($(TARGET_ARCH_ABI),mips64)
+  RS_TRIPLE := mips64el-unknown-linux
 endif
 ifeq ($(TARGET_ARCH_ABI),x86)
   RS_TRIPLE := i686-unknown-linux

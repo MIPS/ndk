@@ -1116,6 +1116,9 @@ class LibcxxTest(Test):
         supported_abis = (
             'arm64-v8a',
             'armeabi-v7a',
+            'mips',
+            'mips32r6',
+            'mips64',
             'x86',
             'x86_64',
         )

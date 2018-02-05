@@ -607,6 +607,11 @@ builder_begin_android ()
               SCRATCH_FLAGS="-L${GCC_TOOLCHAIN}/lib/gcc/mips64el-linux-android/4.9.x/32/mips-r1 "
               builder_ldflags "$SCRATCH_FLAGS"
             fi
+            if [ "$ABI" = "mips32r6" ]; then
+              # Help clang use mips64el multilib GCC
+              SCRATCH_FLAGS="-L${GCC_TOOLCHAIN}/lib/gcc/mips64el-linux-android/4.9.x/32/mips-r6 -B${GCC_TOOLCHAIN}/mips64el-linux-android/bin"
+              builder_ldflags "$SCRATCH_FLAGS"
+            fi
         fi
     fi
 
@@ -644,7 +649,13 @@ builder_begin_android ()
             SCRATCH_FLAGS="-mips32"
             builder_cflags "$SCRATCH_FLAGS"
             builder_cxxflags "$SCRATCH_FLAGS"
-            builder_ldflags "-mips32"
+            builder_ldflags "$SCRATCH_FLAGS"
+            ;;
+        mips32r6)
+            SCRATCH_FLAGS="-mips32r6 -mno-odd-spreg -L${GCC_TOOLCHAIN}/lib/gcc/mips64el-linux-android/4.9.x/32/mips-r6 -B${GCC_TOOLCHAIN}/mips64el-linux-android/bin -B$LDIR"
+            builder_cflags "$SCRATCH_FLAGS"
+            builder_cxxflags "$SCRATCH_FLAGS"
+            builder_ldflags "$SCRATCH_FLAGS"
             ;;
     esac
 }

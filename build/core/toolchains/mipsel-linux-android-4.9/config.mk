@@ -17,4 +17,4 @@
 # the real meat is in the setup.mk file adjacent to this one
 #
 TOOLCHAIN_ARCH := mips
-TOOLCHAIN_ABIS := mips
+TOOLCHAIN_ABIS := mips mips32r6

@@ -308,6 +308,7 @@ class Clang(ndk.builds.Module):
                       os.path.join(install_path, 'bin/clang'))
             os.rename(os.path.join(install_path, 'bin/clang++.real'),
                       os.path.join(install_path, 'bin/clang++'))
+            os.symlink('mips', os.path.join(install_path, 'bin/mips32r6'))
 
             # The prebuilts have symlinks pointing at a clang-MAJ.MIN binary,
             # but we replace symlinks with standalone copies, so remove this
@@ -358,7 +359,7 @@ class Clang(ndk.builds.Module):
         # The Clang prebuilts have the platform toolchain libraries in
         # lib64/clang. The libraries we want are in runtimes_ndk_cxx.
         ndk_runtimes = os.path.join(linux_prebuilt_path, 'runtimes_ndk_cxx')
-        runtime_arches = ['aarch64', 'arm', 'i386', 'x86_64']
+        runtime_arches = ['aarch64', 'arm', 'mipsel', 'mips64el', 'i386', 'x86_64']
         versions = os.listdir(install_clanglib)
         for version in versions:
             version_dir = os.path.join(install_clanglib, version)
@@ -748,6 +749,8 @@ class Platforms(ndk.builds.Module):
     def libdir_name(self, arch):  # pylint: disable=no-self-use
         if arch in ('mips64', 'x86_64'):
             return 'lib64'
+        if arch == "mips32r6":
+            return 'libr6'
         else:
             return 'lib'
 
@@ -771,7 +774,7 @@ class Platforms(ndk.builds.Module):
         return sorted(apis)
 
     def get_arches(self, api):  # pylint: disable=no-self-use
-        arches = ['arm', 'mips', 'x86']
+        arches = ['arm', 'mips', 'mips32r6', 'x86']
         if api >= 21:
             arches.extend(['arm64', 'mips64', 'x86_64'])
         return arches
@@ -796,6 +799,8 @@ class Platforms(ndk.builds.Module):
 
         if arch == 'mips':
             args.extend(['-mabi=32', '-mips32'])
+        if arch == "mips32r6":
+            args.extend(['-mabi=32', '-mips32r6', '-mno-odd-spreg'])
         elif arch == 'mips64':
             args.extend(['-mabi=64', '-mips64r6'])
 
@@ -896,14 +901,23 @@ class Platforms(ndk.builds.Module):
             shutil.copytree(platform_src, platform_dst)
 
             for arch in self.get_arches(api):
-                arch_name = 'arch-{}'.format(arch)
-                triple = ndk.abis.arch_to_triple(arch)
+                if arch != 'mips32r6':
+                    arch_name = 'arch-{}'.format(arch)
+                    triple = ndk.abis.arch_to_triple(arch)
+                else:
+                    arch_name = 'arch-mips'
+                    triple = ndk.abis.arch_to_triple('mips')
 
                 # Install static libraries from prebuilts/ndk/platform/sysroot.
                 # TODO: Determine if we can change the build system to use the
                 # libraries directly from the sysroot directory rather than
                 # duplicating all the libraries in platforms.
                 lib_dir = self.prebuilt_path('sysroot/usr/lib', triple)
+                if arch == 'mips32r6':
+                    lib_dir = os.path.join(lib_dir, 'libr6')
+                elif arch == 'mips':
+                    lib_dir = os.path.join(lib_dir, 'lib')
+
                 libdir_name = self.libdir_name(arch)
                 lib_dir_dst = os.path.join(
                     install_dir, platform, arch_name, 'usr', libdir_name)
@@ -925,10 +939,14 @@ class Platforms(ndk.builds.Module):
                         install_dir, platform, arch_name, 'usr/lib64'))
 
                 # Install the CRT objects that we just built.
+                arch_name = 'arch-{}'.format(arch)
                 obj_dir = os.path.join(build_dir, platform, arch_name)
                 for name in os.listdir(obj_dir):
                     obj_src = os.path.join(obj_dir, name)
-                    obj_dst = os.path.join(lib_dir_dst, name)
+                    if arch != 'mips32r6':
+                        obj_dst = os.path.join(lib_dir_dst, name)
+                    else:
+                        obj_dst = os.path.join(os.path.join(install_dir, platform, 'arch-mips', 'usr', libdir_name), name)
                     shutil.copy2(obj_src, obj_dst)
 
         # https://github.com/android-ndk/ndk/issues/372

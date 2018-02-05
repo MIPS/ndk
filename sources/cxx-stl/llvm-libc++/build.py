@@ -99,7 +99,7 @@ def main(args):
         static_lib_dir = os.path.join(obj_out, 'local', abi)
         install_dir = os.path.join(lib_out, abi)
         is_arm = abi.startswith('armeabi')
-        needs_android_support = abi in ('armeabi-v7a', 'x86')
+        needs_android_support = abi in ('armeabi-v7a', 'x86', 'mips', 'mips32r6')
 
         if is_arm:
             shutil.copy2(

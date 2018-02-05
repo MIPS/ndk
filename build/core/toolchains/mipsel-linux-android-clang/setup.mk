@@ -36,6 +36,9 @@ TOOLCHAIN_PREFIX := $(TOOLCHAIN_ROOT)/bin/$(TOOLCHAIN_NAME)-
 # CFLAGS, C_INCLUDES, and LDFLAGS
 #
 
+TARGET_ASAN_BASENAME := libclang_rt.asan-mips-android.so
+TARGET_UBSAN_BASENAME := libclang_rt.ubsan_standalone-mips-android.so
+
 LLVM_TRIPLE := mipsel-none-linux-android
 
 TARGET_CFLAGS := \
@@ -56,7 +59,6 @@ TARGET_CFLAGS += -g
 # Hardcode GCC lib path to help clang use mips64el multilib GCC
 TARGET_LDFLAGS += \
     -gcc-toolchain $(call host-path,$(TOOLCHAIN_ROOT)) \
-    -L$(call host-path,$(TOOLCHAIN_ROOT))/lib/gcc/mips64el-linux-android/4.9.x/32/mips-r1 \
     -target $(LLVM_TRIPLE) \
     -no-canonical-prefixes \
 
@@ -64,8 +66,18 @@ TARGET_LDFLAGS += \
 # TODO: Remove this once mipsel-linux-android target is changed in clang
 ifeq ($(TARGET_ARCH_ABI),mips)
     TARGET_CFLAGS += -mips32
-    TARGET_LDFLAGS += -mips32
+    TARGET_LDFLAGS += -mips32 -L$(call host-path,$(TOOLCHAIN_ROOT))/lib/gcc/mips64el-linux-android/4.9.x/32/mips-r1
 endif
+ifeq ($(TARGET_ARCH_ABI),mips32r6)
+    TARGET_CFLAGS += -mips32r6 -mno-odd-spreg -B${TOOLCHAIN_ROOT}/mips64el-linux-android/bin
+    TARGET_LDFLAGS += -mips32r6 -mno-odd-spreg
+    TARGET_LDFLAGS += -L$(call host-path,$(TOOLCHAIN_ROOT))/lib/gcc/mips64el-linux-android/4.9.x/32/mips-r6
+    TARGET_LDFLAGS += -B$(call host-path,$(TOOLCHAIN_ROOT))/mips64el-linux-android/bin
+    TARGET_LDFLAGS += -L$(call host-path,$(TOOLCHAIN_ROOT))/mips64el-linux-android/libr6
+    TARGET_LIBDIR := libr6
+    TARGET_LDFLAGS += -L$(call host-path,$(NDK_PLATFORMS_ROOT)/$(TARGET_PLATFORM)/arch-$(TARGET_ARCH)/usr/$(TARGET_LIBDIR))
+endif
+TARGET_LDFLAGS += -B$(call host-path,$(NDK_PLATFORMS_ROOT)/$(TARGET_PLATFORM)/arch-$(TARGET_ARCH)/usr/$(TARGET_LIBDIR))
 
 TARGET_mips_release_CFLAGS := \
     -O2 \

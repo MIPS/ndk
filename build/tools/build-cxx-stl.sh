@@ -382,9 +382,9 @@ build_stl_libs_for_abi ()
             EXTRA_LDFLAGS="-mips32"
             ;;
         mips32r6)
-            EXTRA_CFLAGS="-mips32r6"
-            EXTRA_CXXFLAGS="-mips32r6"
-            EXTRA_LDFLAGS="-mips32r6"
+            EXTRA_CFLAGS="-mips32r6 -mno-odd-spreg"
+            EXTRA_CXXFLAGS="-mips32r6 -mno-odd-spreg"
+            EXTRA_LDFLAGS="-mips32r6 -mno-odd-spreg"
             ;;
         mips64)
             EXTRA_CFLAGS="-mips64r6"

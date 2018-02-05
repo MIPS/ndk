@@ -5,6 +5,6 @@ def build_unsupported(abi, platform, toolchain):
     #
     # While armeabi doesn't support .neon, it doesn't support .arm, so we
     # disable that test in the Android.mk.
-    if abi in ('mips', 'mips64'):
+    if abi in ('mips', 'mips32r6', 'mips64'):
         return abi
     return None

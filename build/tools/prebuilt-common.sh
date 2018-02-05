@@ -1186,17 +1186,17 @@ convert_abi_to_arch ()
         armeabi|armeabi-v7a)
             RET=arm
             ;;
-        x86|mips|x86_64|mips64)
+        x86|x86_64|mips64)
             RET=$ABI
             ;;
-        mips32r6)
+        mips|mips32r6)
             RET=mips
             ;;
         arm64-v8a)
             RET=arm64
             ;;
         *)
-            >&2 echo "ERROR: Unsupported ABI name: $ABI, use one of: armeabi, armeabi-v7a, x86, mips, arm64-v8a, x86_64 or mips64"
+            >&2 echo "ERROR: Unsupported ABI name: $ABI, use one of: armeabi, armeabi-v7a, x86, mips, mips32r6, arm64-v8a, x86_64 or mips64"
             exit 1
             ;;
     esac
@@ -1215,14 +1215,17 @@ convert_arch_to_abi ()
         arm)
             RET=armeabi,armeabi-v7a
             ;;
-        x86|x86_64|mips|mips64)
+        mips)
+            RET=mips,mips32r6
+            ;;
+        x86|x86_64|mips64)
             RET=$ARCH
             ;;
         arm64)
             RET=arm64-v8a
             ;;
         *)
-            >&2 echo "ERROR: Unsupported ARCH name: $ARCH, use one of: arm, x86, mips"
+            >&2 echo "ERROR: Unsupported ARCH name: $ARCH, use one of: arm, x86, mips, arm64, x86_64, mips64"
             exit 1
             ;;
     esac
@@ -1311,8 +1314,15 @@ get_default_platform_sysroot_for_arch ()
 # $1: ABI
 get_default_platform_sysroot_for_abi ()
 {
-    local ARCH=$(convert_abi_to_arch $1)
-    $(get_default_platform_sysroot_for_arch $ARCH)
+    case $1 in
+      mips32r6)
+        echo "platforms/android-$FIRST_API64_LEVEL/arch-mips"
+        ;;
+      *)
+        local ARCH=$(convert_abi_to_arch $1)
+        $(get_default_platform_sysroot_for_arch $ARCH)
+        ;;
+    esac
 }
 
 # Return the default libs dir corresponding to a given architecture
