@@ -59,7 +59,7 @@ def find_link_args(link_line):
     return args
 
 
-def check_link_order(link_line, abi):
+def check_link_order(link_line, abi, api):
     """Determines if a given link command has the correct ordering.
 
     Args:
@@ -72,11 +72,11 @@ def check_link_order(link_line, abi):
         between the expected link order and the actual link order.
     """
     libunwind_arg = ['libunwind.a'] if abi == 'armeabi-v7a' else []
+    android_support_arg = ['libandroid_support.a'] if api < 21 else []
     expected = [
         'crtbegin_so.o',
         'foo.o',
-        'libandroid_support.a',
-    ] + libunwind_arg + [
+    ] + android_support_arg + libunwind_arg + [
         # The most important part of this test is checking that libgcc comes
         # *before* the shared libraries so we can be sure we're actually
         # getting libgcc symbols rather than getting them from some shared
@@ -129,5 +129,5 @@ def run_test(ndk_path, abi, platform, _toolchain, build_flags):
     if link_line is None:
         return False, 'Did not find link line in out:\n{}'.format(out)
 
-    result, diff = check_link_order(link_line, abi)
+    result, diff = check_link_order(link_line, abi, platform)
     return result, '' if diff is None else os.linesep.join(diff)

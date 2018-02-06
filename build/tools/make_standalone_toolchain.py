@@ -358,13 +358,14 @@ def copy_stlport_libs(src_dir, dst_dir, triple, abi, thumb=False):
                  os.path.join(dst_libdir, 'libstdc++.a'))
 
 
-def copy_libcxx_libs(src_dir, dst_dir, include_libunwind):
+def copy_libcxx_libs(src_dir, dst_dir, abi, api):
     shutil.copy2(os.path.join(src_dir, 'libc++_shared.so'), dst_dir)
     shutil.copy2(os.path.join(src_dir, 'libc++_static.a'), dst_dir)
-    shutil.copy2(os.path.join(src_dir, 'libandroid_support.a'), dst_dir)
+    if api < 21:
+        shutil.copy2(os.path.join(src_dir, 'libandroid_support.a'), dst_dir)
     shutil.copy2(os.path.join(src_dir, 'libc++abi.a'), dst_dir)
 
-    if include_libunwind:
+    if abi == 'armeabi-v7a':
         shutil.copy2(os.path.join(src_dir, 'libunwind.a'), dst_dir)
 
     # libc++ is different from the other STLs. It has a libc++.(a|so) that is a
@@ -461,11 +462,12 @@ def create_toolchain(install_path, arch, api, gcc_path, clang_path,
     elif stl == 'libc++':
         libcxx_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/llvm-libc++')
         libcxxabi_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/llvm-libc++abi')
-        support_dir = os.path.join(NDK_DIR, 'sources/android/support')
         copy_directory_contents(os.path.join(libcxx_dir, 'include'),
                                 cxx_headers)
-        copy_directory_contents(os.path.join(support_dir, 'include'),
-                                support_headers)
+        if api < 21:
+            support_dir = os.path.join(NDK_DIR, 'sources/android/support')
+            copy_directory_contents(os.path.join(support_dir, 'include'),
+                                    support_headers)
 
         # I have no idea why we need this, but the old one does it too.
         copy_directory_contents(
@@ -484,11 +486,10 @@ def create_toolchain(install_path, arch, api, gcc_path, clang_path,
         for abi in get_abis(arch):
             src_libdir = get_src_libdir(libcxx_dir, abi)
             dest_libdir = get_dest_libdir(install_path, triple, abi)
-            include_libunwind = arch == 'arm'
-            copy_libcxx_libs(src_libdir, dest_libdir, include_libunwind)
+            copy_libcxx_libs(src_libdir, dest_libdir, abi, api)
             if arch == 'arm':
                 thumb_libdir = os.path.join(dest_libdir, 'thumb')
-                copy_libcxx_libs(src_libdir, thumb_libdir, include_libunwind)
+                copy_libcxx_libs(src_libdir, thumb_libdir, abi, api)
     elif stl == 'stlport':
         stlport_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/stlport')
         gabixx_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/gabi++')
