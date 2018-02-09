@@ -207,8 +207,13 @@ def make_clang_scripts(install_dir, triple, api, windows):
         arch = 'armv7a'  # Target armv7, not armv5.
 
     target = '-'.join([arch, 'none', os_name, env])
-    flags = '-target {} --sysroot `dirname $0`/../sysroot'.format(target)
-    flags += ' -D__ANDROID_API__={}'.format(api)
+    common_flags = '-target {}'.format(target)
+    common_flags += ' -D__ANDROID_API__={}'.format(api)
+    if arch == 'i686':
+        common_flags += ' -mstackrealign'
+
+    unix_flags = common_flags
+    unix_flags += ' --sysroot `dirname $0`/../sysroot'
 
     clang_path = os.path.join(install_dir, 'bin/clang')
     with open(clang_path, 'w') as clang:
@@ -220,7 +225,7 @@ def make_clang_scripts(install_dir, triple, api, windows):
                 # target/triple already spelled out.
                 `dirname $0`/clang{version} "$@"
             fi
-        """.format(version=version_number, flags=flags)))
+        """.format(version=version_number, flags=unix_flags)))
 
     mode = os.stat(clang_path).st_mode
     os.chmod(clang_path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -235,7 +240,7 @@ def make_clang_scripts(install_dir, triple, api, windows):
                 # target/triple already spelled out.
                 `dirname $0`/clang{version}++ "$@"
             fi
-        """.format(version=version_number, flags=flags)))
+        """.format(version=version_number, flags=unix_flags)))
 
     mode = os.stat(clangpp_path).st_mode
     os.chmod(clangpp_path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -246,9 +251,8 @@ def make_clang_scripts(install_dir, triple, api, windows):
                  os.path.join(install_dir, 'bin', triple + '-clang++'))
 
     if windows:
-        flags = '-target {}'.format(target)
-        flags += ' --sysroot %_BIN_DIR%..\\sysroot'
-        flags += ' -D__ANDROID_API__={}'.format(api)
+        win_flags = common_flags
+        win_flags += ' --sysroot %_BIN_DIR%..\\sysroot'
 
         for pp_suffix in ('', '++'):
             exe_name = 'clang{}{}.exe'.format(version_number, pp_suffix)
@@ -275,7 +279,7 @@ def make_clang_scripts(install_dir, triple, api, windows):
                 exit /b
 
                 :done
-            """.format(exe=exe_name, flags=flags))
+            """.format(exe=exe_name, flags=win_flags))
 
             for triple_prefix in ('', triple + '-'):
                 clangbat_path = os.path.join(
