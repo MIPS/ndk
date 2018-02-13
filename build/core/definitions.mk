@@ -848,13 +848,22 @@ module-has-c++-sources = $(strip $(call module-get-c++-sources,$1) \
 # $1: list of C++ runtime static libraries (if any)
 # $2: list of C++ runtime shared libraries (if any)
 # $3: list of C++ runtime ldlibs (if any)
-#
 modules-add-c++-dependencies = \
     $(foreach __module,$(__ndk_modules),\
         $(if $(call module-has-c++-sources,$(__module)),\
             $(call ndk_log,Module '$(__module)' has C++ sources)\
             $(call module-add-c++-deps,$(__module),$1,$2,$3),\
         )\
+        $(if $(call module-has-c++-features,$(__module),rtti exceptions),\
+            $(if $(filter system,$(NDK_APP_STL)),\
+                $(call ndk_log,Module '$(__module)' uses C++ features and the system STL)\
+                $(call import-module,cxx-stl/llvm-libc++)\
+                $(call import-module,cxx-stl/llvm-libc++abi)\
+                $(call module-add-c++-deps,$(__module),c++abi)\
+                $(if $(filter true,$(NDK_PLATFORM_NEEDS_ANDROID_SUPPORT)),\
+                    $(call module-add-c++-deps,$(__module),android_support))\
+                $(if $(filter armeabi-v7a,$(TARGET_ARCH_ABI)),\
+                    $(call module-add-c++-deps,$(__module),unwind,,-ldl))))\
     )
 
 
