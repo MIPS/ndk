@@ -493,6 +493,12 @@ list(APPEND ANDROID_LINKER_FLAGS_EXE
   -Wl,--gc-sections
   -Wl,-z,nocopyreloc)
 
+# Clang does not automatically pass --eh-frame-hdr to the linker for static
+# executables.
+# https://github.com/android-ndk/ndk/issues/593
+# http://b/72512648
+list(APPEND ANDROID_LINKER_FLAGS_EXE -Wl,--eh-frame-hdr)
+
 # Debug and release flags.
 list(APPEND ANDROID_COMPILER_FLAGS_DEBUG -O0)
 if(ANDROID_ABI MATCHES "^armeabi")
