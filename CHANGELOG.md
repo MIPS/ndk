@@ -35,6 +35,18 @@ NDK
  * Updated Clang to build 4479392.
      * LTO now works on Windows, fixing [Issue 313].
  * Updated gtest to upstream revision 0fe96607d85cf3a25ac40da369db62bbee2939a5.
+ * `libandroid_support` is no longer used when your NDK API level is greater
+   than or equal to 21 (Lollipop). Build system maintainers: be sure to update
+   your build systems to account for this.
+ * The platform static libraries (libc.a, libm.a, etc.) have been updated.
+     * All NDK platforms now contain a modern version of these static libraries.
+       Previously they were all Gingerbread (perhaps even older) or Lollipop.
+     * Prior NDKs could not use the static libraries with a modern NDK API level
+       because of symbol collisions between libc.a and libandroid_support. This
+       has been solved by removing libandroid_support for modern API levels. A
+       side effect of this is that you must now target at least android-21 to
+       use the static libraries, but these binaries will still work on older
+       devices.
  * Fixed parsing of the NDK revision in CMake. NDK version information is now
    available in the following CMake variables:
      * `ANDROID_NDK_REVISION`: The full string in the source.properties file.
@@ -57,8 +69,14 @@ Known Issues
    segfaults if the containing library is `dlclose`ed on devices running M or
    newer, or devices before M when using a static STL. The simple workaround is
    to not call `dlclose`.
+ * [Issue 593]: Exception handling does not work out-of-the-box with non-arm32
+   static executables. Clang does not pass `--eh-frame-hdr` to the linker for
+   static executables. This will be fixed in a future Clang update, but for now
+   this issue can be worked around by adding `-Wl,--eh-frame-hdr` to your
+   ldflags.
  * [Issue 70838247]: Gold emits broken debug information for AArch64. AArch64
    still uses BFD by default.
 
 [Issue 360]: https://github.com/android-ndk/ndk/issues/360
+[Issue 593]: https://github.com/android-ndk/ndk/issues/593
 [Issue 70838247]: https://issuetracker.google.com/70838247

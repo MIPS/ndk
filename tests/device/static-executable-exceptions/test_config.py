@@ -1,11 +1,13 @@
-def build_broken(abi, platform, toolchain):
-    if platform >= 21:
-        return 'android-{}'.format(platform), 'http://b/24468267'
-    return None, None
+def extra_cmake_flags():
+    # Clang does the right thing if you provide `-pie -static`, but GCC throws
+    # an error.
+    return ['-DANDROID_PIE=OFF']
 
 
-def run_broken(abi, device_api, toolchain, subtest=None):
-    if (abi == 'x86' and toolchain == 'clang' and
-        subtest == 'static-executable'):
-        return ' '.join([abi, toolchain]), 'http://b/30101473'
-    return None, None
+def build_unsupported(_abi, api, _toolchain):
+    # Static executables with libc++ require targeting a new enough API level
+    # to not need libandroid_support.
+    if api < 21:
+        return 'android-{}'.format(api)
+
+    return None

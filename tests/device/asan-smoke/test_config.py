@@ -6,13 +6,13 @@ def build_unsupported(abi, platform, toolchain):
     return None
 
 
-def run_unsupported(abi, device_api, toolchain, subtest):
+def run_unsupported(abi, device_api, _toolchain, subtest):
     if device_api < 19:
         return device_api
     return None
 
 
-def run_broken(abi, device_api, toolchain, subtest):
-    if abi == 'x86':
-        return abi, 'http://b.android.com/230369'
+def run_broken(abi, _device_api, _toolchain, _subtest):
+    if abi == 'x86_64':
+        return abi, 'http://b/72816091'
     return None, None

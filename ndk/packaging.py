@@ -51,7 +51,7 @@ def expand_paths(package, host, arches):
     ['platforms']
 
     >>> expand_paths('libc++-{abi}', 'linux', ['arm'])
-    ['libc++-armeabi', 'libc++-armeabi-v7a']
+    ['libc++-armeabi-v7a']
 
     >>> expand_paths('binutils/{triple}', 'linux', ['arm', 'x86_64'])
     ['binutils/arm-linux-androideabi', 'binutils/x86_64-linux-android']

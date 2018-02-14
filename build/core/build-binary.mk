@@ -436,18 +436,7 @@ ifneq (,$(call module-has-c++-features,$(LOCAL_MODULE),exceptions))
     LOCAL_CPPFLAGS += -fexceptions
 endif
 
-# If we're using the 'system' STL and use rtti or exceptions, then
-# automatically link against the GNU libsupc++ for now.
-#
-ifneq (,$(call module-has-c++-features,$(LOCAL_MODULE),rtti exceptions))
-    ifeq (system,$(NDK_APP_STL))
-      LOCAL_LDLIBS := $(LOCAL_LDLIBS) $(call host-path,$(NDK_ROOT)/sources/cxx-stl/gnu-libstdc++/4.9/libs/$(TARGET_ARCH_ABI)/libsupc++$(TARGET_LIB_EXTENSION))
-    endif
-endif
-
 # Set include patch for renderscript
-
-
 ifneq ($(LOCAL_RENDERSCRIPT_INCLUDES_OVERRIDE),)
     LOCAL_RENDERSCRIPT_INCLUDES := $(LOCAL_RENDERSCRIPT_INCLUDES_OVERRIDE)
 else
@@ -591,7 +580,7 @@ $(call generate-file-dir,$(LOCAL_BUILT_MODULE))
 
 $(LOCAL_BUILT_MODULE): PRIVATE_OBJECTS := $(LOCAL_OBJECTS)
 $(LOCAL_BUILT_MODULE): PRIVATE_LIBGCC := $(TARGET_LIBGCC)
-$(LOCAL_BUILT_MODULE): PRIVATE_LIBGCC := $(TARGET_LIBATOMIC)
+$(LOCAL_BUILT_MODULE): PRIVATE_LIBATOMIC := $(TARGET_LIBATOMIC)
 
 $(LOCAL_BUILT_MODULE): PRIVATE_LD := $(TARGET_LD)
 $(LOCAL_BUILT_MODULE): PRIVATE_LDFLAGS := $(my_ldflags)

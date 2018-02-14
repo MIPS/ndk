@@ -9,7 +9,6 @@ RUN apt-get install -y dos2unix
 RUN apt-get install -y flex
 RUN apt-get install -y git
 RUN apt-get install -y make
-RUN apt-get install -y mingw-w64
 RUN apt-get install -y pbzip2
 RUN apt-get install -y python
 RUN apt-get install -y python-pip

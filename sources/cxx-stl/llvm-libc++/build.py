@@ -99,14 +99,16 @@ def main(args):
         static_lib_dir = os.path.join(obj_out, 'local', abi)
         install_dir = os.path.join(lib_out, abi)
         is_arm = abi.startswith('armeabi')
+        needs_android_support = abi in ('armeabi-v7a', 'x86')
 
         if is_arm:
             shutil.copy2(
                 os.path.join(static_lib_dir, 'libunwind.a'), install_dir)
 
         shutil.copy2(os.path.join(static_lib_dir, 'libc++abi.a'), install_dir)
-        shutil.copy2(
-            os.path.join(static_lib_dir, 'libandroid_support.a'), install_dir)
+        if needs_android_support:
+            shutil.copy2(os.path.join(
+                static_lib_dir, 'libandroid_support.a'), install_dir)
         shutil.copy2(
             os.path.join(static_lib_dir, 'libc++_static.a'), install_dir)
 
@@ -114,12 +116,16 @@ def main(args):
         # properly even when we're not using ndk-build. The linker will read
         # the script in place of the library so that we link the unwinder and
         # other support libraries appropriately.
-        static_libs = ['-lc++_static', '-lc++abi', '-landroid_support']
+        static_libs = ['-lc++_static', '-lc++abi']
+        if needs_android_support:
+            static_libs.append('-landroid_support')
         if is_arm:
-            static_libs.extend(['-lunwind', '-latomic'])
+            static_libs.extend(['-lunwind', '-ldl', '-latomic'])
         make_linker_script(os.path.join(install_dir, 'libc++.a'), static_libs)
 
-        shared_libs = ['-landroid_support']
+        shared_libs = []
+        if needs_android_support:
+            shared_libs.append('-landroid_support')
         if is_arm:
             shared_libs.extend(['-lunwind', '-latomic'])
         shared_libs.append('-lc++_shared')

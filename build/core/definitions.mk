@@ -768,16 +768,42 @@ module-extract-whole-static-libs = $(strip \
   $(_ndk_mod_whole_result))
 
 # Used to recompute all dependencies once all module information has been recorded.
-#
 modules-compute-dependencies = \
     $(foreach __module,$(__ndk_modules),\
         $(call module-compute-depends,$(__module))\
     )
 
+# Recurses though modules imported by $1 to come up with the transitive closure
+# of imports.
+# $1: Module
+# $2: Import type (STATIC_LIBRARIES or SHARED_LIBRARIES)
+module_get_recursive_imports = \
+    $(eval _from_static_libs.$1 := \
+        $(call module-get-listed-export,\
+            $(__ndk_modules.$1.STATIC_LIBRARIES),$2))\
+    $(eval _from_shared_libs.$1 := \
+        $(call module-get-listed-export,\
+            $(__ndk_modules.$1.SHARED_LIBRARIES),$2))\
+    $(eval _from_imports.$1 := \
+        $(foreach _import,$(_from_static_libs.1),\
+            $(call module_get_recursive_imports,$(_import),$2))\
+        $(foreach _import,$(_from_shared_libs.$1),\
+            $(call module_get_recursive_imports,$(_import),$2)))\
+    $(_from_static_libs.$1) $(_from_shared_libs.$1) $(_from_imports.$1)
+
+# Fills __ndk_modules.$1.depends with a list of all the modules that $1 depends
+# on. Note that this runs before import-locals.mk is run (import-locals.mk needs
+# this information), so we have to explicitly check for exported libraries from
+# our dependencies. Imported libraries might in turn export more libraries to
+# us, so do this recursively.
 module-compute-depends = \
     $(call module-add-static-depends,$1,$(__ndk_modules.$1.STATIC_LIBRARIES))\
     $(call module-add-static-depends,$1,$(__ndk_modules.$1.WHOLE_STATIC_LIBRARIES))\
     $(call module-add-shared-depends,$1,$(__ndk_modules.$1.SHARED_LIBRARIES))\
+    $(call module-add-static-depends,$1,\
+        $(call module_get_recursive_imports,$1,STATIC_LIBRARIES))\
+    $(call module-add-shared-depends,$1,\
+        $(call module_get_recursive_imports,$1,SHARED_LIBRARIES))\
 
 module-get-installed = $(__ndk_modules.$1.INSTALLED)
 
@@ -822,13 +848,22 @@ module-has-c++-sources = $(strip $(call module-get-c++-sources,$1) \
 # $1: list of C++ runtime static libraries (if any)
 # $2: list of C++ runtime shared libraries (if any)
 # $3: list of C++ runtime ldlibs (if any)
-#
 modules-add-c++-dependencies = \
     $(foreach __module,$(__ndk_modules),\
         $(if $(call module-has-c++-sources,$(__module)),\
             $(call ndk_log,Module '$(__module)' has C++ sources)\
             $(call module-add-c++-deps,$(__module),$1,$2,$3),\
         )\
+        $(if $(call module-has-c++-features,$(__module),rtti exceptions),\
+            $(if $(filter system,$(NDK_APP_STL)),\
+                $(call ndk_log,Module '$(__module)' uses C++ features and the system STL)\
+                $(call import-module,cxx-stl/llvm-libc++)\
+                $(call import-module,cxx-stl/llvm-libc++abi)\
+                $(call module-add-c++-deps,$(__module),c++abi)\
+                $(if $(filter true,$(NDK_PLATFORM_NEEDS_ANDROID_SUPPORT)),\
+                    $(call module-add-c++-deps,$(__module),android_support))\
+                $(if $(filter armeabi-v7a,$(TARGET_ARCH_ABI)),\
+                    $(call module-add-c++-deps,$(__module),unwind,,-ldl))))\
     )
 
 
@@ -2000,11 +2035,10 @@ NDK_STL_LIST :=
 # Used internally to register a given STL implementation, see below.
 #
 # $1: STL name as it appears in APP_STL (e.g. system)
-# $2: STL module name (e.g. cxx-stl/system)
+# $2: STL module path (e.g. cxx-stl/system)
 # $3: list of static libraries all modules will depend on
 # $4: list of shared libraries all modules will depend on
-# $5: list of ldlibs to be exported to all modules
-# $6: Default standard version for this STL (with `-std` prefix).
+# $5: Default standard version for this STL (with `-std` prefix).
 #
 ndk-stl-register = \
     $(eval __ndk_stl := $(strip $1)) \
@@ -2012,8 +2046,7 @@ ndk-stl-register = \
     $(eval NDK_STL.$(__ndk_stl).IMPORT_MODULE := $(strip $2)) \
     $(eval NDK_STL.$(__ndk_stl).STATIC_LIBS := $(strip $(call strip-lib-prefix,$3))) \
     $(eval NDK_STL.$(__ndk_stl).SHARED_LIBS := $(strip $(call strip-lib-prefix,$4))) \
-    $(eval NDK_STL.$(__ndk_stl).EXPORT_LDLIBS := $(strip $5)) \
-    $(eval NDK_STL.$(__ndk_stl).DEFAULT_STD_VERSION := $(strip $6))
+    $(eval NDK_STL.$(__ndk_stl).DEFAULT_STD_VERSION := $(strip $5))
 
 # Called to check that the value of APP_STL is a valid one.
 # $1: STL name as it apperas in APP_STL (e.g. 'system')
@@ -2100,9 +2133,8 @@ $(call ndk-stl-register,\
 $(call ndk-stl-register,\
     c++_static,\
     cxx-stl/llvm-libc++,\
-    c++_static libc++abi android_support,\
+    c++_static,\
     ,\
-    -ldl,\
     -std=c++11\
     )
 
@@ -2111,9 +2143,8 @@ $(call ndk-stl-register,\
 $(call ndk-stl-register,\
     c++_shared,\
     cxx-stl/llvm-libc++,\
-    libandroid_support,\
-    c++_shared,\
     ,\
+    c++_shared,\
     -std=c++11\
     )
 

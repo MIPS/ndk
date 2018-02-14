@@ -49,13 +49,6 @@ int at_quick_exit(void (*)(void));
 void quick_exit(int) __noreturn;
 #endif
 
-#if __ANDROID_API__ < __ANDROID_API_O__
-double strtod_l(const char*, char**, locale_t);
-float strtof_l(const char*, char**, locale_t);
-long strtol_l(const char*, char**, int, locale_t);
-unsigned long strtoul_l(const char*, char**, int, locale_t);
-#endif
-
 __END_DECLS
 
 #endif

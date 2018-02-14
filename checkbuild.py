@@ -23,6 +23,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import argparse
+import contextlib
 import copy
 import errno
 import inspect
@@ -833,11 +834,6 @@ class Platforms(ndk.builds.Module):
         src_dir = ndk.paths.android_path('bionic/libc/arch-common/bionic')
         crt_brand = ndk.paths.ndk_path('sources/crt/crtbrand.S')
 
-        # The old static libraries are not compatible with the new
-        # crtbegin_static.o or crtend_android.o. Continue using the old source
-        # for these objects until we update the static libraries.
-        old_src_dir = build_support.android_path('development/ndk/crt', arch)
-
         objects = {
             'crtbegin_dynamic.o': [
                 os.path.join(src_dir, 'crtbegin.c'),
@@ -848,11 +844,11 @@ class Platforms(ndk.builds.Module):
                 crt_brand,
             ],
             'crtbegin_static.o': [
-                os.path.join(old_src_dir, 'crtbegin.c'),
+                os.path.join(src_dir, 'crtbegin.c'),
                 crt_brand,
             ],
             'crtend_android.o': [
-                os.path.join(old_src_dir, 'crtend_android.S'),
+                os.path.join(src_dir, 'crtend.S'),
             ],
             'crtend_so.o': [
                 os.path.join(src_dir, 'crtend_so.S'),
@@ -862,31 +858,14 @@ class Platforms(ndk.builds.Module):
         for name, srcs in objects.items():
             dst_path = os.path.join(dst_dir, name)
             defs = []
-            if name == 'crtbegin_static.o' and api < 21:
-                defs.append('-D_NO_CRT_ATEXIT')
+            if name == 'crtbegin_static.o':
+                # libc.a is always the latest version, so ignore the API level
+                # setting for crtbegin_static.
+                defs.append('-D_FORCE_CRT_ATFORK')
             self.build_crt_object(
                 dst_path, srcs, api, arch, build_number, defs)
             if name.startswith('crtbegin'):
                 self.check_elf_note(dst_path)
-
-    def validate(self):
-        super(Platforms, self).validate()
-
-        first_lp32 = self.get_apis()[0]
-        first_lp64 = 21
-        for arch in ('arm', 'x86'):
-            self.validate_src(first_lp32, arch)
-        for arch in ('arm64', 'x86_64'):
-            self.validate_src(first_lp64, arch)
-
-    def validate_src(self, api, arch):
-        platform = 'android-{}'.format(api)
-        arch_name = 'arch-{}'.format(arch)
-        lib_dir = self.src_path(platform, arch_name, self.libdir_name(arch))
-        if not os.path.exists(lib_dir):
-            raise self.validate_error(
-                'Minimum platform API {} does not contain prebuilt static '
-                'libraries ({} does not exist)'.format(api, lib_dir))
 
     def build(self, build_dir, _dist_dir, args):
         build_dir = os.path.join(build_dir, self.path)
@@ -913,29 +892,26 @@ class Platforms(ndk.builds.Module):
             shutil.rmtree(install_dir)
         os.makedirs(install_dir)
 
-        last_platform_with_libs = None
         for api in self.get_apis():
             if api in self.skip_apis:
                 continue
 
-            # Copy shared libraries from prebuilts/ndk.
+            # Copy shared libraries from prebuilts/ndk/platform/platforms.
             platform = 'android-{}'.format(api)
             platform_src = self.prebuilt_path('platforms', platform)
             platform_dst = os.path.join(install_dir, 'android-{}'.format(api))
             shutil.copytree(platform_src, platform_dst)
 
-            # Copy static libraries from development/ndk.
             for arch in self.get_arches(api):
                 arch_name = 'arch-{}'.format(arch)
+                triple = ndk.abis.arch_to_triple(arch)
 
+                # Install static libraries from prebuilts/ndk/platform/sysroot.
+                # TODO: Determine if we can change the build system to use the
+                # libraries directly from the sysroot directory rather than
+                # duplicating all the libraries in platforms.
+                lib_dir = self.prebuilt_path('sysroot/usr/lib', triple)
                 libdir_name = self.libdir_name(arch)
-                lib_dir = self.src_path(platform, arch_name, libdir_name)
-                if os.path.exists(lib_dir):
-                    last_platform_with_libs = platform
-                else:
-                    lib_dir = self.src_path(
-                        last_platform_with_libs, arch_name, libdir_name)
-
                 lib_dir_dst = os.path.join(
                     install_dir, platform, arch_name, 'usr', libdir_name)
                 for name in os.listdir(lib_dir):
@@ -949,6 +925,7 @@ class Platforms(ndk.builds.Module):
                     os.makedirs(os.path.join(
                         install_dir, platform, arch_name, 'usr/lib'))
 
+                # Install the CRT objects that we just built.
                 obj_dir = os.path.join(build_dir, platform, arch_name)
                 for name in os.listdir(obj_dir):
                     obj_src = os.path.join(obj_dir, name)
@@ -1724,14 +1701,6 @@ def main():
     total_timer = ndk.timer.Timer()
     total_timer.start()
 
-    # It seems the build servers run us in our own session, in which case we
-    # get EPERM from `setpgrp`. No need to call this in that case because we
-    # will already be the process group leader.
-    if os.getpid() != os.getsid(os.getpid()):
-        if sys.stdin.isatty():
-            os.tcsetpgrp(sys.stdin.fileno(), os.getpid())
-        os.setpgrp()
-
     args = parse_args()
 
     if args.modules is None:
@@ -1867,5 +1836,32 @@ def main():
     sys.exit(not good)
 
 
+@contextlib.contextmanager
+def _assign_self_to_new_process_group(fd):
+    # It seems the build servers run us in our own session, in which case we
+    # get EPERM from `setpgrp`. No need to call this in that case because we
+    # will already be the process group leader.
+    if os.getpid() == os.getsid(os.getpid()):
+        yield
+        return
+
+    if ndk.ansi.is_self_in_tty_foreground_group(fd):
+        old_pgrp = os.tcgetpgrp(fd.fileno())
+        os.tcsetpgrp(fd.fileno(), os.getpid())
+        os.setpgrp()
+        try:
+            yield
+        finally:
+            os.tcsetpgrp(fd.fileno(), old_pgrp)
+    else:
+        os.setpgrp()
+        yield
+
+
+def _run_main_in_new_process_group():
+    with _assign_self_to_new_process_group(sys.stdin):
+        main()
+
+
 if __name__ == '__main__':
-    main()
+    _run_main_in_new_process_group()
