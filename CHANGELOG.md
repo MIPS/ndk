@@ -58,6 +58,12 @@ NDK
        of a local development build.
      * `ANDROID_NDK_BETA`: The beta version of the NDK. This is 0 for a stable
        release.
+ * ndk-build now installs sanitizer runtime libraries to your out directory for
+   inclusion in your APK. Coupled with [wrap.sh], this removes the requirement
+   of rooting your device to use sanitizers. See [Issue 540].
+
+[wrap.sh]: https://developer.android.com/ndk/guides/wrap-script.html
+[Issue 540]: https://github.com/android-ndk/ndk/issues/540
 
 [Issue 313]: https://github.com/android-ndk/ndk/issues/313
 

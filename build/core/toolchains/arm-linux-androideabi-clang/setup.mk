@@ -36,6 +36,9 @@ TOOLCHAIN_PREFIX := $(TOOLCHAIN_ROOT)/bin/$(TOOLCHAIN_NAME)-
 # CFLAGS and LDFLAGS
 #
 
+TARGET_ASAN_BASENAME := libclang_rt.asan-arm-android.so
+TARGET_UBSAN_BASENAME := libclang_rt.ubsan_standalone-arm-android.so
+
 TARGET_CFLAGS := \
     -gcc-toolchain $(call host-path,$(TOOLCHAIN_ROOT)) \
     -fpic \
