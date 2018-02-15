@@ -212,6 +212,12 @@ def make_clang_scripts(install_dir, triple, api, windows):
     if arch == 'i686':
         common_flags += ' -mstackrealign'
 
+    # Clang does not automatically pass --eh-frame-hdr to the linker for static
+    # executables.
+    # https://github.com/android-ndk/ndk/issues/593
+    # http://b/72512648
+    common_flags += ' -Wl,--eh-frame-hdr'
+
     unix_flags = common_flags
     unix_flags += ' --sysroot `dirname $0`/../sysroot'
 

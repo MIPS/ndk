@@ -245,6 +245,12 @@ ifneq (,$(filter true,$(NDK_APP_PIE) $(TARGET_PIE)))
         LOCAL_CFLAGS += -fpie
         LOCAL_LDFLAGS += -fpie -pie
       endif
+    else
+      # Clang does not automatically pass --eh-frame-hdr to the linker for
+      # static executables.
+      # https://github.com/android-ndk/ndk/issues/593
+      # http://b/72512648
+      LOCAL_LDFLAGS += -Wl,--eh-frame-hdr
     endif
   endif
 endif
