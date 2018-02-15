@@ -443,60 +443,6 @@ def disable_verity_and_wait_for_reboot(device):
         device.wait()
 
 
-def asan_device_setup(ndk_path, device):
-    toolchain_lib_path = os.path.join(
-        ndk_path, 'toolchains/llvm/prebuilt', ndk.hosts.get_host_tag(ndk_path),
-        'lib64/clang')
-    # The lib64/clang directory will contain both a $MAJOR.$MINOR and a
-    # $MAJOR.$MINOR.$REVISION directory. They should be identical, so just pick
-    # one.
-    # toolchain_lib_path = os.path.join(
-    #    toolchain_lib_path, os.listdir(toolchain_lib_path)[0])
-    # FIXME: Except at the moment the toolchain install is broken and 5.0 !=
-    # 5.0.1.
-    toolchain_lib_path = os.path.join(toolchain_lib_path, '5.0')
-    path = os.path.join(toolchain_lib_path, 'bin/asan_device_setup')
-    cmd = [path, '--device', device.serial]
-    logger().info('%s: asan_device_setup', device.name)
-    # Use call_output to keep the call quiet unless something goes wrong.
-    result, out = ndk.ext.subprocess.call_output(cmd)
-    if result != 0:
-        # The script sometimes fails on the first try >:(
-        logger().info(
-            '%s: asan_device_setup failed once, retrying', device.name)
-        result, out = ndk.ext.subprocess.call_output(cmd)
-    if result != 0:
-        # The script sometimes fails on the first try >:(
-        result, out = ndk.ext.subprocess.call_output(cmd)
-        raise RuntimeError('{}: asan_device_setup failed:\n{}'.format(
-            device, out))
-
-
-def setup_asan_for_device(worker, ndk_path, device):
-    worker.status = 'Performing ASAN setup for {}'.format(device)
-    disable_verity_and_wait_for_reboot(device)
-    asan_device_setup(ndk_path, device)
-
-
-def perform_asan_setup(workqueue, ndk_path, groups_for_config):
-    # asan_device_setup is a shell script, so no asan there.
-    if os.name == 'nt':
-        return
-
-    devices = []
-    for groups in groups_for_config.values():
-        for group in groups:
-            devices.extend(group.devices)
-    devices = sorted(list(set(devices)))
-
-    for device in devices:
-        if device.can_use_asan():
-            workqueue.add_task(setup_asan_for_device, ndk_path, device)
-
-    finish_workqueue_with_ui(workqueue)
-    print('Finished ASAN setup')
-
-
 def run_test(worker, test):
     device = worker.data[0]
     worker.status = 'Running {}'.format(test.name)
@@ -901,11 +847,6 @@ def run_tests(args):
             push_tests_to_devices(
                 workqueue, test_dist_dir, groups_for_config, can_use_sync)
         results.add_timing_report('Push', push_timer)
-
-        asan_setup_timer = ndk.timer.Timer()
-        with asan_setup_timer:
-            perform_asan_setup(workqueue, args.ndk, groups_for_config)
-        results.add_timing_report('ASAN setup', asan_setup_timer)
     finally:
         workqueue.terminate()
         workqueue.join()
