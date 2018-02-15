@@ -381,6 +381,31 @@ def versioned_so(host, lib, version):
         raise ValueError('Unsupported host: {}'.format(host))
 
 
+def gradle_compatibility_hack(out_dir, host, name, toolchain):
+    # Create a mostly-empty MIPS64 toolchain directory. The Android Gradle
+    # plugin, version 3.0.1 and earlier, needs this directory to run.
+    # https://issuetracker.google.com/69961029
+
+    host_tag = build_support.host_to_tag(host)
+    toolchains_dir = os.path.join(
+        ndk.paths.get_install_path(out_dir), 'toolchains')
+    host_dir = os.path.join(toolchains_dir, toolchain, 'prebuilt', host_tag)
+    os.makedirs(host_dir)
+
+    notice_text = textwrap.dedent("""\
+        This {} directory exists to make the NDK compatible with the Android
+        SDK's Gradle plugin, version 3.0.1 and earlier, which expects the NDK
+        to have a {} toolchain directory.
+        """.format(toolchain, name))
+
+    notice1_path = os.path.join(host_dir, 'NOTICE-{}'.format(name))
+    notice2_path = os.path.join(toolchains_dir, 'NOTICE-{}'.format(name))
+    with open(notice1_path, 'w') as fp:
+        fp.write(notice_text)
+    with open(notice2_path, 'w') as fp:
+        fp.write(notice_text)
+
+
 class Gcc(ndk.builds.Module):
     name = 'gcc'
     path = 'toolchains/{toolchain}-4.9/prebuilt/{host}'
@@ -396,35 +421,10 @@ class Gcc(ndk.builds.Module):
         for arch in arches:
             self.install_arch(out_dir, args.system, arch)
 
-        self.gradle_compatibility_hack(out_dir, args.system)
-
-    def gradle_compatibility_hack(self, out_dir, host):
-        # Create a mostly-empty MIPS64 toolchain directory. The Android Gradle
-        # plugin, version 3.0.1 and earlier, needs this directory to run.
-        # https://issuetracker.google.com/69961029
-
-        host_tag = build_support.host_to_tag(host)
-        toolchains_dir = os.path.join(
-            ndk.paths.get_install_path(out_dir),
-            'toolchains')
-        mips_name = 'mips64el-linux-android-4.9'
-        host_dir = os.path.join(
-            toolchains_dir, mips_name, 'prebuilt', host_tag)
-        os.makedirs(host_dir)
-
-        notice_text = textwrap.dedent("""\
-            This {} directory exists to make the NDK
-            compatible with the Android SDK's Gradle plugin, version 3.0.1 and
-            earlier, which expects the NDK to have a MIPS64 toolchain
-            directory.
-            """.format(mips_name))
-
-        notice1_path = os.path.join(host_dir, 'NOTICE-MIPS64')
-        notice2_path = os.path.join(toolchains_dir, 'NOTICE-MIPS64')
-        with open(notice1_path, 'w') as fp:
-            fp.write(notice_text)
-        with open(notice2_path, 'w') as fp:
-            fp.write(notice_text)
+        gradle_compatibility_hack(
+            out_dir, args.system, 'MIPS', 'mipsel-linux-android-4.9')
+        gradle_compatibility_hack(
+            out_dir, args.system, 'MIPS64', 'mips64el-linux-android-4.9')
 
     def install_arch(self, out_dir, host, arch):
         version = '4.9'
