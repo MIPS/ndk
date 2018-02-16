@@ -381,8 +381,8 @@ def versioned_so(host, lib, version):
         raise ValueError('Unsupported host: {}'.format(host))
 
 
-def gradle_compatibility_hack(out_dir, host, name, toolchain):
-    # Create a mostly-empty MIPS64 toolchain directory. The Android Gradle
+def gradle_hack_toolchain(out_dir, host, name, toolchain):
+    # Create a mostly-empty MIPS[64] toolchain directory. The Android Gradle
     # plugin, version 3.0.1 and earlier, needs this directory to run.
     # https://issuetracker.google.com/69961029
 
@@ -406,6 +406,34 @@ def gradle_compatibility_hack(out_dir, host, name, toolchain):
         fp.write(notice_text)
 
 
+def gradle_hack_platform(out_dir, arch, sdk):
+    # Create mostly-empty MIPS[64] platform directories:
+    #  - platforms/android-14/arch-mips
+    #  - platforms/android-21/arch-mips64
+    # The Android Gradle plugin v3.0.1 and earlier needs them. See
+    # http://b/73499944.
+
+    platform_dir = os.path.join(
+        ndk.paths.get_install_path(out_dir), 'platforms',
+        'android-{}'.format(sdk))
+
+    mips_dir = os.path.join(platform_dir, 'arch-{}'.format(arch))
+    os.makedirs(mips_dir)
+
+    notice_text = textwrap.dedent("""\
+        This arch-{} directory exists to make the NDK compatible with the Android
+        SDK's Gradle plugin, version 3.0.1 and earlier, which expects this
+        directory to exist.
+        """.format(arch))
+
+    notice1_path = os.path.join(platform_dir, 'NOTICE-{}'.format(arch.upper()))
+    notice2_path = os.path.join(mips_dir, 'NOTICE-{}'.format(arch.upper()))
+    with open(notice1_path, 'w') as fp:
+        fp.write(notice_text)
+    with open(notice2_path, 'w') as fp:
+        fp.write(notice_text)
+
+
 class Gcc(ndk.builds.Module):
     name = 'gcc'
     path = 'toolchains/{toolchain}-4.9/prebuilt/{host}'
@@ -421,9 +449,9 @@ class Gcc(ndk.builds.Module):
         for arch in arches:
             self.install_arch(out_dir, args.system, arch)
 
-        gradle_compatibility_hack(
+        gradle_hack_toolchain(
             out_dir, args.system, 'MIPS', 'mipsel-linux-android-4.9')
-        gradle_compatibility_hack(
+        gradle_hack_toolchain(
             out_dir, args.system, 'MIPS64', 'mips64el-linux-android-4.9')
 
     def install_arch(self, out_dir, host, arch):
@@ -943,6 +971,9 @@ class Platforms(ndk.builds.Module):
         shutil.copy2(
             self.prebuilt_path('sysroot/NOTICE'),
             os.path.join(install_dir, 'NOTICE'))
+
+        gradle_hack_platform(out_dir, 'mips', 14)
+        gradle_hack_platform(out_dir, 'mips64', 21)
 
         build_support.make_repo_prop(install_dir)
         self.validate_notice(install_dir)
