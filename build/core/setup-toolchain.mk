@@ -174,7 +174,6 @@ include $(NDK_APP_BUILD_SCRIPT)
 # -fsanitize in its ldflags.
 include $(BUILD_SYSTEM)/sanitizers.mk
 
-$(info NDK_APP_WRAP_SH_$(TARGET_ARCH_ABI)=$(NDK_APP_WRAP_SH_$(TARGET_ARCH_ABI)))
 ifneq ($(NDK_APP_WRAP_SH_$(TARGET_ARCH_ABI)),)
     include $(BUILD_SYSTEM)/install_wrap_sh.mk
 endif
