@@ -38,3 +38,12 @@ include $(BUILD_SYSTEM)/install_sanitizer.mk
 NDK_SANITIZER_NAME := ASAN
 NDK_SANITIZER_FSANITIZE_ARGS := address
 include $(BUILD_SYSTEM)/install_sanitizer.mk
+
+# If the user has not specified their own wrap.sh and is using ASAN, install a
+# default ASAN wrap.sh for them.
+ifneq (,$(filter address,$(NDK_SANITIZERS)))
+    ifeq ($(NDK_NO_USER_WRAP_SH),true)
+        NDK_APP_WRAP_SH_$(TARGET_ARCH_ABI) := \
+            $(NDK_ROOT)/wrap.sh/asan.$(TARGET_ARCH_ABI).sh
+    endif
+endif

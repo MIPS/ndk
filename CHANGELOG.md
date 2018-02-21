@@ -58,9 +58,20 @@ NDK
        of a local development build.
      * `ANDROID_NDK_BETA`: The beta version of the NDK. This is 0 for a stable
        release.
+ * Added support for `APP_WRAP_SH` to ndk-build.
+     * This variable points to a shell script (relative to your Android.mk) that
+       will be installed as a [wrap.sh] file in your APK.
+     * Available in both an ABI-generic form (`APP_WRAP_SH`), which will install
+       a single script for every ABI, and an ABI-specific form
+       (`APP_WRAP_SH_arm64-v8a`, etc) to allow for per-ABI customization of the
+       wrap.sh script.
  * ndk-build now installs sanitizer runtime libraries to your out directory for
    inclusion in your APK. Coupled with [wrap.sh], this removes the requirement
    of rooting your device to use sanitizers. See [Issue 540].
+ * When using ASAN, ndk-build will install a wrap.sh file to set up ASAN for
+   your app if you have not specified your own wrap.sh. If you have specified
+   your own wrap.sh, you can add ASAN support to it as described
+   [here](https://github.com/google/sanitizers/wiki/AddressSanitizerOnAndroidO).
 
 [wrap.sh]: https://developer.android.com/ndk/guides/wrap-script.html
 [Issue 540]: https://github.com/android-ndk/ndk/issues/540
