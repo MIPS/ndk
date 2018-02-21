@@ -52,18 +52,18 @@ def argv_to_module_arg_lists(args):
     return modules[0], modules[1:]
 
 
-def main(argv):
+def main(argv, stream=sys.stdout):
     """Program entry point."""
     if len(argv) < 4:
         sys.exit(
             'usage: ldflags_to_sanitizers.py GLOBAL_FLAGS '
             '--module MODULE_FLAGS [--module MODULE_FLAGS...]')
 
-    all_sanitizers = list(sanitizers_from_args(sys.argv[1]))
-    modules_flags = argv_to_module_arg_lists(argv[2:])
+    global_flags, modules_flags = argv_to_module_arg_lists(argv[1:])
+    all_sanitizers = list(sanitizers_from_args(global_flags))
     for module_flags in modules_flags:
         all_sanitizers.extend(sanitizers_from_args(module_flags))
-    print(' '.join(sorted(set(all_sanitizers))))
+    print(' '.join(sorted(set(all_sanitizers))), file=stream)
 
 
 if __name__ == '__main__':

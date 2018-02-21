@@ -18,7 +18,13 @@
 from __future__ import absolute_import
 import unittest
 
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 from build.ldflags_to_sanitizers import argv_to_module_arg_lists
+from build.ldflags_to_sanitizers import main as ldflags_main
 from build.ldflags_to_sanitizers import sanitizers_from_args
 
 
@@ -87,3 +93,12 @@ class LdflagsToSanitizersTest(unittest.TestCase):
         self.assertTupleEqual(
             (['foo', 'bar'], [['baz']]),
             argv_to_module_arg_lists(['foo', 'bar', '--module', 'baz']))
+
+    def test_main(self):
+        """Test that the program itself works."""
+        sio = StringIO()
+        ldflags_main(
+            ['ldflags_to_sanitizers.py', '-fsanitize=undefined', '--module',
+             '-fsanitize=address,thread', '-fno-sanitize=thread',
+             '--module', '-fsanitize=undefined'], sio)
+        self.assertEqual('address undefined', sio.getvalue().strip())
