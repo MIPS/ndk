@@ -530,14 +530,6 @@ if(ANDROID_ABI STREQUAL mips)
   list(APPEND ANDROID_COMPILER_FLAGS
     -mips32)
 endif()
-if(ANDROID_ABI STREQUAL "mips64" AND ANDROID_TOOLCHAIN STREQUAL clang)
-  list(APPEND ANDROID_COMPILER_FLAGS "-fintegrated-as")
-endif()
-if(ANDROID_ABI MATCHES "^armeabi" AND ANDROID_TOOLCHAIN STREQUAL clang)
-  # Disable integrated-as for better compatibility.
-  list(APPEND ANDROID_COMPILER_FLAGS
-    -fno-integrated-as)
-endif()
 if(ANDROID_ABI STREQUAL mips AND ANDROID_TOOLCHAIN STREQUAL clang)
   # Help clang use mips64el multilib GCC
   list(APPEND ANDROID_LINKER_FLAGS
