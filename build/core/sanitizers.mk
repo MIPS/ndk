@@ -25,11 +25,12 @@ NDK_TOOLCHAIN_LIB_DIR := \
 NDK_APP_ASAN := $(NDK_APP_DST_DIR)/$(TARGET_ASAN_BASENAME)
 NDK_APP_UBSAN := $(NDK_APP_DST_DIR)/$(TARGET_UBSAN_BASENAME)
 
-NDK_ALL_LDFLAGS := $(NDK_APP_LDFLAGS)
+NDK_MODULES_LDFLAGS :=
 $(foreach __module,$(__ndk_modules),\
-    $(eval NDK_ALL_LDFLAGS += $(__ndk_modules.$(__module).LDFLAGS)))
-NDK_FSANITIZE_LDFLAGS := $(filter -fsanitize=%,$(NDK_ALL_LDFLAGS))
-NDK_SANITIZERS := $(patsubst -fsanitize=%,%,$(NDK_FSANITIZE_LDFLAGS))
+    $(eval NDK_MODULES_LDFLAGS += --module $(__ndk_modules.$(__module).LDFLAGS)))
+NDK_SANITIZERS := $(strip \
+    $(shell $(HOST_PYTHON) $(BUILD_PY)/ldflags_to_sanitizers.py \
+    $(NDK_APP_LDFLAGS) $(NDK_MODULES_LDFLAGS)))
 
 NDK_SANITIZER_NAME := UBSAN
 NDK_SANITIZER_FSANITIZE_ARGS := undefined
