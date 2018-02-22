@@ -49,9 +49,6 @@ TARGET_CFLAGS := \
     -Wno-unused-command-line-argument \
     -no-canonical-prefixes
 
-# Disable integrated-as for better compatibility
-TARGET_CFLAGS += -fno-integrated-as
-
 # Always enable debug info. We strip binaries when needed.
 TARGET_CFLAGS += -g
 

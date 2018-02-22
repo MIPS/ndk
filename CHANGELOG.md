@@ -72,9 +72,13 @@ NDK
    your app if you have not specified your own wrap.sh. If you have specified
    your own wrap.sh, you can add ASAN support to it as described
    [here](https://github.com/google/sanitizers/wiki/AddressSanitizerOnAndroidO).
+ * [Issue 614]: ndk-build and CMake no longer pass `-fno-integrated-as` for
+   arm32 by default.  If your project contains hand written assembly, you may
+   need to pass this flag.
 
 [wrap.sh]: https://developer.android.com/ndk/guides/wrap-script.html
 [Issue 540]: https://github.com/android-ndk/ndk/issues/540
+[Issue 614]: https://github.com/android-ndk/ndk/issues/614
 
 [Issue 313]: https://github.com/android-ndk/ndk/issues/313
 
