@@ -34,6 +34,7 @@ NDK
 
  * Updated Clang to build 4579689.
      * LTO now works on Windows, fixing [Issue 313].
+     * [Issue 527]: [Undefined Behavior Sanitizer] now works for NDK binaries.
  * Updated gtest to upstream revision 0fe96607d85cf3a25ac40da369db62bbee2939a5.
  * `libandroid_support` is no longer used when your NDK API level is greater
    than or equal to 21 (Lollipop). Build system maintainers: be sure to update
@@ -76,11 +77,12 @@ NDK
    arm32 by default.  If your project contains hand written assembly, you may
    need to pass this flag.
 
+[Undefined Behavior Sanitizer]: https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
 [wrap.sh]: https://developer.android.com/ndk/guides/wrap-script.html
+[Issue 313]: https://github.com/android-ndk/ndk/issues/313
+[Issue 527]: https://github.com/android-ndk/ndk/issues/527
 [Issue 540]: https://github.com/android-ndk/ndk/issues/540
 [Issue 614]: https://github.com/android-ndk/ndk/issues/614
-
-[Issue 313]: https://github.com/android-ndk/ndk/issues/313
 
 Known Issues
 ------------
