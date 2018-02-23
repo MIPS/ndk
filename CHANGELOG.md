@@ -33,7 +33,8 @@ NDK
 ---
 
  * Updated Clang to build 4579689.
-     * LTO now works on Windows, fixing [Issue 313].
+     * [Issue 313]: LTO now works on Windows.
+     * [Issue 527]: [Undefined Behavior Sanitizer] now works for NDK binaries.
  * Updated gtest to upstream revision 0fe96607d85cf3a25ac40da369db62bbee2939a5.
  * `libandroid_support` is no longer used when your NDK API level is greater
    than or equal to 21 (Lollipop). Build system maintainers: be sure to update
@@ -65,9 +66,9 @@ NDK
        a single script for every ABI, and an ABI-specific form
        (`APP_WRAP_SH_arm64-v8a`, etc) to allow for per-ABI customization of the
        wrap.sh script.
- * ndk-build now installs sanitizer runtime libraries to your out directory for
-   inclusion in your APK. Coupled with [wrap.sh], this removes the requirement
-   of rooting your device to use sanitizers. See [Issue 540].
+ * [Issue 540]: ndk-build now installs sanitizer runtime libraries to your out
+   directory for inclusion in your APK. Coupled with [wrap.sh], this removes the
+   requirement of rooting your device to use sanitizers.
  * When using ASAN, ndk-build will install a wrap.sh file to set up ASAN for
    your app if you have not specified your own wrap.sh. If you have specified
    your own wrap.sh, you can add ASAN support to it as described
@@ -76,11 +77,12 @@ NDK
    arm32 by default.  If your project contains hand written assembly, you may
    need to pass this flag.
 
+[Undefined Behavior Sanitizer]: https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
 [wrap.sh]: https://developer.android.com/ndk/guides/wrap-script.html
+[Issue 313]: https://github.com/android-ndk/ndk/issues/313
+[Issue 527]: https://github.com/android-ndk/ndk/issues/527
 [Issue 540]: https://github.com/android-ndk/ndk/issues/540
 [Issue 614]: https://github.com/android-ndk/ndk/issues/614
-
-[Issue 313]: https://github.com/android-ndk/ndk/issues/313
 
 Known Issues
 ------------
