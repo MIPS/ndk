@@ -54,10 +54,13 @@ def argv_to_module_arg_lists(args):
 
 def main(argv, stream=sys.stdout):
     """Program entry point."""
-    if len(argv) < 4:
+    # The only args we're guaranteed to see are the program name and at least
+    # one --module. GLOBAL_FLAGS might be empty, as might any of the
+    # MODULE_FLAGS sections.
+    if len(argv) < 2:
         sys.exit(
-            'usage: ldflags_to_sanitizers.py GLOBAL_FLAGS '
-            '--module MODULE_FLAGS [--module MODULE_FLAGS...]')
+            'usage: ldflags_to_sanitizers.py [GLOBAL_FLAGS] '
+            '--module [MODULE_FLAGS] [--module [MODULE_FLAGS]...]')
 
     global_flags, modules_flags = argv_to_module_arg_lists(argv[1:])
     all_sanitizers = list(sanitizers_from_args(global_flags))
