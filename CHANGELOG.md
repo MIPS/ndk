@@ -29,12 +29,14 @@ Announcements
    August 2019. Start porting now to avoid surprises when the time comes. For
    more information, see [this blog post](https://android-developers.googleblog.com/2017/12/improving-app-security-and-performance.html).
 
-NDK
----
+Changes
+-------
 
- * Updated Clang to build 4579689.
+ * Updated Clang to build 4630689.
      * [Issue 313]: LTO now works on Windows.
      * [Issue 527]: [Undefined Behavior Sanitizer] now works for NDK binaries.
+     * [Issue 593]: Clang now automatically passes `--eh-frame-hdr` to the
+       linker even for static executables, fixing exception handling.
  * Updated gtest to upstream revision 0fe96607d85cf3a25ac40da369db62bbee2939a5.
  * `libandroid_support` is no longer used when your NDK API level is greater
    than or equal to 21 (Lollipop). Build system maintainers: be sure to update
@@ -82,6 +84,7 @@ NDK
 [Issue 313]: https://github.com/android-ndk/ndk/issues/313
 [Issue 527]: https://github.com/android-ndk/ndk/issues/527
 [Issue 540]: https://github.com/android-ndk/ndk/issues/540
+[Issue 593]: https://github.com/android-ndk/ndk/issues/593
 [Issue 614]: https://github.com/android-ndk/ndk/issues/614
 
 Known Issues
@@ -92,14 +95,8 @@ Known Issues
    segfaults if the containing library is `dlclose`ed on devices running M or
    newer, or devices before M when using a static STL. The simple workaround is
    to not call `dlclose`.
- * [Issue 593]: Exception handling does not work out-of-the-box with non-arm32
-   static executables. Clang does not pass `--eh-frame-hdr` to the linker for
-   static executables. This will be fixed in a future Clang update, but for now
-   this issue can be worked around by adding `-Wl,--eh-frame-hdr` to your
-   ldflags.
  * [Issue 70838247]: Gold emits broken debug information for AArch64. AArch64
    still uses BFD by default.
 
 [Issue 360]: https://github.com/android-ndk/ndk/issues/360
-[Issue 593]: https://github.com/android-ndk/ndk/issues/593
 [Issue 70838247]: https://issuetracker.google.com/70838247
