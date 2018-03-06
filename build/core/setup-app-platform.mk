@@ -154,7 +154,7 @@ ifdef APP_MANIFEST
     ifneq (,$(call gt,$(APP_PLATFORM_LEVEL),$(_minsdkversion)))
         $(call __ndk_info,WARNING: APP_PLATFORM $(APP_PLATFORM) is higher than \
             android:minSdkVersion $(_minsdkversion) in $(APP_MANIFEST). NDK \
-            binaries will *not* be comptible with devices older than \
+            binaries will *not* be compatible with devices older than \
             $(APP_PLATFORM). See \
             https://android.googlesource.com/platform/ndk/+/master/docs/user/common_problems.md \
             for more information.)
