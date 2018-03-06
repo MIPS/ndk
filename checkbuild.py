@@ -254,7 +254,7 @@ def _install_file(src_file, dst_file):
 class Clang(ndk.builds.Module):
     name = 'clang'
     path = 'toolchains/llvm/prebuilt/{host}'
-    version = 'clang-4579689'
+    version = 'clang-4630689'
 
     def get_prebuilt_path(self, host):
         # The 32-bit Windows Clang is a part of the 64-bit Clang package in
@@ -515,18 +515,14 @@ class Gcc(ndk.builds.Module):
         shutil.copy2(llvmgold, bfd_plugins)
 
         if not is_win:
-            libcxx = os.path.join(clang_libs, 'libc++' + so)
             libcxx_1 = os.path.join(
                 clang_libs, versioned_so(host, 'libc++', '1'))
-            libllvm = os.path.join(clang_libs, 'libLLVM' + so)
 
             # The rpath on LLVMgold.so is ../lib64, so we have to install to
             # lib/lib64 to have it be in the right place :(
             lib_dir = os.path.join(install_path, 'lib/lib64')
             os.makedirs(lib_dir)
-            shutil.copy2(libcxx, lib_dir)
             shutil.copy2(libcxx_1, lib_dir)
-            shutil.copy2(libllvm, lib_dir)
         else:
             libwinpthread = os.path.join(clang_bin, 'libwinpthread-1.dll')
             shutil.copy2(libwinpthread, bfd_plugins)
