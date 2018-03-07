@@ -32,7 +32,7 @@ Announcements
 Changes
 -------
 
- * Updated Clang to build 4630689.
+ * Updated Clang to build 4639204.
      * [Issue 313]: LTO now works on Windows.
      * [Issue 527]: [Undefined Behavior Sanitizer] now works for NDK binaries.
      * [Issue 593]: Clang now automatically passes `--eh-frame-hdr` to the
