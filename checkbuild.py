@@ -26,6 +26,7 @@ import argparse
 import contextlib
 import copy
 import errno
+import glob
 import inspect
 import json
 import logging
@@ -307,6 +308,22 @@ class Clang(ndk.builds.Module):
                       os.path.join(install_path, 'bin/clang'))
             os.rename(os.path.join(install_path, 'bin/clang++.real'),
                       os.path.join(install_path, 'bin/clang++'))
+
+            # The prebuilts have symlinks pointing at a clang-MAJ.MIN binary,
+            # but we replace symlinks with standalone copies, so remove this
+            # copy to save space.
+            bin_dir = os.path.join(install_path, 'bin')
+            (clang_maj_min,) = glob.glob(os.path.join(bin_dir, 'clang-?.?'))
+            os.remove(clang_maj_min)
+
+        # Remove LLD from the NDK. LLD isn't currently supported. If we want to
+        # ship LLD, we should consider shipping only ld.lld to save space.
+        # b/74250510
+        bin_ext = '.exe' if args.system.startswith('windows') else ''
+        os.remove(os.path.join(install_path, 'bin/ld.lld' + bin_ext))
+        os.remove(os.path.join(install_path, 'bin/ld64.lld' + bin_ext))
+        os.remove(os.path.join(install_path, 'bin/lld' + bin_ext))
+        os.remove(os.path.join(install_path, 'bin/lld-link' + bin_ext))
 
         libdir_name = 'lib' if args.system == 'windows' else 'lib64'
         if args.system.startswith('windows'):
