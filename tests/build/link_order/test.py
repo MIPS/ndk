@@ -17,6 +17,8 @@
 """
 import difflib
 import os
+import re
+import shlex
 import subprocess
 import sys
 
@@ -41,8 +43,11 @@ def find_link_args(link_line):
     # A trivial attempt at parsing here is fine since we can assume that all
     # our objects and libraries will not include spaces and we don't care about
     # the rest of the arguments.
+    #
+    # Arguments could be quoted on Windows. shlex.split should be good enough:
+    # "C:/src/android-ndk-r17-beta1/build//../platforms/android-21/arch-x86_64/usr/lib/../lib64\\crtbegin_so.o"
     skip_next = False
-    for word in link_line.split(' '):
+    for word in shlex.split(link_line):
         if skip_next:
             skip_next = False
             continue
@@ -53,7 +58,7 @@ def find_link_args(link_line):
         if is_linked_item(word):
             # Use just the base name so we can compare to an exact expected
             # link order regardless of ABI.
-            if os.sep in word:
+            if os.sep in word or (os.altsep and os.altsep in word):
                 word = os.path.basename(word)
             args.append(word)
     return args
@@ -118,7 +123,7 @@ def run_test(ndk_path, abi, platform, _toolchain, build_flags):
 
     link_line = None
     for line in out.splitlines():
-        if 'bin/ld' in line:
+        if 'bin/ld' in re.sub(r'[/\\]+', '/', line):
             if link_line is not None:
                 err_msg = 'Found duplicate link lines:\n{}\n{}'.format(
                     link_line, line)
