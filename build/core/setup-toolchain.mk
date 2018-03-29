@@ -170,12 +170,18 @@ $(call ndk-stl-select,$(NDK_APP_STL))
 # module declarations, but does not populate the dependency graph yet.
 include $(NDK_APP_BUILD_SCRIPT)
 
-# Comes after NDK_APP_BUILD_SCRIPT because we need to know if *any* module has
-# -fsanitize in its ldflags.
-include $(BUILD_SYSTEM)/sanitizers.mk
+# Avoid computing sanitizer/wrap.sh things in the DUMP_VAR case because both of
+# these will create build rules and we want to avoid that. The DUMP_VAR case
+# also doesn't parse the module definitions, so we're missing a lot of the
+# information we need.
+ifeq (,$(DUMP_VAR))
+    # Comes after NDK_APP_BUILD_SCRIPT because we need to know if *any* module
+    # has -fsanitize in its ldflags.
+    include $(BUILD_SYSTEM)/sanitizers.mk
 
-ifneq ($(NDK_APP_WRAP_SH_$(TARGET_ARCH_ABI)),)
-    include $(BUILD_SYSTEM)/install_wrap_sh.mk
+    ifneq ($(NDK_APP_WRAP_SH_$(TARGET_ARCH_ABI)),)
+        include $(BUILD_SYSTEM)/install_wrap_sh.mk
+    endif
 endif
 
 $(call ndk-stl-add-dependencies,$(NDK_APP_STL))
