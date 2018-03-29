@@ -33,7 +33,7 @@
 
 __BEGIN_DECLS
 
-#if __ANDROID_API__ < __ANDROID_API_J__
+#if __ANDROID_API__ < __ANDROID_API_J_MR1__
 int posix_memalign(void** memptr, size_t alignment, size_t size);
 #endif
 
