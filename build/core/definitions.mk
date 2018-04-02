@@ -1689,7 +1689,8 @@ _FLAGS := $$($$(my)CFLAGS) \
           $$(NDK_APP_ASFLAGS) \
           $$(LOCAL_CFLAGS) \
           $$(LOCAL_ASFLAGS) \
-          -isystem $$(call host-path,$$(SYSROOT_INC)/usr/include) \
+          --sysroot $$(call host-path,$$(SYSROOT_INC)) \
+          $(SYSROOT_ARCH_INC_ARG) \
           -c \
 
 _TEXT := Compile $$(call get-src-file-text,$1)
