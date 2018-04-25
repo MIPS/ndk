@@ -81,6 +81,8 @@ Changes
  * [Issue 614]: ndk-build and CMake no longer pass `-fno-integrated-as` for
    arm32 by default.  If your project contains hand written assembly, you may
    need to pass this flag.
+ * ion.h is no longer a part of the NDK. This file defined an API that is not
+   consistent across devices.
 
 [Undefined Behavior Sanitizer]: https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
 [wrap.sh]: https://developer.android.com/ndk/guides/wrap-script.html
