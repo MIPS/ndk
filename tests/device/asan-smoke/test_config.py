@@ -1,7 +1,7 @@
 def build_unsupported(abi, platform, toolchain):
     if not toolchain.startswith('clang'):
         return toolchain
-    if not abi.startswith('armeabi') and not abi == 'x86':
+    if not abi.startswith('armeabi') and not abi == 'x86' and not abi.startswith('mips'):
         return abi
     return None
 
